@@ -1,5 +1,6 @@
 <?php
 
+	date_default_timezone_set('UTC');
 	defined('DS') || define('DS', DIRECTORY_SEPARATOR);
 	
 	// The time the script was loaded
@@ -37,7 +38,7 @@
 				{
 					TBGCliCommand::cli_echo("Could not find the template file for the specified action\n", 'white', 'bold');
 				}
-				elseif ($exception instanceof B2DBException)
+				elseif ($exception instanceof \b2db\Exception)
 				{
 					TBGCliCommand::cli_echo("An exception was thrown in the B2DB framework\n", 'white', 'bold');
 				}
@@ -104,7 +105,7 @@
 				try
 				{
 					$cc = 1;
-					foreach (B2DB::getSQLHits() as $details)
+					foreach (\b2db\Core::getSQLHits() as $details)
 					{
 						TBGCliCommand::cli_echo("(".$cc++.") [");
 						$str = ($details['time'] >= 1) ? round($details['time'], 2) . ' seconds' : round($details['time'] * 1000, 1) . 'ms';
@@ -181,7 +182,7 @@
 					echo "<h3>Could not find the template file for the specified action</h3>";
 					$report_description = "Could not find the template file for the specified action";
 				}
-				elseif ($exception instanceof B2DBException)
+				elseif ($exception instanceof \b2db\Exception)
 				{
 					echo "<h3>An exception was thrown in the B2DB framework</h3>";
 					$report_description = "An exception was thrown in the B2DB framework";
@@ -298,7 +299,7 @@
 				try
 				{
 					echo "<ol>";
-					foreach (B2DB::getSQLHits() as $details)
+					foreach (\b2db\Core::getSQLHits() as $details)
 					{
 						echo "<li>
 							<b>
@@ -430,36 +431,46 @@ echo "
 		//tbg_exception($error, array('code' => $code, 'file' => $file, 'line' => $line_number));
 	}
 	
-	/**
-	 * Magic autoload function to make sure classes are autoloaded when used
-	 *
-	 * @param $classname
-	 */
-	function __autoload($classname)
-	{
-		foreach (TBGContext::getClasspaths() as $path)
-		{
-			if (file_exists($path . $classname . '.class.php'))
-			{
-				require $path . $classname . '.class.php';
-				break;
-			}
-		}
-	}
+//	/**
+//	 * Magic autoload function to make sure classes are autoloaded when used
+//	 *
+//	 * @param $classname
+//	 */
+//	function __autoload($classname)
+//	{
+//		foreach (TBGContext::getClasspaths() as $path)
+//		{
+//			if (file_exists($path . $classname . '.class.php'))
+//			{
+//				require $path . $classname . '.class.php';
+//				break;
+//			}
+//		}
+//	}
 
+	
 	// Set up error and exception handling
 	set_error_handler('tbg_error_handler');
 	set_exception_handler('tbg_exception');
-	error_reporting(E_ALL | E_STRICT);
+	error_reporting(E_ALL | E_NOTICE | E_STRICT);
 	
 	if (!defined('THEBUGGENIE_PATH'))
 		throw new Exception('You must define the THEBUGGENIE_PATH constant so we can find the files we need');
 
 	// Load the context class, which controls most of things
 	require THEBUGGENIE_CORE_PATH . 'classes' . DS . 'TBGContext.class.php';
+	
+	spl_autoload_register(array('TBGContext', 'autoload'));
 
 	// Load the logging class so we can log stuff
 	require THEBUGGENIE_CORE_PATH . 'classes' . DS . 'TBGLogging.class.php';
+
+	// This code requires PHP 5.3 or newer, so if we don't have it - complain
+	if (PHP_VERSION_ID < 50300)
+	{
+		$e = new Exception('This software requires PHP 5.3.0 or newer, but you have an older version. Please upgrade');
+		return tbg_exception('Startup error', $e);
+	}
 
 	// Start loading The Bug Genie
 	try
@@ -476,7 +487,9 @@ echo "
 		}
 
 		// Add classpath so we can find the TBG* classes
-		TBGContext::addClasspath(THEBUGGENIE_CORE_PATH . 'classes' . DS);
+		TBGContext::addAutoloaderClassPath(THEBUGGENIE_CORE_PATH . 'classes' . DS);
+		TBGContext::autoloadNamespace('thebuggenie', THEBUGGENIE_CORE_PATH . 'classes' . DS);
+		TBGContext::autoloadNamespace('b2db', THEBUGGENIE_CORE_PATH . 'B2DB' . DS);
 
 		TBGLogging::log((TBGCache::isEnabled()) ? 'APC cache is enabled' : 'APC cache is not enabled');
 		
@@ -486,21 +499,21 @@ echo "
 			TBGLogging::log('Adding B2DB classes to autoload path');
 			define ('B2DB_BASEPATH', THEBUGGENIE_CORE_PATH . 'B2DB' . DS);
 			define ('B2DB_CACHEPATH', THEBUGGENIE_CORE_PATH . 'cache' . DS . 'B2DB' . DS);
-			TBGContext::addClasspath(THEBUGGENIE_CORE_PATH . 'B2DB' . DS . 'classes' . DS);
+//			TBGContext::addAutoloaderClassPath(THEBUGGENIE_CORE_PATH . 'B2DB' . DS . 'classes' . DS);
 			TBGLogging::log('...done (Adding B2DB classes to autoload path)');
 
 			TBGLogging::log('Initializing B2DB');
-			if (!isset($argc)) B2DB::setHTMLException(true);
-			B2DB::initialize(THEBUGGENIE_CORE_PATH . 'b2db_bootstrap.inc.php');
+			if (!isset($argc)) \b2db\Core::setHTMLException(true);
+			\b2db\Core::initialize(THEBUGGENIE_CORE_PATH . 'b2db_bootstrap.inc.php');
 			TBGLogging::log('...done (Initializing B2DB)');
 			
-			if (B2DB::isInitialized())
+			if (\b2db\Core::isInitialized())
 			{
 				TBGLogging::log('Database connection details found, connecting');
-				B2DB::doConnect();
+				\b2db\Core::doConnect();
 				TBGLogging::log('...done (Database connection details found, connecting)');
 				TBGLogging::log('Adding core table classpath to autoload path');
-				TBGContext::addClasspath(THEBUGGENIE_CORE_PATH . 'classes' . DS . 'B2DB' . DS);
+				TBGContext::addAutoloaderClassPath(THEBUGGENIE_CORE_PATH . 'classes' . DS . 'B2DB' . DS);
 			}
 			
 		}
