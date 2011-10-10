@@ -3,17 +3,17 @@
 	/**
 	 * Cosign Authentication
 	 *
-	 * @author
+	 * @author Samuel Leathers
 	 * @version 0.1
 	 * @license http://www.opensource.org/licenses/mozilla1.1.php Mozilla Public License 1.1 (MPL 1.1)
-	 * @package auth_ldap
+	 * @package auth_cosign
 	 * @subpackage core
 	 */
 
 	/**
 	 * Cosign Authentication
 	 *
-	 * @package auth_ldap
+	 * @package auth_cosign
 	 * @subpackage core
 	 */
 	class TBGCosignAuthentication extends TBGModule
@@ -191,5 +191,8 @@
 		{
 			return $this->doLogin($username, 'a', 2);
 		}
+        public function isOutdated() {
+            return false;
+        }
 	}
 
