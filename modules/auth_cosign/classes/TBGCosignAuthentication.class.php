@@ -41,6 +41,9 @@
 			return TBGContext::getModule('auth_cosign');
 		}
 
+        public statuc function upgrade() {
+
+        }
 		protected function _initialize()
 		{
 		}
