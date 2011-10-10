@@ -138,6 +138,7 @@
 				 * data from the directory.
 				 */
 				$user = TBGUser::getByUsername($username);
+                $email = 'noreply@domain.com';
                 $realname = 'Not Available';
 				if ($user instanceof TBGUser)
 				{					
