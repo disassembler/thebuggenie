@@ -15,7 +15,7 @@
 <?php endif; ?>
 <div class="installation_box">
 	<?php if ($upgrade_available): ?>
-		<h2>You are performing the following upgrade: <?php echo $current_version; ?>.x => 3.1<br>
+		<h2>You are performing the following upgrade: <?php echo $current_version; ?>.x => 3.2<br>
 			Make a backup of your installation before you continue!</h2>
 		<br>
 		<br>
@@ -41,10 +41,12 @@
 		<?php endif; ?>
 	<?php elseif ($upgrade_complete): ?>
 		<h2>Upgrade successfully completed!</h2>
-		If the file <b><?php echo THEBUGGENIE_PATH . 'upgrade'; ?></b> exists, please remove this file and reload this page.
+		If the file <b><?php echo THEBUGGENIE_PATH . 'upgrade'; ?></b> exists, please remove this file and click the "Finish" button below.<br>
+		<a href="index.php" class="button button-silver">Finish</a>
 	<?php else: ?>
 		<h2>No upgrade necessary!</h2>
-		If the file <b><?php echo THEBUGGENIE_PATH . 'upgrade'; ?></b> exists, please remove this file and reload this page.
+		If the file <b><?php echo THEBUGGENIE_PATH . 'upgrade'; ?></b> exists, please remove this file and click the "Finish" button below.<br>
+		<a href="index.php" class="button button-silver">Finish</a>
 	<?php endif; ?>
 </div>
 <?php include_template('installation/footer'); ?>

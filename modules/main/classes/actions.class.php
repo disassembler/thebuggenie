@@ -428,11 +428,8 @@
 		 */
 		public function runLogin(TBGRequest $request)
 		{
-			if (!TBGContext::getUser()->isGuest()):
-				return $this->forward(TBGContext::getRouting()->generate('home'));
-			else:
-				$this->content = $this->getComponentHtml('login', array('section' => $request->getParameter('section', 'login')));
-			endif;
+			if (!TBGContext::getUser()->isGuest()) return $this->forward(TBGContext::getRouting()->generate('home'));
+			$this->section = $request->getParameter('section', 'login');
 		}
 		
 		/**
@@ -446,9 +443,65 @@
 			$options = $request->getParameters();
 			$forward_url = TBGContext::getRouting()->generate('home');
 
-			try
+			$openid = new LightOpenID(TBGContext::getRouting()->generate('login_page', array(), false));
+			if (!$openid->mode && $request->isMethod(TBGRequest::POST) && $request->hasParameter('openid_identifier')) 
 			{
-				if ($request->getMethod() == TBGRequest::POST)
+				$openid->identity = $request->getRawParameter('openid_identifier');
+				$openid->required = array('contact/email');
+				$openid->optional = array('namePerson/first', 'namePerson/friendly');
+				return $this->forward($openid->authUrl());
+			}
+			elseif ($openid->mode == 'cancel') 
+			{
+				$this->error = TBGContext::getI18n()->__("OpenID authentication cancelled");
+			} 
+			elseif ($openid->mode)
+			{
+				try
+				{
+					if ($openid->validate())
+					{
+						$user = TBGUser::getByOpenID($openid->identity);
+						if ($user instanceof TBGUser)
+						{
+							if (!$user->getEmail())
+							{
+								$attributes = $openid->getAttributes();
+								$user->setEmail($attributes['contact/email']);
+								$user->setOpenIdLocked();
+								$user->setUsername(TBGUser::createPassword() . TBGUser::createPassword());
+								if (array_key_exists('namePerson/first', $attributes)) $user->setRealname($attributes['namePerson/first']);
+								if (array_key_exists('namePerson/friendly', $attributes)) $user->setBuddyname($attributes['namePerson/friendly']);
+
+								if (!$user->getNickname()) $user->setBuddyname($user->getEmail());
+								if (!$user->getRealname()) $user->setRealname($user->getBuddyname());
+
+								$user->save();
+								TBGOpenIdAccountsTable::getTable()->addIdentity($openid->identity, $user->getEmail(), $user->getID());
+
+							}
+							TBGContext::getResponse()->setCookie('tbg3_password', $user->getPassword());
+							TBGContext::getResponse()->setCookie('tbg3_username', $user->getUsername());
+							return $this->forward(TBGContext::getRouting()->generate('account'));
+						}
+						else
+						{
+							$this->error = TBGContext::getI18n()->__("Didn't recognize this OpenID. Please log in using your username and password, associate it with your user account in your account settings and try again.");
+						}
+					}
+					else
+					{
+						$this->error = TBGContext::getI18n()->__("Could not validate against the OpenID provider");
+					}
+				}
+				catch (Exception $e)
+				{
+					throw $e;
+				}
+			}
+			elseif ($request->getMethod() == TBGRequest::POST)
+			{
+				try
 				{
 					if ($request->hasParameter('tbg3_username') && $request->hasParameter('tbg3_password') && $request->getParameter('tbg3_username') != '' && $request->getParameter('tbg3_password') != '')
 					{
@@ -465,14 +518,7 @@
 						{
 							if (TBGSettings::get('returnfromlogin') == 'referer')
 							{
-								if ($request->getParameter('tbg3_referer'))
-								{
-									$forward_url = $request->getParameter('tbg3_referer');
-								}
-								else
-								{
-									$forward_url = TBGContext::getRouting()->generate('dashboard');
-								}
+								$forward_url = $request->getParameter('tbg3_referer', TBGContext::getRouting()->generate('dashboard'));
 							}
 							else
 							{
@@ -485,15 +531,16 @@
 						throw new Exception('Please enter a username and password');
 					}
 				}
-				else
+				catch (Exception $e)
 				{
-					throw new Exception('Please enter a username and password');
+					$this->getResponse()->setHttpStatus(401);
+					return $this->renderJSON(array("error" => $i18n->__($e->getMessage())));
 				}
 			}
-			catch (Exception $e)
+			else
 			{
 				$this->getResponse()->setHttpStatus(401);
-				return $this->renderJSON(array("error" => $i18n->__($e->getMessage())));
+				return $this->renderJSON(array("error" => $i18n->__('Please enter a username and password')));
 			}
 
 			return $this->renderJSON(array('forward' => $forward_url));
@@ -763,43 +810,6 @@
 			}
 		}
 
-		protected function _setupReportIssueProperties()
-		{
-			$this->selected_project = null;
-			$this->selected_issuetype = null;
-			$this->selected_edition = null;
-			$this->selected_build = null;
-			$this->selected_component = null;
-			$this->selected_category = null;
-			$this->selected_status = null;
-			$this->selected_resolution = null;
-			$this->selected_priority = null;
-			$this->selected_reproducability = null;
-			$this->selected_severity = null;
-			$this->selected_estimated_time = null;
-			$this->selected_spent_time = null;
-			$this->selected_percent_complete = null;
-			$this->selected_pain_bug_type = null;
-			$this->selected_pain_likelihood = null;
-			$this->selected_pain_effect = null;
-			$selected_customdatatype = array();
-			foreach (TBGCustomDatatype::getAll() as $customdatatype)
-			{
-				$selected_customdatatype[$customdatatype->getKey()] = null;
-			}
-			$this->selected_customdatatype = $selected_customdatatype;
-			$this->issuetypes = array();
-			$this->issuetype_id = null;
-			$this->issue = null;
-			$this->categories = TBGCategory::getAll();
-			$this->severities = TBGSeverity::getAll();
-			$this->priorities = TBGPriority::getAll();
-			$this->reproducabilities = TBGReproducability::getAll();
-			$this->resolutions = TBGResolution::getAll();
-			$this->statuses = TBGStatus::getAll();
-//			$this->projects = TBGProject::getAll();
-		}
-
 		protected function _clearReportIssueProperties()
 		{
 			$this->title = null;
@@ -891,7 +901,7 @@
 					$errors['title'] = true;
 				if (isset($fields_array['description']) && $fields_array['description']['required'] && trim($this->selected_description) == '')
 					$errors['description'] = true;
-				if (isset($fields_array['reproduction_steps']) && $fields_array['reproduction_steps']['required'] && trim($this->selected_reproduction_steps) == '')
+				if (isset($fields_array['reproduction_steps']) && !$request->isAjaxCall() && $fields_array['reproduction_steps']['required'] && trim($this->selected_reproduction_steps) == '')
 					$errors['reproduction_steps'] = true;
 
 				if (isset($fields_array['edition']) && $edition_id && !in_array($edition_id, array_keys($fields_array['edition']['values'])))
@@ -1088,14 +1098,10 @@
 		public function runReportIssue(TBGRequest $request)
 		{
 			$i18n = TBGContext::getI18n();
-			$this->_setupReportIssueProperties();
 			$errors = array();
 			$permission_errors = array();
+			$this->issue = null;
 			$this->getResponse()->setPage('reportissue');
-			$this->uniqid = $request->getParameter('uniqid', uniqid());
-			$this->default_title = $i18n->__('Enter a short, but descriptive summary of the issue here');
-			$this->default_estimated_time = $i18n->__('Enter an estimate here');
-			$this->default_spent_time = $i18n->__('Enter time spent here');
 
 			$this->_loadSelectedProjectAndIssueTypeFromRequestForReportIssueAction($request);
 			
@@ -1108,9 +1114,16 @@
 					try
 					{
 						$issue = $this->_postIssue();
-						if ($request->getParameter('return_format') == 'scrum')
+						if ($request->getParameter('return_format') == 'planning')
 						{
-							return $this->renderJSON(array('failed' => false, 'story_id' => $issue->getID(), 'content' => $this->getComponentHTML('project/scrumcard', array('issue' => $issue))));
+							$this->_loadSelectedProjectAndIssueTypeFromRequestForReportIssueAction($request);
+							$options['selected_issuetype'] = $issue->getIssueType();
+							$options['selected_project'] = $this->selected_project;
+							$options['issuetypes'] = $this->issuetypes;
+							$options['issue'] = $issue;
+							$options['errors'] = $errors;
+							$options['permission_errors'] = $permission_errors;
+							return $this->renderJSON(array('content' => $this->getComponentHTML('main/reportissuecontainer', $options)));
 						}
 						if ($issue->getProject()->getIssuetypeScheme()->isIssuetypeRedirectedAfterReporting($this->selected_issuetype))
 						{
@@ -1124,22 +1137,24 @@
 					}
 					catch (Exception $e)
 					{
-						if ($request->getParameter('return_format') == 'scrum')
+						if ($request->getParameter('return_format') == 'planning')
 						{
-							return $this->renderJSON(array('failed' => true, 'error' => $e->getMessage()));
+							$this->getResponse()->setHttpStatus(400);
+							return $this->renderJSON(array('error' => $e->getMessage()));
 						}
 						$errors[] = $e->getMessage();
 					}
 				}
 			}
-			if ($request->getParameter('return_format') == 'scrum')
+			if ($request->getParameter('return_format') == 'planning')
 			{
-				$err_msg = '';
+				$err_msg = array();
 				foreach ($errors as $field => $value)
 				{
-					$err_msg .= '<br>'.$i18n->__('Please provide a %field%', array('%field%' => $field));
+					$err_msg[] = $i18n->__('Please provide a value for the %field_name% field', array('%field_name%' => $field));
 				}
-				return $this->renderJSON(array('failed' => true, 'error' => $i18n->__('An error occured while creating this story').$err_msg));
+				$this->getResponse()->setHttpStatus(400);
+				return $this->renderJSON(array('error' => $i18n->__('An error occured while creating this story: %errors%', array('%errors%' => '')), 'message' => join('<br>', $err_msg)));
 			}
 			$this->errors = $errors;
 			$this->permission_errors = $permission_errors;
@@ -2129,7 +2144,7 @@
 			}
 			else
 			{
-				$this->getResponse()->setHttpStatus(401);
+//				$this->getResponse()->setHttpStatus(401);
 				$this->error = TBGContext::getI18n()->__('You are not allowed to attach files here');
 			}
 			if (!$apc_exists)
@@ -2554,6 +2569,13 @@
 							$options['issues'][$issue_id] = new TBGIssue($issue_id);
 						}
 						$options['project'] = $this->selected_project;
+						break;
+					case 'reportissue':
+						$template_name = 'main/reportissuecontainer';
+						$this->_loadSelectedProjectAndIssueTypeFromRequestForReportIssueAction($request);
+						$options['selected_project'] = $this->selected_project;
+						$options['issuetypes'] = $this->issuetypes;
+						$options['errors'] = array();
 						break;
 					case 'close_issue':
 						$template_name = 'main/closeissue';

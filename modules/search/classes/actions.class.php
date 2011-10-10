@@ -45,7 +45,7 @@
 
 		protected function _getSearchDetailsFromRequest(TBGRequest $request)
 		{
-			$this->ipp = $request->getParameter('issues_per_page', 30);
+			$this->ipp = $request->getParameter('issues_per_page', 50);
 			$this->offset = $request->getParameter('offset', 0);
 			$filters = $request->getParameter('filters', array());
 			if ($request->getParameter('quicksearch'))
@@ -307,6 +307,7 @@
 		public function runFindIssuesPaginated(TBGRequest $request)
 		{
 			$this->_getSearchDetailsFromRequest($request);
+			$this->getResponse()->setDecoration(TBGResponse::DECORATE_NONE);
 
 			if ($this->show_results)
 			{
@@ -587,7 +588,7 @@
 									$issue->save();
 								}
 							}
-							$options['status'] = array('color' => $status->getColor(), 'name' => $status->getName());
+							$options['status'] = array('color' => $status->getColor(), 'name' => $status->getName(), 'id' => $status->getID());
 						}
 						break;
 					case 'set_severity':
@@ -604,7 +605,7 @@
 									$issue->save();
 								}
 							}
-							$options['severity'] = array('name' => ($severity instanceof TBGSeverity) ? $severity->getName() : '-');
+							$options['severity'] = array('name' => ($severity instanceof TBGSeverity) ? $severity->getName() : '-', 'id' => ($severity instanceof TBGSeverity) ? $severity->getID() : 0);
 						}
 						break;
 					case 'set_resolution':
@@ -621,7 +622,7 @@
 									$issue->save();
 								}
 							}
-							$options['resolution'] = array('name' => ($resolution instanceof TBGResolution) ? $resolution->getName() : '-');
+							$options['resolution'] = array('name' => ($resolution instanceof TBGResolution) ? $resolution->getName() : '-', 'id' => ($resolution instanceof TBGResolution) ? $resolution->getID() : 0);
 						}
 						break;
 					case 'set_priority':
@@ -638,7 +639,7 @@
 									$issue->save();
 								}
 							}
-							$options['priority'] = array('name' => ($priority instanceof TBGPriority) ? $priority->getName() : '-');
+							$options['priority'] = array('name' => ($priority instanceof TBGPriority) ? $priority->getName() : '-', 'id' => ($priority instanceof TBGPriority) ? $priority->getID() : 0);
 						}
 						break;
 					case 'set_category':
@@ -655,7 +656,7 @@
 									$issue->save();
 								}
 							}
-							$options['category'] = array('name' => ($category instanceof TBGCategory) ? $category->getName() : '-');
+							$options['category'] = array('name' => ($category instanceof TBGCategory) ? $category->getName() : '-', 'id' => ($category instanceof TBGCategory) ? $category->getID() : 0);
 						}
 						break;
 				}

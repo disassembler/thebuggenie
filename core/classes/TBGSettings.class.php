@@ -186,7 +186,7 @@
 			{
 				self::$_settings[$module][$name][$uid] = $value;
 			}
-			TBGCache::delete('settings');
+			TBGCache::delete(TBGCache::KEY_SETTINGS);
 		}
 		
 		public static function set($name, $value, $uid = 0, $module = 'core')
@@ -379,7 +379,7 @@
 				case self::FAVICON_PUBLIC:
 					return TBGContext::getTBGPath()."favicon.png";
 				default:
-					return TBGContext::getTBGPath()."themes/".TBGSettings::getThemeName()."/favicon.png";
+					return TBGContext::getTBGPath()."iconsets/".TBGSettings::getThemeName()."/favicon.png";
 			}
 		}
 		

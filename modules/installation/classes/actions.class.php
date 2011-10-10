@@ -442,11 +442,34 @@
 			$this->upgrade_complete = true;
 		}
 
+		protected function _upgradeFrom3dot1()
+		{
+			// Add classpath for existing old tables used for upgrade
+			TBGContext::addAutoloaderClassPath(THEBUGGENIE_MODULES_PATH . 'installation' . DS . 'classes' . DS . 'upgrade_3.1');
+
+			// Upgrade existing tables
+			TBGProjectsTable::getTable()->upgrade(TBGProjectsTable3dot1::getTable());
+			TBGBuildsTable::getTable()->upgrade(TBGBuildsTable3dot1::getTable());
+			TBGUsersTable::getTable()->upgrade(TBGUsersTable3dot1::getTable());
+			
+			// Create new tables
+			TBGDashboardViewsTable::getTable()->create();
+			TBGOpenIdAccountsTable::getTable()->create();
+			
+			// Add new indexes
+			TBGCommentsTable::getTable()->createIndexes();
+			TBGPermissionsTable::getTable()->createIndexes();
+
+			TBGSettings::saveSetting(TBGSettings::SETTING_ICONSET, TBGSettings::get(TBGSettings::SETTING_THEME_NAME));
+			
+			$this->upgrade_complete = true;
+		}
+
 		public function runUpgrade(TBGRequest $request)
 		{
 			$version_info = explode(',', file_get_contents(THEBUGGENIE_PATH . 'installed'));
 			$this->current_version = $version_info[0];
-			$this->upgrade_available = ($this->current_version != '3.1');
+			$this->upgrade_available = ($this->current_version != '3.2');
 			
 			if ($this->upgrade_available)
 			{
@@ -464,7 +487,8 @@
 				{
 					case '3.0':
 						$this->_upgradeFrom3dot0();
-						break;
+					case '3.1':
+						$this->_upgradeFrom3dot1();
 				}
 				
 				if ($this->upgrade_complete)
@@ -472,11 +496,11 @@
 					$existing_installed_content = file_get_contents(THEBUGGENIE_PATH . 'installed');
 					file_put_contents(THEBUGGENIE_PATH . 'installed', TBGSettings::getVersion(false, false) . ', upgraded ' . date('d.m.Y H:i') . "\n" . $existing_installed_content);
 					unlink(THEBUGGENIE_PATH . 'upgrade');
-					$this->current_version = '3.1';
+					$this->current_version = '3.2';
 					$this->upgrade_available = false;
 				}
 			}
-			elseif ($this->current_version != '3.1')
+			elseif ($this->upgrade_available)
 			{
 				$this->permissions_ok = false;
 				if (is_writable(THEBUGGENIE_PATH . 'installed') && is_writable(THEBUGGENIE_PATH . 'upgrade'))
@@ -484,7 +508,7 @@
 					$this->permissions_ok = true;
 				}
 			}
-			else
+			elseif ($this->upgrade_complete)
 			{
 				$this->forward(TBGContext::getRouting()->generate('home'));
 			}

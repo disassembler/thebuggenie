@@ -145,14 +145,14 @@ TBG.Core._scrollWatcher = function() {
 			$('viewissue_header_container').addClassName('fixed');
 			$('workflow_actions').addClassName('fixed');
 			if (y >= $('viewissue_menu_panes').offsetTop) {
+				if ($('comment_add_button') != undefined) {
+					var button = $('comment_add_button').remove();
+					button.down('input').addClassName('button-silver');
+					button.down('input').removeClassName('button-green');
+					$('workflow_actions').down('ul').insert(button);
+				}
+			} else if ($('comment_add_button') != undefined) {
 				var button = $('comment_add_button').remove();
-//				button.addClassName('fixed');
-				button.down('input').addClassName('button-silver');
-				button.down('input').removeClassName('button-green');
-				$('workflow_actions').down('ul').insert(button);
-			} else {
-				var button = $('comment_add_button').remove();
-//				button.removeClassName('fixed');
 				button.down('input').removeClassName('button-silver');
 				button.down('input').addClassName('button-green');
 				$('add_comment_button_container').update(button);
@@ -160,11 +160,20 @@ TBG.Core._scrollWatcher = function() {
 		} else {
 			$('viewissue_header_container').removeClassName('fixed');
 			$('workflow_actions').removeClassName('fixed');
-			var button = $('comment_add_button').remove();
-//			button.removeClassName('fixed');
-			button.down('input').removeClassName('button-silver');
-			button.down('input').addClassName('button-green');
-			$('add_comment_button_container').update(button);
+			if ($('comment_add_button') != undefined) {
+				var button = $('comment_add_button').remove();
+				button.down('input').removeClassName('button-silver');
+				button.down('input').addClassName('button-green');
+				$('add_comment_button_container').update(button);
+			}
+		}
+	}
+	if ($('bulk_action_form_top')) {
+		var y = document.viewport.getScrollOffsets().top;
+		if (y >= $('bulk_action_form_top').up('.bulk_action_container').offsetTop) {
+			$('bulk_action_form_top').addClassName('fixed');
+		} else {
+			$('bulk_action_form_top').removeClassName('fixed');
 		}
 	}
 };
@@ -480,7 +489,7 @@ TBG.Main.Helpers.ajax = function(url, options) {
 		onFailure: function (transport) {
 			var json = (transport.responseJSON) ? transport.responseJSON : undefined;
 			if (transport.responseJSON) {
-				TBG.Main.Helpers.Message.error(json.error);
+				TBG.Main.Helpers.Message.error(json.error, json.message);
 			} else {
 				TBG.Main.Helpers.Message.error(transport.responseText);
 			}
@@ -593,6 +602,29 @@ TBG.Main.updatePercentageLayout = function(tds, percent) {
 		}
 	});
 };
+
+TBG.Main.submitIssue = function(url) {
+	if ($('report_issue_submit_button').hasClassName('disabled')) return;
+	
+	TBG.Main.Helpers.ajax(url, {
+		form: 'report_issue_form',
+		url_method: 'post',
+		loading: {
+			indicator: 'report_issue_indicator',
+			callback: function() {
+				$('report_issue_submit_button').addClassName('disabled');
+			}
+		},
+		success: {
+			update: 'fullpage_backdrop_content'
+		},
+		complete: {
+			callback: function() {
+				$('report_issue_submit_button').removeClassName('disabled');
+			}
+		}
+	});
+}
 
 TBG.Main.Link.add = function(url, target_type, target_id) {
 	TBG.Main.Helpers.ajax(url, {
@@ -2289,7 +2321,6 @@ TBG.Issues.updateFields = function(url)
 {
 	if ($('issuetype_id').getValue() != 0) {
 		$('issuetype_list').hide();
-		$('issuetype_dropdown').show();
 	}
 	if ($('project_id').getValue() != 0 && $('issuetype_id').getValue() != 0) {
 		$('report_more_here').hide();
@@ -2891,7 +2922,12 @@ TBG.Search.toPage = function(url, parameters, offset) {
 	TBG.Main.Helpers.ajax(url, {
 		params: parameters,
 		loading: {indicator: 'paging_spinning'},
-		success: {update: 'search_results'}
+		success: {update: 'search_results'},
+		complete: {
+			callback: function() {
+				TableKit.load();
+			}
+		}
 	});
 };
 
@@ -2959,6 +2995,28 @@ TBG.Search.saveVisibleColumns = function(url) {
 	});
 };
 
+TBG.Search.checkToggledCheckboxes = function() {
+	var num_checked = 0;
+	$('search_results').select('input[type=checkbox]').each(function(elm) {
+		if (elm.checked) num_checked++;
+	});
+
+	if (num_checked == 0) {
+		$('search_bulk_container_top').addClassName('unavailable');
+		$('search_bulk_container_bottom').addClassName('unavailable');
+		$('bulk_action_submit_top').addClassName('disabled');
+		$('bulk_action_submit_bottom').addClassName('disabled');
+	} else {
+		$('search_bulk_container_top').removeClassName('unavailable');
+		$('search_bulk_container_bottom').removeClassName('unavailable');
+		if ($('bulk_action_selector_top').getValue() != '') 
+			$('bulk_action_submit_top').removeClassName('disabled');
+
+		if ($('bulk_action_selector_bottom').getValue() != '')
+			$('bulk_action_submit_bottom').removeClassName('disabled');
+	}
+}
+
 TBG.Search.toggleCheckboxes = function(chk_box) {
 	var do_check = true;
 
@@ -2974,13 +3032,7 @@ TBG.Search.toggleCheckboxes = function(chk_box) {
 		element.checked = do_check;
 	});
 
-	$('search_results').select('.search_bulk_container').each(function(element) {
-		if ($(chk_box).checked) {
-			element.removeClassName('unavailable');
-		} else {
-			element.addClassName('unavailable');
-		}
-	});
+	TBG.Search.checkToggledCheckboxes();
 };
 
 TBG.Search.toggleCheckbox = function(element) {
@@ -3002,14 +3054,8 @@ TBG.Search.toggleCheckbox = function(element) {
 		chk_box.checked = false;
 		chk_box.removeClassName('semi-checked');
 	}
-	
-	$('search_results').select('.search_bulk_container').each(function(element) {
-		if ($(chk_box).checked) {
-			element.removeClassName('unavailable');
-		} else {
-			element.addClassName('unavailable');
-		}
-	});
+
+	TBG.Search.checkToggledCheckboxes();
 };
 
 TBG.Search.bulkContainerChanger = function(mode) {
@@ -3019,9 +3065,14 @@ TBG.Search.bulkContainerChanger = function(mode) {
 	});
 	if ($(sub_container_id + '_top')) {
 		$(sub_container_id + '_top').show();
+		$('bulk_action_submit_top').removeClassName('disabled');
 		$(sub_container_id + '_bottom').show();
+		$('bulk_action_submit_bottom').removeClassName('disabled');
 		var dropdown_element = $(sub_container_id + '_' + mode).down('.focusable');
 		if (dropdown_element != undefined) dropdown_element.focus();
+	} else {
+		$('bulk_action_submit_top').addClassName('disabled');
+		$('bulk_action_submit_bottom').addClassName('disabled');
 	}
 };
 
@@ -3029,22 +3080,33 @@ TBG.Search.bulkChanger = function(mode) {
 	var sub_container_id = 'bulk_action_' + $('bulk_action_selector_' + mode).getValue();
 	var opp_mode = (mode == 'top') ? 'bottom' : 'top';
 
+	if ($('bulk_action_selector_' + mode).getValue() == '') {
+		$('bulk_action_submit_' + mode).addClassName('disabled');
+		$('bulk_action_submit_' + opp_mode).addClassName('disabled');
+	} else if (!$('search_bulk_container_' + mode).hasClassName('unavailable')) {
+		$('bulk_action_submit_' + mode).removeClassName('disabled');
+		$('bulk_action_submit_' + opp_mode).removeClassName('disabled');
+	}
 	$(sub_container_id + '_' + opp_mode).value = $(sub_container_id + '_' + mode).getValue();
 }
 
 TBG.Search.bulkPostProcess = function(json) {
 	if (json.last_updated) {
-		if (json.milestone_name != undefined) {
+		if (json.milestone_name != undefined && json.milestone_id) {
 			if ($('milestone_list') != undefined) {
 				if ($('milestone_' + json.milestone_id) == undefined) {
 					TBG.Project.Milestone.retrieve(json.milestone_url, json.milestone_id, json.issue_ids);
 				}
 			}
-			if ($('bulk_action_assign_milestone_top') != undefined) {
+			if ($('bulk_action_assign_milestone_top') != undefined && $('bulk_action_assign_milestone_top_' + json.milestone_id) == undefined) {
 				$('bulk_action_assign_milestone_top').insert('<option value="'+json.milestone_id+'" id="bulk_action_assign_milestone_top_'+json.milestone_id+'">'+json.milestone_name+'</option>');
+				$('bulk_action_assign_milestone_top').setValue(json.milestone_id);
+				$('bulk_action_assign_milestone_top_name').hide();
 			}
-			if ($('bulk_action_assign_milestone_bottom') != undefined) {
+			if ($('bulk_action_assign_milestone_bottom') != undefined && $('bulk_action_assign_milestone_bottom_' + json.milestone_id) == undefined) {
 				$('bulk_action_assign_milestone_bottom').insert('<option value="'+json.milestone_id+'" id="bulk_action_assign_milestone_bottom_'+json.milestone_id+'">'+json.milestone_name+'</option>');
+				$('bulk_action_assign_milestone_bottom').setValue(json.milestone_id);
+				$('bulk_action_assign_milestone_bottom_name').hide();
 			}
 		} 
 		json.issue_ids.each(function(issue_id) {
@@ -3080,6 +3142,9 @@ TBG.Search.bulkPostProcess = function(json) {
 								data_container.addClassName('faded_out');
 							}
 						}
+						if ($(action + '_selector_' + issue_id) != undefined) {
+							$(action + '_selector_' + issue_id).setValue(json[action]['id']);
+						}
 					}
 				});
 				var last_updated_container = issue_elm.down('.sc_last_updated');
@@ -3112,6 +3177,7 @@ TBG.Search.bulkWorkflowTransition = function(url, transition_id) {
 };
 
 TBG.Search.bulkUpdate = function(url, mode) {
+	if ($('bulk_action_selector_' + mode).getValue() == '') return;
 	var issues = '';
 	$('search_results').select('tbody input[type=checkbox]').each(function(element) {
 		if (element.checked) issues += '&issue_ids['+element.getValue()+']='+element.getValue();

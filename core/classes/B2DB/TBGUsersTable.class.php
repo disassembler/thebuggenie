@@ -23,7 +23,7 @@
 	class TBGUsersTable extends TBGB2DBTable 
 	{
 
-		const B2DB_TABLE_VERSION = 1;
+		const B2DB_TABLE_VERSION = 2;
 		const B2DBNAME = 'users';
 		const ID = 'users.id';
 		const SCOPE = 'users.scope';
@@ -46,16 +46,7 @@
 		const PRIVATE_EMAIL = 'users.private_email';
 		const JOINED = 'users.joined';
 		const GROUP_ID = 'users.group_id';
-		
-		/**
-		 * Return an instance of this table
-		 *
-		 * @return TBGUsersTable
-		 */
-		public static function getTable()
-		{
-			return Core::getTable('TBGUsersTable');
-		}
+		const OPENID_LOCKED = 'users.openid_locked';
 		
 		public function getAll($scope = null)
 		{
@@ -89,6 +80,7 @@
 			parent::_addVarchar(self::AVATAR, 30, '');
 			parent::_addBoolean(self::USE_GRAVATAR, true);
 			parent::_addBoolean(self::PRIVATE_EMAIL);
+			parent::_addBoolean(self::OPENID_LOCKED);
 			parent::_addInteger(self::JOINED, 10);
 			parent::_addForeignKeyColumn(self::GROUP_ID, TBGGroupsTable::getTable(), TBGGroupsTable::ID);
 			parent::_addForeignKeyColumn(self::SCOPE, TBGScopesTable::getTable(), TBGScopesTable::ID);
