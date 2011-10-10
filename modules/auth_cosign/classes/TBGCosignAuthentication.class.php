@@ -138,6 +138,7 @@
 				 * data from the directory.
 				 */
 				$user = TBGUser::getByUsername($username);
+                $realname = 'Not Available';
 				if ($user instanceof TBGUser)
 				{					
 					$user->setBuddyname($realname);
