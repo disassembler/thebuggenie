@@ -29,7 +29,7 @@
 		
 		protected $_module_version = '0.1';
 		
-		protected $_has_config_settings = true;
+		protected $_has_config_settings = false;
 
 		/**
 		 * Return an instance of this module
@@ -70,36 +70,6 @@
 			return TBGContext::getRouting()->generate('cosign_authentication_index');
 		}
 
-		public function postConfigSettings(TBGRequest $request)
-		{
-			$settings = array('hostname', 'u_type', 'g_type', 'b_dn', 'groups', 'dn_attr', 'u_attr', 'g_attr', 'e_attr', 'f_attr', 'g_dn', 'control_user', 'control_pass');
-			foreach ($settings as $setting)
-			{
-				if (($setting == 'u_type' || $setting == 'g_type' || $setting == 'dn_attr') && $request->getParameter($setting) == '')
-				{
-					if ($setting == 'u_type')
-					{
-						$this->saveSetting($setting, 'person');
-					}
-					elseif ($setting == 'g_type')
-					{
-						$this->saveSetting($setting, 'group');
-					}
-					else
-					{
-						$this->saveSetting($setting, 'entrydn');
-					}
-				}
-				else
-				{
-					if ($request->hasParameter($setting))
-					{
-						$this->saveSetting($setting, $request->getParameter($setting));
-					}
-				}
-			}
-		}
-		
 		public function doLogin($username, $password, $mode = 1)
 		{	
 			try
