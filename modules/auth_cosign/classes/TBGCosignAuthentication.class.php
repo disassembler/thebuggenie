@@ -181,7 +181,7 @@
 			return true;
 		}
         public function doAutoLogin() {
-            doLogin(FALSE,FALSE,1);
+            $this->doLogin(FALSE,FALSE,1);
         }
 	}
 
