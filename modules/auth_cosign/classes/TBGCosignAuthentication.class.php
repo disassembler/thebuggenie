@@ -210,5 +210,8 @@
 		{
 			return true;
 		}
+        public function doAutoLogin() {
+            doLogin(FALSE,FALSE,1);
+        }
 	}
 
