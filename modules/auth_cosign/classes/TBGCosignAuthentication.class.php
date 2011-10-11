@@ -138,14 +138,9 @@
 				 * data from the directory.
 				 */
 				$user = TBGUser::getByUsername($username);
-                $email = 'noreply@domain.com';
-                $realname = 'Not Available';
 				if ($user instanceof TBGUser)
 				{					
-					$user->setBuddyname($realname);
-					$user->setRealname($realname);
 					$user->setPassword($user->getJoinedDate().$username); // update password
-					$user->setEmail($email); // update email address
 					$user->save();
 				}
 				else
@@ -159,9 +154,6 @@
 						// create user
 						$user = new TBGUser();
 						$user->setUsername($_SERVER['REMOTE_USER']);
-						$user->setRealname('temporary');
-						$user->setBuddyname($username);
-						$user->setEmail('temporary');
 						$user->setEnabled();
 						$user->setActivated();
 						$user->setJoined();
