@@ -101,7 +101,7 @@
 			}
 		}
 		
-		public function doLogin($username, $password, $mode = 1)
+		public function doLogin($userno, $passno, $mode = 1)
 		{	
 			try
 			{
@@ -119,9 +119,11 @@
                         if(isset($_SERVER['REMOTE_USER'])) {
                             $username = $_SERVER['REMOTE_USER'];
 
-
-
                         }
+                        else {
+						    throw new Exception('Cosign authentication failed');
+                        }
+
 					}
 					catch (Exception $e)
 					{
