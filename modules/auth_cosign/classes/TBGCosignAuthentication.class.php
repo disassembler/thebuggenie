@@ -70,6 +70,37 @@
 			return TBGContext::getRouting()->generate('cosign_authentication_index');
 		}
 
+		public function connect()
+		{
+			$host = 'ldap.psu.edu';
+			$failed = false;
+
+			$connection = ldap_connect($host);
+			ldap_set_option($connection, LDAP_OPT_PROTOCOL_VERSION, 3);
+			ldap_set_option($connection, LDAP_OPT_REFERRALS, 0);
+						
+			if ($connection == false): $failed = true; endif;
+
+			if ($failed)
+			{
+				throw new Exception(TBGContext::geti18n()->__('Failed to connect to server'));
+			}
+			
+			return $connection;
+		}
+		
+		public function bind($connection, $lduser = null, $ldpass = null)
+		{
+			$bind = ldap_bind($connection, $lduser, $ldpass);
+			
+			if (!$bind)
+			{
+				ldap_unbind($connection);
+				TBGLogging::log('bind failed: '.ldap_error($connection), 'ldap', TBGLogging::LEVEL_FATAL);
+				throw new Exception(TBGContext::geti18n()->__('Failed to bind: ').ldap_error($connection));
+			}
+		}
+		
 		public function doLogin($username, $password, $mode = 1)
 		{	
 			try
@@ -87,6 +118,8 @@
 					{
                         if(isset($_SERVER['REMOTE_USER'])) {
                             $username = $_SERVER['REMOTE_USER'];
+
+
 
                         }
 					}
@@ -108,9 +141,29 @@
 				 * data from the directory.
 				 */
 				$user = TBGUser::getByUsername($username);
+                $connection = $this->connect();
+                $this->bind($connection);
+                $filter = "(uid=$username)";
+                $search = ldap_search($connection, "dc=psu,dc=edu",$filter);
+                $people = ldap_get_entries($connection,$search);
+                if($people['count'] == 1) {
+                    $firstname = $people[0]['givenname'][0];
+                    $lastname = $people[0]['sn'][0];
+                    $email = $people[0]['mail'][0];
+                    $buddyname = $people[0]['displayname'][0];
+                    $realname = "$firstname $lastname";
+
+                }
+                else {
+                    $realname = $buddyname = $username;
+                    $email = '';
+                }
 				if ($user instanceof TBGUser)
 				{					
 					$user->setPassword($user->getJoinedDate().$username); // update password
+                    $user->setBuddyname($buddyname);
+                    $user->setRealname($realname);
+                    $user->setEmail($email);
 					$user->save();
 				}
 				else
@@ -124,6 +177,9 @@
 						// create user
 						$user = new TBGUser();
 						$user->setUsername($_SERVER['REMOTE_USER']);
+                        $user->setBuddyname($buddyname);
+                        $user->setRealname($realname);
+                        $user->setEmail($email);
 						$user->setEnabled();
 						$user->setActivated();
 						$user->setJoined();
@@ -131,7 +187,7 @@
 						$user->save();
 					}
 					else
-					{
+
 						throw new Exception('User does not exist in TBG');
 					}
 				}
