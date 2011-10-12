@@ -112,24 +112,13 @@
 				 * 
 				 * If the bind fails (exception), we throw a nicer exception and don't continue.
 				 */
-				if ($mode == 1)
-				{
-					try
-					{
-                        if(isset($_SERVER['REMOTE_USER'])) {
-                            $username = $_SERVER['REMOTE_USER'];
+                 if(isset($_SERVER['REMOTE_USER'])) {
+                     $username = $_SERVER['REMOTE_USER'];
 
-                        }
-                        else {
-						    throw new Exception('Cosign authentication failed');
-                        }
-
-					}
-					catch (Exception $e)
-					{
-						throw new Exception('Your password was not accepted by the server');
-					}
-				}
+                 }
+                 else {
+				     throw new Exception('Cosign authentication failed');
+                 }
 			}
 			catch (Exception $e)
 			{
