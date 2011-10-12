@@ -187,6 +187,7 @@
 						$user->save();
 					}
 					else
+                    {
 
 						throw new Exception('User does not exist in TBG');
 					}
