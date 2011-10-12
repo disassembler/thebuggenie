@@ -211,6 +211,7 @@
 		 */
 		public function logout()
 		{
+            Header('https://webaccess.psu.edu/cgi-bin/logout?https://cosine.science.psu.edu/buggenie');
 			
 		}
 		
