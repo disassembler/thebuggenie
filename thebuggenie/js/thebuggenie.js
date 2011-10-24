@@ -128,7 +128,7 @@ TBG.Core._resizeWatcher = function() {
 	}
 	if ($('dashboard')) {
 		var dashboard_width = $('dashboard').getWidth();
-		var element_width = (dashboard_width > 600) ? ((dashboard_width / 2) - 5) : (dashboard_width - 5);
+		var element_width = (dashboard_width > 600) ? ((dashboard_width / 2) - 5) : dashboard_width;
 		$('dashboard').childElements().each(function(item) {
 			item.setStyle({width: element_width + 'px'});
 		});
@@ -708,6 +708,34 @@ TBG.Main.Profile.changePassword = function(url) {
 		success: {reset: 'change_password_form'}
 	});
 };
+
+TBG.Main.Profile.checkUsernameAvailability = function(url) {
+	TBG.Main.Helpers.ajax(url, {
+		form: 'check_username_form',
+		loading: {
+			indicator: 'pick_username_indicator',
+			hide: 'username_unavailable'
+		},
+		complete: {
+			callback: function(json) {
+				if (json.available) {
+					TBG.Main.Helpers.Backdrop.show(json.url);
+				} else {
+					$('username_unavailable').show();
+					$('username_unavailable').pulsate({pulses: 3, duration: 1});
+				}
+			}
+		}
+	});
+};
+
+TBG.Main.Profile.toggleNotificationSettings = function(preset) {
+	if (preset == 'custom') {
+		$('notification_settings_selectors').show();
+	} else {
+		$('notification_settings_selectors').hide();
+	}
+}
 
 TBG.Main.Dashboard.View.swap = function(source_elm)
 {
