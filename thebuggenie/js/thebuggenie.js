@@ -14,6 +14,7 @@ var TBG = {
 		}, 
 		Profile: {},
 		Dashboard: {
+			views: [],
 			View: {}
 		},
 		Comment: {},
@@ -157,7 +158,7 @@ TBG.Core._scrollWatcher = function() {
 				button.down('input').addClassName('button-green');
 				$('add_comment_button_container').update(button);
 			}
-		} else {
+		}else {
 			$('viewissue_header_container').removeClassName('fixed');
 			$('workflow_actions').removeClassName('fixed');
 			if ($('comment_add_button') != undefined) {
@@ -490,7 +491,7 @@ TBG.Main.Helpers.ajax = function(url, options) {
 			var json = (transport.responseJSON) ? transport.responseJSON : undefined;
 			if (transport.responseJSON) {
 				TBG.Main.Helpers.Message.error(json.error, json.message);
-			} else {
+			}else {
 				TBG.Main.Helpers.Message.error(transport.responseText);
 			}
 			if (options.failure) {
@@ -737,6 +738,20 @@ TBG.Main.Profile.toggleNotificationSettings = function(preset) {
 	}
 }
 
+TBG.Main.Profile.removeOpenIDIdentity = function(url, oid) {
+	TBG.Main.Helpers.ajax(url, {
+		loading: {indicator: 'dialog_indicator'},
+		success: {
+			remove: 'openid_account_'+oid,
+			callback: function () {
+				if ($('openid_accounts_list').childElements().size() == 0) $('no_openid_accounts').show();
+				if ($('openid_accounts_list').childElements().size() == 1 && $('pick_username_button')) $('openid_accounts_list').down('.button').remove();
+				TBG.Main.Helpers.Dialog.dismiss();
+			}
+		}
+	});
+}
+
 TBG.Main.Dashboard.View.swap = function(source_elm)
 {
 	source_elm = $(source_elm);
@@ -769,6 +784,16 @@ TBG.Main.Dashboard.View.add = function()
 	
 	Sortable.create('views_list');
 }
+
+TBG.Main.Dashboard.View.init = function(url, view_id) {
+	TBG.Main.Helpers.ajax(url, {
+		method: 'get',
+		additional_params: '&view_id=' + view_id,
+		loading: {indicator: 'dashboard_' + view_id + '_indicator'},
+		success: {update: 'dashboard_' + view_id},
+		complete: {callback: TBG.Core._resizeWatcher}
+	});
+};
 
 TBG.Main.Dashboard.save = function(url)
 {
@@ -997,7 +1022,7 @@ TBG.Project.Milestone.toggle = function(url, milestone_id) {
 				show: 'milestone_' + milestone_id + '_issues'
 			}
 		});
-	} else {
+	}else {
 		$('milestone_' + milestone_id + '_issues').toggle();
 	}
 };
@@ -1242,6 +1267,7 @@ TBG.Project.remove = function(url, pid) {
 			callback: function(json) {
 				if ($('project_table').childElements().size() == 0) $('noprojects_tr').show();
 				TBG.Project.updateLinks(json);
+				TBG.Main.Helpers.Dialog.dismiss();
 			}
 		},
 		failure: {
@@ -2432,7 +2458,6 @@ TBG.Issues.showWorkflowTransition = function(transition_id) {
 	workflow_div.appear({duration: 0.2, afterFinish: function() {
 		if ($('duplicate_finder_transition_' + transition_id)) {
 			$('viewissue_find_issue_' + transition_id + '_input').observe('keypress', function(event) {
-				console.log(event.keyCode);
 				if (event.keyCode == Event.KEY_RETURN) {
 					TBG.Issues.findDuplicate($('duplicate_finder_transition_' + transition_id).getValue(), transition_id);
 					event.stop();
@@ -2448,7 +2473,7 @@ TBG.Issues.addUserStoryTask = function(url, story_id, mode) {
 	var indicator_prefix = (mode == 'scrum') ? 'add_task_' + story_id : 'add_task';
 	var success_arr = {};
 	
-	if (mode == scrum) {
+	if (mode == 'scrum') {
 		success_arr = {
 			reset: prefix + '_add_task_form',
 			hide: 'no_tasks_' + story_id,
@@ -2622,8 +2647,8 @@ TBG.Issues.Field.Updaters.dualFromJSON = function(dualfield, field) {
 		$(field + '_content').update(dualfield.name);
 		if (field == 'status') $('status_color').setStyle({backgroundColor: dualfield.color});
 		else if (field == 'issuetype') $('issuetype_image').src = dualfield.src;
-		$('no_' + field).hide();
-		$(field + '_table').show();
+		if ($('no_' + field)) $('no_' + field).hide();
+		if ($(field + '_table')) $(field + '_table').show();
 	}
 }
 
@@ -2633,6 +2658,7 @@ TBG.Issues.Field.Updaters.fromObject = function(object, field) {
 		$('no_' + field).show();
 	} else {
 		$(field + '_name').update(object.name);
+		if (object.url) $(field + '_name').href = object.url;
 		$('no_' + field).hide();
 		$(field + '_name').show();
 	}
@@ -2717,7 +2743,7 @@ TBG.Issues.Field.set = function(url, field, serialize_form) {
 				}
 				(json.changed == true) ? TBG.Issues.markAsChanged(field) : TBG.Issues.markAsUnchanged(field);
 			},
-			hide: field + '_change'
+			hide: [field + '_change', loading_show]
 		},
 		failure: {
 			update: field + '_change_error',
@@ -2740,6 +2766,7 @@ TBG.Issues.Field.setTime = function(url, field) {
 		success: {
 			callback: function(json) {
 				TBG.Issues.Field.Updaters.timeFromObject(json.field, json.values, field);
+				(json.changed == true) ? TBG.Issues.markAsChanged(field) : TBG.Issues.markAsUnchanged(field);
 			},
 			hide: field + '_change'
 		},
@@ -3228,3 +3255,29 @@ TBG.Search.bulkUpdate = function(url, mode) {
 		});
 	}
 };
+
+jQuery(document).ready(function(){jQuery('textarea').markItUp({
+	previewParserPath:	'', // path to your Wiki parser
+	onShiftEnter:		{keepDefault:false, replaceWith:'\n\n'},
+	markupSet: [
+		{name:'Heading 1', key:'1', openWith:'== ', closeWith:' ==', placeHolder:'Your title here...' },
+		{name:'Heading 2', key:'2', openWith:'=== ', closeWith:' ===', placeHolder:'Your title here...' },
+		{name:'Heading 3', key:'3', openWith:'==== ', closeWith:' ====', placeHolder:'Your title here...' },
+		{name:'Heading 4', key:'4', openWith:'===== ', closeWith:' =====', placeHolder:'Your title here...' },
+		{name:'Heading 5', key:'5', openWith:'====== ', closeWith:' ======', placeHolder:'Your title here...' },
+		{separator:'---------------' },
+		{name:'Bold', key:'B', openWith:"'''", closeWith:"'''"},
+		{name:'Italic', key:'I', openWith:"''", closeWith:"''"},
+		{name:'Stroke through', key:'S', openWith:'<s>', closeWith:'</s>'},
+		{separator:'---------------' },
+		{name:'Bulleted list', openWith:'(!(* |!|*)!)'},
+		{name:'Numeric list', openWith:'(!(# |!|#)!)'},
+		{separator:'---------------' },
+		{name:'Picture', key:"P", replaceWith:'[[Image:[![Url:!:http://]!]|[![name]!]]]'},
+		{name:'Link', key:"L", openWith:"[[![Link]!] ", closeWith:']', placeHolder:'Your text to link here...' },
+		{name:'Url', openWith:"[[![Url:!:http://]!] ", closeWith:']', placeHolder:'Your text to link here...' },
+		{separator:'---------------' },
+		{name:'Quotes', openWith:'(!(> |!|>)!)', placeHolder:''},
+		{name:'Code', openWith:'(!(<source lang="[![Language:!:php]!]">|!|<pre>)!)', closeWith:'(!(</source>|!|</pre>)!)'}
+	]
+});});

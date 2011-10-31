@@ -10,6 +10,7 @@
 	$routes[] = array('team_dashboard', '/teams/:team_id', 'main', 'teamdashboard');	
 	$routes[] = array('dashboard', '/dashboard', 'main', 'dashboard');
 	$routes[] = array('dashboard_save', '/dashboard/save/:target_type/:tid', 'main', 'dashboardSave');
+	$routes[] = array('dashboard_view', '/dashboard/views', 'main', 'dashboardView');
 	$routes[] = array('get_javascript', '/js/:js_file', 'main', 'index');
 	$routes[] = array('login', '/do/login', 'main', 'doLogin');
 	$routes[] = array('login_page', '/login', 'main', 'login');
@@ -52,6 +53,7 @@
 	$routes[] = array('account_change_password', '/account/change/password/*', 'main', 'accountChangePassword', array(), true);
 	$routes[] = array('account_check_username', '/account/check/username', 'main', 'accountCheckUsername', array(), true);
 	$routes[] = array('account_pick_username', '/account/pick/username/:selected_username', 'main', 'accountPickUsername', array(), true);
+	$routes[] = array('account_remove_openid', '/account/remove/openid/:openid/:csrf_token', 'main', 'removeOpenIDIdentity', array(), true);
 	$routes[] = array('account_save_information', '/account/save/information/*', 'main', 'myAccount', array('mode' => 'information'), true);
 	$routes[] = array('account_save_settings', '/account/save/settings/*', 'main', 'myAccount', array('mode' => 'settings'), true);
 	$routes[] = array('account_save_module_settings', '/account/save/module/:target_module/settings/*', 'main', 'myAccount', array('mode' => 'module'), true);

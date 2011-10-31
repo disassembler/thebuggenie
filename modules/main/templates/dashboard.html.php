@@ -15,44 +15,54 @@
 			<div class="container_div" style="margin: 0 0 5px 10px;">
 				<?php include_component('main/myfriends'); ?>
 			</div>
-			<?php TBGEvent::createNew('core', 'dashboard_left_bottom')->trigger();?>
+			<?php TBGEvent::createNew('core', 'dashboard_left_bottom')->trigger(); ?>
 		</td>
-		<td class="main_area" style="padding-right: 5px;">
+		<td class="main_area" style="padding-right: 5px; padding-top: 0;">
 			<?php TBGEvent::createNew('core', 'dashboard_main_top')->trigger(); ?>
-			<?php if (empty($dashboardViews)) :?>
-				<p class="content faded_out"><?php echo __("This dashboard doesn't contain any views. To add views in this dashboard, press the 'Customize dashboard'-icon to the far right."); ?></p>
+			<?php if (!count($views)):?>
+				<div style="text-align: center; padding: 40px;">
+					<p class="content faded_out"><?php echo __("This dashboard doesn't contain any views."); ?></p>
+					<br>
+					<form action="<?php echo make_url('dashboard'); ?>" method="post">
+						<input type="hidden" name="setup_default_dashboard" value="1">
+						<input type="submit" value="<?php echo __('Setup my dashboard'); ?>" class="button button-green" style="font-size: 1.1em; padding: 5px !important;">
+					</form>
+				</div>
 			<?php else: ?>
-				<ul id="dashboard">
-					<?php $clearleft = true; ?>
-					<?php foreach($dashboardViews as $view): ?>
-					<li style="clear: <?php echo ($clearleft) ? 'left' : 'right'; ?>;">
-						<?php include_component('dashboardview', array('type' => $view->get(TBGDashboardViewsTable::TYPE), 'id' => $view->get(TBGDashboardViewsTable::ID), 'view' => $view->get(TBGDashboardViewsTable::VIEW), 'rss' => true)); ?>
-					</li>
-					<?php $clearleft = !$clearleft; ?>
+				<ul id="dashboard" class="column-4s" style="margin: 10px 5px;">
+					<?php foreach($views as $_id => $view): ?>
+						<li style="clear: none;" id="dashboard_container_<?php echo $_id; ?>">
+							<?php include_component('dashboardview', array('view' => $view, 'show' => false)); ?>
+						</li>
 					<?php endforeach; ?>
 				</ul>
+				<script type="text/javascript">
+					document.observe('dom:loaded', function() {
+						TBG.Main.Dashboard.views.each(function(view_id) {
+							TBG.Main.Dashboard.View.init('<?php echo make_url('dashboard_view'); ?>', view_id);
+						});
+					});
+				</script>
 			<?php endif; ?>
 			<?php TBGEvent::createNew('core', 'dashboard_main_bottom')->trigger(); ?>
 		</td>
 		<td id="dashboard_righthand" class="side_bar">
 			<div class="container_div" style="margin-right: 10px; margin-top: 0;">
-				<div class="header" style="margin: 2px 0 5px 0; padding: 3px 3px 3px 5px;"><?php echo __('Your projects'); ?></div>
+				<div class="header" style="padding-left: 5px"><?php echo __('Your projects'); ?></div>
 				<?php if (count($tbg_user->getAssociatedProjects()) > 0): ?>
 					<ul id="associated_projects">
 						<?php foreach ($tbg_user->getAssociatedProjects() as $project): ?>
 							<?php if ($project->isDeleted()): continue; endif; ?>
 							<li style="text-align: right;">
-								<div class="rounded_box white cut_bottom" style="border-bottom: 0;">
+								<div style="padding: 5px;">
 									<div class="project_name">
 										<?php echo link_tag(make_url('project_dashboard', array('project_key' => $project->getKey())), $project->getName()); ?>
 									</div>
-								</div>
-								<div class="rounded_box lightgrey cut_top" style="border-top: 0;">
 									<div style="float: left; font-weight: bold;"><?php echo __('Go to'); ?>:</div>
 									<?php echo link_tag(make_url('project_open_issues', array('project_key' => $project->getKey())), __('Issues')); ?>
 									|
 									<?php if ($project->usesScrum()): ?>
-										<?php echo link_tag(make_url('project_scrum', array('project_key' => $project->getKey())), __('Scrum')); ?>
+										<?php echo link_tag(make_url('project_planning', array('project_key' => $project->getKey())), __('Planning')); ?>
 										|
 									<?php endif; ?>
 									<?php echo link_tag(make_url('project_roadmap', array('project_key' => $project->getKey())), __('Roadmap')); ?>
@@ -60,8 +70,14 @@
 							</li>
 						<?php endforeach; ?>
 					</ul>
-					<div class="header" style="margin: 5px 5px 5px 0;"><?php echo __('Upcoming milestones / sprints'); ?></div>
-					<div class="faded_out" style="font-size: 11px;"><?php echo __('Showing milestones and sprint for the next 21 days'); ?></div>
+				<?php else: ?>
+					<div class="faded_out" style="font-size: 0.9em; padding: 5px 5px 10px 5px;"><?php echo __('You are not associated with any projects'); ?></div>
+				<?php endif; ?>
+			</div>
+			<div class="container_div" style="margin-right: 10px; margin-top: 0;">
+				<div class="header" style="padding-left: 5px"><?php echo __('Upcoming milestones / sprints'); ?></div>
+				<?php if (count($tbg_user->getAssociatedProjects()) > 0): ?>
+					<div class="faded_out" style="padding: 5px;"><?php echo __('Showing milestones and sprint for the next 21 days'); ?></div>
 					<?php $milestone_cc = 0; ?>
 					<?php foreach ($tbg_user->getAssociatedProjects() as $project): ?>
 						<?php foreach ($project->getUpcomingMilestonesAndSprints() as $milestone): ?>
@@ -72,7 +88,7 @@
 						<?php endforeach; ?>
 					<?php endforeach; ?>
 					<?php if ($milestone_cc == 0): ?>
-						<div class="faded_out"><?php echo __('There are no upcoming milestones for any of your associated projects'); ?></div>
+						<div class="faded_out" style="padding: 5px;"><?php echo __('There are no upcoming milestones for any of your associated projects'); ?></div>
 					<?php endif; ?>
 				<?php else: ?>
 					<div class="faded_out" style="font-size: 0.9em; padding: 5px 5px 10px 5px;"><?php echo __('You are not associated with any projects'); ?></div>

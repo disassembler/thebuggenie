@@ -124,6 +124,8 @@
 
 		public function ajaxResponseText($code, $error)
 		{
+			if (TBGContext::isDebugMode()) return true;
+
 			$this->cleanBuffer();
 			$this->setContentType('application/json');
 			$this->setHttpStatus($code);
@@ -214,7 +216,10 @@
 		public function addBreadcrumb($breadcrumb, $url = null, $subitems = null, $class = null)
 		{
 			if ($this->_breadcrumb === null)
+			{
 				$this->_breadcrumb = array();
+				TBGContext::populateBreadcrumbs();
+			}
 
 			$this->_breadcrumb[] = array('title' => $breadcrumb, 'url' => $url, 'subitems' => $subitems, 'class' => $class);
 		}
@@ -269,6 +274,7 @@
 			if (!is_array($this->_breadcrumb))
 			{
 				$this->_breadcrumb = array();
+				TBGContext::populateBreadcrumbs();
 			}
 			return $this->_breadcrumb;
 		}
