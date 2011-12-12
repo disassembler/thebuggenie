@@ -15,6 +15,7 @@
 	 *
 	 * @package auth_cosign
 	 * @subpackage core
+	 * @Table(name="TBGModulesTable")
 	 */
 	class TBGCosignAuthentication extends TBGModule
 	{
