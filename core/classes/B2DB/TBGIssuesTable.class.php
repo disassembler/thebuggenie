@@ -19,16 +19,19 @@
 	 *
 	 * @package thebuggenie
 	 * @subpackage tables
+	 * 
+	 * @Entity(class="TBGIssue")
+	 * @Table(name='issues')
 	 */
 	class TBGIssuesTable extends TBGB2DBTable 
 	{
 		
-		const B2DB_TABLE_VERSION = 1;
+		const B2DB_TABLE_VERSION = 2;
 		const B2DBNAME = 'issues';
 		const ID = 'issues.id';
 		const SCOPE = 'issues.scope';
 		const ISSUE_NO = 'issues.issue_no';
-		const TITLE = 'issues.title';
+		const TITLE = 'issues.name';
 		const POSTED = 'issues.posted';
 		const LAST_UPDATED = 'issues.last_updated';
 		const PROJECT_ID = 'issues.project_id';
@@ -38,9 +41,8 @@
 		const RESOLUTION = 'issues.resolution';
 		const STATE = 'issues.state';
 		const POSTED_BY = 'issues.posted_by';
-		const OWNER = 'issues.owner';
-		const OWNER_TYPE = 'issues.owner_type';
-		const ASSIGNED_TO = 'issues.assigned_to';
+		const OWNER_USER = 'issues.owner_user';
+		const OWNER_TEAM = 'issues.owner_team';
 		const STATUS = 'issues.status';
 		const PRIORITY = 'issues.priority';
 		const SEVERITY = 'issues.severity';
@@ -58,7 +60,8 @@
 		const SPENT_HOURS = 'issues.spent_hours';
 		const SPENT_POINTS = 'issues.spent_points';
 		const PERCENT_COMPLETE = 'issues.percent_complete';
-		const ASSIGNED_TYPE = 'issues.assigned_type';
+		const ASSIGNEE_USER = 'issues.assignee_user';
+		const ASSIGNEE_TEAM = 'issues.assigned_team';
 		const BEING_WORKED_ON_BY_USER = 'issues.being_worked_on_by_user';
 		const BEING_WORKED_ON_BY_USER_SINCE = 'issues.being_worked_on_by_user_since';
 		const USER_PAIN = 'issues.user_pain';
@@ -73,70 +76,92 @@
 		const MILESTONE = 'issues.milestone';
 		const VOTES_TOTAL = 'issues.votes_total';
 
-		/**
-		 * Return an instance of this table
-		 *
-		 * @return TBGIssuesTable
-		 */
-		public static function getTable()
+//		public function __construct()
+//		{
+//			parent::__construct(self::B2DBNAME, self::ID);
+//			parent::_addInteger(self::ISSUE_NO, 10);
+//			parent::_addVarchar(self::TITLE, 200);
+//			parent::_addInteger(self::POSTED, 10);
+//			parent::_addInteger(self::LAST_UPDATED, 10);
+//			parent::_addForeignKeyColumn(self::PROJECT_ID, TBGProjectsTable::getTable(), TBGProjectsTable::ID);
+//			parent::_addText(self::DESCRIPTION, false);
+//			parent::_addBoolean(self::STATE);
+//			parent::_addForeignKeyColumn(self::POSTED_BY, TBGUsersTable::getTable(), TBGUsersTable::ID);
+//			parent::_addInteger(self::OWNER, 10);
+//			parent::_addInteger(self::OWNER_TYPE, 2);
+//			parent::_addFloat(self::USER_PAIN, 3);
+//			parent::_addInteger(self::PAIN_BUG_TYPE, 3);
+//			parent::_addInteger(self::PAIN_EFFECT, 3);
+//			parent::_addInteger(self::PAIN_LIKELIHOOD, 3);
+//			parent::_addInteger(self::ASSIGNED_TO, 10);
+//			parent::_addText(self::REPRODUCTION_STEPS, false);
+//			parent::_addForeignKeyColumn(self::RESOLUTION, TBGListTypesTable::getTable(), TBGListTypesTable::ID);
+//			parent::_addForeignKeyColumn(self::ISSUE_TYPE, TBGIssueTypesTable::getTable(), TBGIssueTypesTable::ID);
+//			parent::_addForeignKeyColumn(self::STATUS, TBGListTypesTable::getTable(), TBGListTypesTable::ID);
+//			parent::_addForeignKeyColumn(self::PRIORITY, TBGListTypesTable::getTable(), TBGListTypesTable::ID);
+//			parent::_addForeignKeyColumn(self::CATEGORY, TBGListTypesTable::getTable(), TBGListTypesTable::ID);
+//			parent::_addForeignKeyColumn(self::SEVERITY, TBGListTypesTable::getTable(), TBGListTypesTable::ID);
+//			parent::_addForeignKeyColumn(self::REPRODUCABILITY, TBGListTypesTable::getTable(), TBGListTypesTable::ID);
+//			parent::_addVarchar(self::SCRUMCOLOR, 7, '#FFFFFF');
+//			parent::_addInteger(self::ESTIMATED_MONTHS, 10);
+//			parent::_addInteger(self::ESTIMATED_WEEKS, 10);
+//			parent::_addInteger(self::ESTIMATED_DAYS, 10);
+//			parent::_addInteger(self::ESTIMATED_HOURS, 10);
+//			parent::_addInteger(self::ESTIMATED_POINTS);
+//			parent::_addInteger(self::SPENT_MONTHS, 10);
+//			parent::_addInteger(self::SPENT_WEEKS, 10);
+//			parent::_addInteger(self::SPENT_DAYS, 10);
+//			parent::_addInteger(self::SPENT_HOURS, 10);
+//			parent::_addInteger(self::VOTES_TOTAL, 10);
+//			parent::_addInteger(self::SPENT_POINTS);
+//			parent::_addInteger(self::PERCENT_COMPLETE, 2);
+//			parent::_addInteger(self::ASSIGNED_TYPE, 2);
+//			parent::_addInteger(self::DUPLICATE_OF, 10);
+//			parent::_addBoolean(self::DELETED);
+//			parent::_addBoolean(self::BLOCKING);
+//			parent::_addBoolean(self::LOCKED);
+//			parent::_addForeignKeyColumn(self::BEING_WORKED_ON_BY_USER, TBGUsersTable::getTable(), TBGUsersTable::ID);
+//			parent::_addInteger(self::BEING_WORKED_ON_BY_USER_SINCE, 10);
+//			parent::_addForeignKeyColumn(self::MILESTONE, TBGMilestonesTable::getTable(), TBGMilestonesTable::ID);
+//			parent::_addForeignKeyColumn(self::WORKFLOW_STEP_ID, TBGWorkflowStepsTable::getTable(), TBGWorkflowStepsTable::ID);
+//			parent::_addForeignKeyColumn(self::SCOPE, TBGScopesTable::getTable(), TBGScopesTable::ID);
+//		}
+
+		protected function _setupIndexes()
 		{
-			return Core::getTable('TBGIssuesTable');
+			$this->_addIndex('project', self::PROJECT_ID);
+			$this->_addIndex('project', self::PROJECT_ID);
+			$this->_addIndex('last_updated', self::LAST_UPDATED);
+			$this->_addIndex('deleted', self::DELETED);
+			$this->_addIndex('deleted_project', array(self::DELETED, self::PROJECT_ID));
+			$this->_addIndex('deleted_state_project', array(self::DELETED, self::STATE, self::PROJECT_ID));
+			$this->_addIndex('deleted_project_issueno', array(self::DELETED, self::ISSUE_NO, self::PROJECT_ID));
 		}
 
-		public function __construct()
+		public function _migrateData(\b2db\Table $old_table)
 		{
-			parent::__construct(self::B2DBNAME, self::ID);
-			parent::_addInteger(self::ISSUE_NO, 10);
-			parent::_addVarchar(self::TITLE, 200);
-			parent::_addInteger(self::POSTED, 10);
-			parent::_addInteger(self::LAST_UPDATED, 10);
-			parent::_addForeignKeyColumn(self::PROJECT_ID, TBGProjectsTable::getTable(), TBGProjectsTable::ID);
-			parent::_addText(self::DESCRIPTION, false);
-			parent::_addBoolean(self::STATE);
-			parent::_addForeignKeyColumn(self::POSTED_BY, TBGUsersTable::getTable(), TBGUsersTable::ID);
-			parent::_addInteger(self::OWNER, 10);
-			parent::_addInteger(self::OWNER_TYPE, 2);
-			parent::_addFloat(self::USER_PAIN, 3);
-			parent::_addInteger(self::PAIN_BUG_TYPE, 3);
-			parent::_addInteger(self::PAIN_EFFECT, 3);
-			parent::_addInteger(self::PAIN_LIKELIHOOD, 3);
-			parent::_addInteger(self::ASSIGNED_TO, 10);
-			parent::_addText(self::REPRODUCTION_STEPS, false);
-			parent::_addForeignKeyColumn(self::RESOLUTION, TBGListTypesTable::getTable(), TBGListTypesTable::ID);
-			parent::_addForeignKeyColumn(self::ISSUE_TYPE, TBGIssueTypesTable::getTable(), TBGIssueTypesTable::ID);
-			parent::_addForeignKeyColumn(self::STATUS, TBGListTypesTable::getTable(), TBGListTypesTable::ID);
-			parent::_addForeignKeyColumn(self::PRIORITY, TBGListTypesTable::getTable(), TBGListTypesTable::ID);
-			parent::_addForeignKeyColumn(self::CATEGORY, TBGListTypesTable::getTable(), TBGListTypesTable::ID);
-			parent::_addForeignKeyColumn(self::SEVERITY, TBGListTypesTable::getTable(), TBGListTypesTable::ID);
-			parent::_addForeignKeyColumn(self::REPRODUCABILITY, TBGListTypesTable::getTable(), TBGListTypesTable::ID);
-			parent::_addVarchar(self::SCRUMCOLOR, 7, '#FFFFFF');
-			parent::_addInteger(self::ESTIMATED_MONTHS, 10);
-			parent::_addInteger(self::ESTIMATED_WEEKS, 10);
-			parent::_addInteger(self::ESTIMATED_DAYS, 10);
-			parent::_addInteger(self::ESTIMATED_HOURS, 10);
-			parent::_addInteger(self::ESTIMATED_POINTS);
-			parent::_addInteger(self::SPENT_MONTHS, 10);
-			parent::_addInteger(self::SPENT_WEEKS, 10);
-			parent::_addInteger(self::SPENT_DAYS, 10);
-			parent::_addInteger(self::SPENT_HOURS, 10);
-			parent::_addInteger(self::VOTES_TOTAL, 10);
-			parent::_addInteger(self::SPENT_POINTS);
-			parent::_addInteger(self::PERCENT_COMPLETE, 2);
-			parent::_addInteger(self::ASSIGNED_TYPE, 2);
-			parent::_addInteger(self::DUPLICATE_OF, 10);
-			parent::_addBoolean(self::DELETED);
-			parent::_addBoolean(self::BLOCKING);
-			parent::_addBoolean(self::LOCKED);
-			parent::_addForeignKeyColumn(self::BEING_WORKED_ON_BY_USER, TBGUsersTable::getTable(), TBGUsersTable::ID);
-			parent::_addInteger(self::BEING_WORKED_ON_BY_USER_SINCE, 10);
-			parent::_addForeignKeyColumn(self::MILESTONE, TBGMilestonesTable::getTable(), TBGMilestonesTable::ID);
-			parent::_addForeignKeyColumn(self::WORKFLOW_STEP_ID, TBGWorkflowStepsTable::getTable(), TBGWorkflowStepsTable::ID);
-			parent::_addForeignKeyColumn(self::SCOPE, TBGScopesTable::getTable(), TBGScopesTable::ID);
+			$sqls = array();
+			$tn = $this->_getTableNameSQL();
+			switch ($old_table->getVersion())
+			{
+				case 1:
+					$sqls[] = "UPDATE {$tn} SET owner_team = owner WHERE owner_type = 2";
+					$sqls[] = "UPDATE {$tn} SET owner_user = owner WHERE owner_type = 1";
+					$sqls[] = "UPDATE {$tn} SET assignee_team = assigned_to WHERE assigned_type = 2";
+					$sqls[] = "UPDATE {$tn} SET assignee_user = assigned_to WHERE assigned_type = 1";
+					$sqls[] = "UPDATE {$tn} SET name = title";
+					break;
+			}
+			foreach ($sqls as $sql)
+			{
+				$statement = \b2db\Statement::getPreparedStatement($sql);
+				$res = $statement->performQuery('update');
+			}
 		}
 
 		public static function getValidSearchFilters()
 		{
-			return array('project_id', 'text', 'state', 'issuetype', 'status', 'resolution', 'category', 'severity', 'priority', 'posted_by', 'assigned_to', 'assigned_type', 'component', 'build', 'edition');
+			return array('project_id', 'text', 'state', 'issuetype', 'status', 'resolution', 'reproducability', 'category', 'severity', 'priority', 'posted_by', 'assignee_user', 'assignee_team', 'owner_user', 'owner_team', 'component', 'build', 'edition', 'posted', 'last_updated');
 		}
 
 		public function getCountsByProjectID($project_id)
@@ -348,7 +373,7 @@
 			$crit->addWhere(TBGProjectsTable::DELETED, false);
 			$crit->addWhere(self::ISSUE_NO, $issue_no);
 			$crit->addWhere(self::DELETED, 0);
-			$row = $this->doSelectOne($crit, array(self::PROJECT_ID));
+			$row = $this->doSelectOne($crit);
 			return $row;
 		}
 
@@ -358,8 +383,8 @@
 			$crit->addWhere(self::PROJECT_ID, $project_id);
 			$crit->addWhere(self::ISSUE_NO, $issue_no);
 			$crit->addWhere(self::DELETED, 0);
-			$row = $this->doSelectOne($crit);
-			return $row;
+			return $this->selectOne($crit);
+//			return $row;
 		}
 
 		public function setDuplicate($issue_id, $duplicate_of)
@@ -456,8 +481,7 @@
 		public function getOpenIssuesByTeamAssigned($team_id)
 		{
 			$crit = $this->getCriteria();
-			$crit->addWhere(self::ASSIGNED_TO, $team_id);
-			$crit->addWhere(self::ASSIGNED_TYPE, TBGIdentifiableClass::TYPE_TEAM);
+			$crit->addWhere(self::ASSIGNED_TEAM, $team_id);
 			$crit->addWhere(self::STATE, TBGIssue::STATE_OPEN);
 			$crit->addWhere(self::DELETED, 0);
 			
@@ -469,8 +493,7 @@
 		public function getOpenIssuesByUserAssigned($user_id)
 		{
 			$crit = $this->getCriteria();
-			$crit->addWhere(self::ASSIGNED_TO, $user_id);
-			$crit->addWhere(self::ASSIGNED_TYPE, TBGIdentifiableClass::TYPE_USER);
+			$crit->addWhere(self::ASSIGNEE_USER, $user_id);
 			$crit->addWhere(self::STATE, TBGIssue::STATE_OPEN);
 			$crit->addWhere(self::DELETED, 0);
 			
@@ -576,6 +599,7 @@
 				$crit->addJoin(TBGIssueAffectsComponentTable::getTable(), TBGIssueAffectsComponentTable::ISSUE, self::ID);
 				$crit->addJoin(TBGIssueAffectsEditionTable::getTable(), TBGIssueAffectsEditionTable::ISSUE, self::ID);
 				$crit->addJoin(TBGIssueAffectsBuildTable::getTable(), TBGIssueAffectsBuildTable::ISSUE, self::ID);
+//				$crit->addJoin(TBGMilestonesTable::getTable(), TBGMilestonesTable::ID, self::MILESTONE);
 
 				foreach ($filters as $filter => $filter_info)
 				{
@@ -622,7 +646,7 @@
 						}
 						elseif (in_array($filter, self::getValidSearchFilters()))
 						{
-							$crit->addWhere($dbname.'.'.$filter, $filter_info['value'], $filter_info['operator']);
+							$crit->addWhere($dbname.'.'.$filter, $filter_info['value'], urldecode($filter_info['operator']));
 						}
 						elseif (TBGCustomDatatype::doesKeyExist($filter))
 						{
@@ -660,18 +684,18 @@
 							}
 							else
 							{
-								$ctn = $crit->returnCriterion($dbname.'.'.$filter, $first_val['value'], $first_val['operator']);
+								$ctn = $crit->returnCriterion($dbname.'.'.$filter, $first_val['value'], urldecode($first_val['operator']));
 								if (count($filter_info) > 0)
 								{
 									foreach ($filter_info as $single_filter)
 									{
-										if (in_array($single_filter['operator'], array('=', '<=', '>=', '<', '>')))
+										if (in_array($single_filter['operator'], array('=', '<=', '>=', '<', '>')) && !in_array($filter, array('posted', 'last_updated')))
 										{
-											$ctn->addOr($dbname.'.'.$filter, $single_filter['value'], $single_filter['operator']);
+											$ctn->addOr($dbname.'.'.$filter, $single_filter['value'], urldecode($single_filter['operator']));
 										}
-										elseif ($single_filter['operator'] == '!=')
+										elseif ($single_filter['operator'] == '!=' || in_array($filter, array('posted', 'last_updated')))
 										{
-											$ctn->addWhere($dbname.'.'.$filter, $single_filter['value'], $single_filter['operator']);
+											$ctn->addWhere($dbname.'.'.$filter, $single_filter['value'], urldecode($single_filter['operator']));
 										}
 									}
 								}
@@ -739,10 +763,10 @@
 							$crit->addOrderBy(self::PERCENT_COMPLETE, 'desc');
 							break;
 						case 'assignee':
-							$crit->addSelectionColumn(self::ASSIGNED_TYPE);
-							$crit->addSelectionColumn(self::ASSIGNED_TO);
-							$crit->addOrderBy(self::ASSIGNED_TYPE);
-							$crit->addOrderBy(self::ASSIGNED_TO, $grouporder);
+							$crit->addSelectionColumn(self::ASSIGNEE_TEAM);
+							$crit->addSelectionColumn(self::ASSIGNEE_USER);
+							$crit->addOrderBy(self::ASSIGNEE_TEAM);
+							$crit->addOrderBy(self::ASSIGNEE_USER, $grouporder);
 							break;
 						case 'state':
 							$crit->addSelectionColumn(self::STATE);

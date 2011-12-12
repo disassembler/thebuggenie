@@ -27,6 +27,7 @@
 		const CONFIGURATION_SECTION_UPLOADS = 3;
 		const CONFIGURATION_SECTION_ISSUEFIELDS = 4;
 		const CONFIGURATION_SECTION_PERMISSIONS = 5;
+		const CONFIGURATION_SECTION_ROLES = 7;
 		const CONFIGURATION_SECTION_ISSUETYPES = 6;
 		const CONFIGURATION_SECTION_PROJECTS = 10;
 		const CONFIGURATION_SECTION_SETTINGS = 12;
@@ -58,6 +59,9 @@
 		const SETTING_DEFAULT_LANGUAGE = 'language';
 		const SETTING_DEFAULT_USER_IS_GUEST = 'defaultisguest';
 		const SETTING_DEFAULT_USER_ID = 'defaultuserid';
+		const SETTING_DEFAULT_WORKFLOW = 'defaultworkflow';
+		const SETTING_DEFAULT_WORKFLOWSCHEME = 'defaultworkflowscheme';
+		const SETTING_DEFAULT_ISSUETYPESCHEME = 'defaultissuetypescheme';
 		const SETTING_ENABLE_UPLOADS = 'enable_uploads';
 		const SETTING_ENABLE_GRAVATARS = 'enable_gravatars';
 		const SETTING_FAVICON_TYPE = 'icon_fav';
@@ -98,13 +102,17 @@
 		const SETTING_MAINTENANCE_MESSAGE = 'offline_msg';
 		const SETTING_ICONSET = 'iconset';
 
-		static protected $_ver_mj = 3;
-		static protected $_ver_mn = 2;
-		static protected $_ver_rev = '0-pre';
-		static protected $_ver_name = "Borg";
-		static protected $_defaultscope = null;
-		static protected $_settings = null;
-		static protected $_loadedsettings = array();
+		protected static $_ver_mj = 3;
+		protected static $_ver_mn = 2;
+		protected static $_ver_rev = '0-pre';
+		protected static $_ver_name = "Borg";
+		protected static $_defaultscope = null;
+		protected static $_settings = null;
+		protected static $_loadedsettings = array();
+
+		protected static $_core_workflow = null;
+		protected static $_core_workflowscheme = null;
+		protected static $_core_issuetypescheme = null;
 	
 		public static function forceSettingsReload()
 		{
@@ -120,36 +128,28 @@
 				if (self::$_settings === null)
 					self::$_settings = array();
 				
-				if (!TBGContext::isInstallmode() && $uid == 0 && self::$_settings = TBGCache::get(TBGCache::KEY_SETTINGS))
+				TBGLogging::log('Settings not cached or install mode enabled. Retrieving from database');
+				if ($res = \b2db\Core::getTable('TBGSettingsTable')->getSettingsForScope(TBGContext::getScope()->getID(), $uid))
 				{
-					TBGLogging::log('Using cached settings');
+					$cc = 0;
+					while ($row = $res->getNextRow())
+					{
+						$cc++;
+						self::$_settings[$row->get(TBGSettingsTable::MODULE)][$row->get(TBGSettingsTable::NAME)][$row->get(TBGSettingsTable::UID)] = $row->get(TBGSettingsTable::VALUE);
+					}
+					if ($cc == 0 && !TBGContext::isInstallmode() && $uid == 0)
+					{
+						TBGLogging::log('There were no settings stored in the database!', 'main', TBGLogging::LEVEL_FATAL);
+						throw new TBGSettingsException('Could not retrieve settings from database (no settings stored)');
+					}
 				}
-				else
+				elseif (!TBGContext::isInstallmode() && $uid == 0)
 				{
-					TBGLogging::log('Settings not cached or install mode enabled. Retrieving from database');
-					if ($res = \b2db\Core::getTable('TBGSettingsTable')->getSettingsForScope(TBGContext::getScope()->getID(), $uid))
-					{
-						$cc = 0;
-						while ($row = $res->getNextRow())
-						{
-							$cc++;
-							self::$_settings[$row->get(TBGSettingsTable::MODULE)][$row->get(TBGSettingsTable::NAME)][$row->get(TBGSettingsTable::UID)] = $row->get(TBGSettingsTable::VALUE);
-						}
-						if ($cc == 0 && !TBGContext::isInstallmode() && $uid == 0)
-						{
-							TBGLogging::log('There were no settings stored in the database!', 'main', TBGLogging::LEVEL_FATAL);
-							throw new TBGSettingsException('Could not retrieve settings from database (no settings stored)');
-						}
-					}
-					elseif (!TBGContext::isInstallmode() && $uid == 0)
-					{
-						TBGLogging::log('Settings could not be retrieved from the database!', 'main', TBGLogging::LEVEL_FATAL);
-						throw new TBGSettingsException('Could not retrieve settings from database');
-					}
-					self::$_loadedsettings[$uid] = true;
-					TBGLogging::log('Retrieved');
-					TBGCache::add(TBGCache::KEY_SETTINGS, self::$_settings);
+					TBGLogging::log('Settings could not be retrieved from the database!', 'main', TBGLogging::LEVEL_FATAL);
+					throw new TBGSettingsException('Could not retrieve settings from database');
 				}
+				self::$_loadedsettings[$uid] = true;
+				TBGLogging::log('Retrieved');
 			}
 			
 			TBGLogging::log("...done");
@@ -187,7 +187,6 @@
 			{
 				self::$_settings[$module][$name][$uid] = $value;
 			}
-			TBGCache::delete(TBGCache::KEY_SETTINGS);
 		}
 		
 		public static function set($name, $value, $uid = 0, $module = 'core')
@@ -683,6 +682,33 @@
 		public static function isUsingExternalAuthenticationBackend()
 		{
 			if (TBGSettings::getAuthenticationBackend() !== null && TBGSettings::getAuthenticationBackend() !== 'tbg'): return true; else: return false; endif;
+		}
+
+		public static function getCoreWorkflow()
+		{
+			if (self::$_core_workflow === null)
+			{
+				self::$_core_workflow = new TBGWorkflow(self::get(self::SETTING_DEFAULT_WORKFLOW));
+			}
+			return self::$_core_workflow;
+		}
+
+		public static function getCoreWorkflowScheme()
+		{
+			if (self::$_core_workflowscheme === null)
+			{
+				self::$_core_workflowscheme = new TBGWorkflowScheme(self::get(self::SETTING_DEFAULT_WORKFLOWSCHEME));
+			}
+			return self::$_core_workflowscheme;
+		}
+
+		public static function getCoreIssuetypeScheme()
+		{
+			if (self::$_core_issuetypescheme === null)
+			{
+				self::$_core_issuetypescheme = new TBGIssuetypeScheme(self::get(self::SETTING_DEFAULT_ISSUETYPESCHEME));
+			}
+			return self::$_core_issuetypescheme;
 		}
 
 	}

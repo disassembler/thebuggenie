@@ -10,8 +10,8 @@
 					<?php echo image_tag('spinning_20.gif', array('style' => 'display: none; float: left; margin: 5px 5px 0 0;', 'id' => 'issuetype_undo_spinning')); ?>
 					<a href="javascript:void(0);" onclick="if ($('issuetype_change').visible()) { $$('div.dropdown_box').each(Element.hide); } else { $$('div.dropdown_box').each(Element.hide); $('issuetype_change').toggle(); }" title="<?php echo __('Click to change issue type'); ?>"><?php echo image_tag('action_dropdown_small.png', array('class' => 'dropdown')); ?></a>
 				<?php endif; ?>
-				<span id="issuetype_content"><?php echo $issue->getIssueType()->getName(); ?></span>
-				<span class="faded_out" id="no_issuetype"<?php if ($issue->getIssueType() instanceof TBGDatatype): ?> style="display: none;"<?php endif; ?>><?php echo __('Unknown issue type'); ?></span>
+				<span id="issuetype_content"><?php if ($issue->hasIssueType()) echo $issue->getIssueType()->getName(); ?></span>
+				<span class="faded_out" id="no_issuetype"<?php if ($issue->getIssueType() instanceof TBGIssuetype): ?> style="display: none;"<?php endif; ?>><?php echo __('Unknown issue type'); ?></span>
 			</dd>
 		</dl>
 		<?php if ($issue->isEditable() && $issue->canEditIssuetype()): ?>
@@ -76,30 +76,31 @@
 			</div>
 		<?php endif; ?>
 	</li>
-	<li id="assigned_to_field" class="issue_detail_field<?php if ($issue->isAssignedToChanged()): ?> issue_detail_changed<?php endif; ?><?php if (!$issue->isAssignedToMerged()): ?> issue_detail_unmerged<?php endif; ?>">
+	<li id="assigned_to_field" class="issue_detail_field<?php if ($issue->isAssigneeChanged()): ?> issue_detail_changed<?php endif; ?><?php if (!$issue->isAssigneeMerged()): ?> issue_detail_unmerged<?php endif; ?>">
 		<dl class="viewissue_list">
 			<dt id="assigned_to_header"><?php echo __('Assigned to'); ?></dt>
-			<dd id="assigned_to_content" class="<?php if ($issue->isAssignedToChanged()): ?>issue_detail_changed<?php endif; ?><?php if (!$issue->isAssignedToMerged()): ?> issue_detail_unmerged<?php endif; ?>">
-				<?php if ($issue->canEditAssignedTo() && $issue->isEditable()): ?>
+			<dd id="assigned_to_content" class="<?php if ($issue->isAssigneeChanged()): ?>issue_detail_changed<?php endif; ?><?php if (!$issue->isAssigneeMerged()): ?> issue_detail_unmerged<?php endif; ?>">
+				<?php if ($issue->canEditAssignee() && $issue->isEditable()): ?>
 					<a href="javascript:void(0);" onclick="TBG.Issues.Field.revert('<?php echo make_url('issue_revertfield', array('project_key' => $issue->getProject()->getKey(), 'issue_id' => $issue->getID(), 'field' => 'assigned_to')); ?>', 'assigned_to');" title="<?php echo __('Undo this change'); ?>"><?php echo image_tag('undo.png', array('class' => 'undo')); ?></a>
 					<?php echo image_tag('spinning_16.gif', array('style' => 'display: none; float: left; margin-right: 5px;', 'id' => 'assigned_to_undo_spinning')); ?>
 					<a href="javascript:void(0);" onclick="if ($('assigned_to_change').visible()) { $$('div.dropdown_box').each(Element.hide); } else { $$('div.dropdown_box').each(Element.hide); $('assigned_to_change').toggle(); }" title="<?php echo __('Click to change assignee'); ?>"><?php echo image_tag('action_dropdown_small.png', array('class' => 'dropdown')); ?></a>
 				<?php endif; ?>
 				<div style="width: 170px; display: <?php if ($issue->isAssigned()): ?>inline<?php else: ?>none<?php endif; ?>;" id="assigned_to_name">
-					<?php if ($issue->getAssigneeType() == TBGIdentifiableClass::TYPE_USER): ?>
+					<?php if ($issue->getAssignee() instanceof TBGUser): ?>
 						<?php echo include_component('main/userdropdown', array('user' => $issue->getAssignee())); ?>
-					<?php elseif ($issue->getAssigneeType() == TBGIdentifiableClass::TYPE_TEAM): ?>
+					<?php elseif ($issue->getAssignee() instanceof TBGTeam): ?>
 						<?php echo include_component('main/teamdropdown', array('team' => $issue->getAssignee())); ?>
 					<?php endif; ?>
 				</div>
 				<span class="faded_out" id="no_assigned_to"<?php if ($issue->isAssigned()): ?> style="display: none;"<?php endif; ?>><?php echo __('Not assigned to anyone'); ?></span>
 			</dd>
 		</dl>
-		<?php if ($issue->canEditAssignedTo() && $issue->isEditable()): ?>
+		<?php if ($issue->canEditAssignee() && $issue->isEditable()): ?>
 			<?php include_component('identifiableselector', array(	'html_id' 			=> 'assigned_to_change', 
 																	'header' 			=> __('Assign this issue'),
-																	'callback'		 	=> "TBG.Issues.Field.set('" . make_url('issue_setfield', array('project_key' => $issue->getProject()->getKey(), 'issue_id' => $issue->getID(), 'field' => 'assigned_to', 'identifiable_type' => '%identifiable_type%', 'value' => '%identifiable_value%')) . "', 'assigned_to');",
-																	'teamup_callback' 	=> "TBG.Issues.Field.set('" . make_url('issue_setfield', array('project_key' => $issue->getProject()->getKey(), 'issue_id' => $issue->getID(), 'field' => 'assigned_to', 'identifiable_type' => '%identifiable_type%', 'value' => '%identifiable_value%', 'teamup' => true)) . "', 'assigned_to');",
+																	'callback'		 	=> "TBG.Issues.Field.set('" . make_url('issue_setfield', array('project_key' => $issue->getProject()->getKey(), 'issue_id' => $issue->getID(), 'field' => 'assigned_to', 'identifiable_type' => 'user', 'value' => '%identifiable_value%')) . "', 'assigned_to');",
+																	'team_callback'	 	=> "TBG.Issues.Field.set('" . make_url('issue_setfield', array('project_key' => $issue->getProject()->getKey(), 'issue_id' => $issue->getID(), 'field' => 'assigned_to', 'identifiable_type' => 'team', 'value' => '%identifiable_value%')) . "', 'assigned_to');",
+																	'teamup_callback' 	=> "TBG.Issues.Field.set('" . make_url('issue_setfield', array('project_key' => $issue->getProject()->getKey(), 'issue_id' => $issue->getID(), 'field' => 'assigned_to', 'identifiable_type' => 'team', 'value' => '%identifiable_value%', 'teamup' => true)) . "', 'assigned_to');",
 																	'clear_link_text'	=> __('Clear current assignee'),
 																	'base_id'			=> 'assigned_to',
 																	'include_teams'		=> true,
@@ -267,30 +268,31 @@
 																	'classes'			=> 'dropdown_box')); ?>
 		<?php endif; ?>
 	</li>
-	<li id="owned_by_field" class="issue_detail_field<?php if ($issue->isOwnedByChanged()): ?> issue_detail_changed<?php endif; ?><?php if (!$issue->isOwnedByMerged()): ?> issue_detail_unmerged<?php endif; ?>">
+	<li id="owned_by_field" class="issue_detail_field<?php if ($issue->isOwnerChanged()): ?> issue_detail_changed<?php endif; ?><?php if (!$issue->isOwnerMerged()): ?> issue_detail_unmerged<?php endif; ?>">
 		<dl class="viewissue_list">
 			<dt id="owned_by_header"><?php echo __('Owned by'); ?></dt>
-			<dd id="owned_by_content" class="<?php if ($issue->isOwnedByChanged()): ?>issue_detail_changed<?php endif; ?><?php if (!$issue->isOwnedByMerged()): ?> issue_detail_unmerged<?php endif; ?>">
-				<?php if ($issue->isUpdateable() && $issue->canEditOwnedBy()): ?>
+			<dd id="owned_by_content" class="<?php if ($issue->isOwnerChanged()): ?>issue_detail_changed<?php endif; ?><?php if (!$issue->isOwnerMerged()): ?> issue_detail_unmerged<?php endif; ?>">
+				<?php if ($issue->isUpdateable() && $issue->canEditOwner()): ?>
 					<a href="javascript:void(0);" onclick="TBG.Issues.Field.revert('<?php echo make_url('issue_revertfield', array('project_key' => $issue->getProject()->getKey(), 'issue_id' => $issue->getID(), 'field' => 'owned_by')); ?>', 'owned_by');" title="<?php echo __('Undo this change'); ?>"><?php echo image_tag('undo.png', array('class' => 'undo')); ?></a>
 					<?php echo image_tag('spinning_16.gif', array('style' => 'display: none; float: left; margin-right: 5px;', 'id' => 'owned_by_undo_spinning')); ?>
 					<a href="javascript:void(0);" onclick="if ($('owned_by_change').visible()) { $$('div.dropdown_box').each(Element.hide); } else { $$('div.dropdown_box').each(Element.hide); $('owned_by_change').toggle(); }" title="<?php echo __('Click to change owner'); ?>"><?php echo image_tag('action_dropdown_small.png', array('class' => 'dropdown')); ?></a>
 				<?php endif; ?>
 				<div style="width: 170px; display: <?php if ($issue->isOwned()): ?>inline<?php else: ?>none<?php endif; ?>;" id="owned_by_name">
-					<?php if ($issue->getOwnerType() == TBGIdentifiableClass::TYPE_USER): ?>
+					<?php if ($issue->getOwner() instanceof TBGUser): ?>
 						<?php echo include_component('main/userdropdown', array('user' => $issue->getOwner())); ?>
-					<?php elseif ($issue->getOwnerType() == TBGIdentifiableClass::TYPE_TEAM): ?>
+					<?php elseif ($issue->getOwner() instanceof TBGTeam): ?>
 						<?php echo include_component('main/teamdropdown', array('team' => $issue->getOwner())); ?>
 					<?php endif; ?>
 				</div>
 				<span class="faded_out" id="no_owned_by"<?php if ($issue->isOwned()): ?> style="display: none;"<?php endif; ?>><?php echo __('Not owned by anyone'); ?></span>
 			</dd>
 		</dl>
-		<?php if ($issue->isUpdateable() && $issue->canEditOwnedBy()): ?>
+		<?php if ($issue->isUpdateable() && $issue->canEditOwner()): ?>
 			<?php include_component('identifiableselector', array(	'html_id' 			=> 'owned_by_change', 
 																	'header' 			=> __('Change issue owner'),
-																	'callback'		 	=> "TBG.Issues.Field.set('" . make_url('issue_setfield', array('project_key' => $issue->getProject()->getKey(), 'issue_id' => $issue->getID(), 'field' => 'owned_by', 'identifiable_type' => '%identifiable_type%', 'value' => '%identifiable_value%')) . "', 'owned_by');",
-																	'teamup_callback'	=> "TBG.Issues.Field.set('" . make_url('issue_setfield', array('project_key' => $issue->getProject()->getKey(), 'issue_id' => $issue->getID(), 'field' => 'owned_by', 'identifiable_type' => '%identifiable_type%', 'value' => '%identifiable_value%', 'teamup' => true)) . "', 'owned_by');",
+																	'callback'		 	=> "TBG.Issues.Field.set('" . make_url('issue_setfield', array('project_key' => $issue->getProject()->getKey(), 'issue_id' => $issue->getID(), 'field' => 'owned_by', 'identifiable_type' => 'user', 'value' => '%identifiable_value%')) . "', 'owned_by');",
+																	'team_callback'	 	=> "TBG.Issues.Field.set('" . make_url('issue_setfield', array('project_key' => $issue->getProject()->getKey(), 'issue_id' => $issue->getID(), 'field' => 'owned_by', 'identifiable_type' => 'team', 'value' => '%identifiable_value%')) . "', 'owned_by');",
+																	'teamup_callback' 	=> "TBG.Issues.Field.set('" . make_url('issue_setfield', array('project_key' => $issue->getProject()->getKey(), 'issue_id' => $issue->getID(), 'field' => 'owned_by', 'identifiable_type' => 'team', 'value' => '%identifiable_value%', 'teamup' => true)) . "', 'owned_by');",
 																	'clear_link_text'	=> __('Clear current owner'),
 																	'base_id'			=> 'owned_by',
 																	'include_teams'		=> true,
@@ -305,41 +307,16 @@
 				<?php if ($issue->isUpdateable() && $issue->canEditEstimatedTime()): ?>
 					<a href="javascript:void(0);" onclick="TBG.Issues.Field.revert('<?php echo make_url('issue_revertfield', array('project_key' => $issue->getProject()->getKey(), 'issue_id' => $issue->getID(), 'field' => 'estimated_time')); ?>', 'estimated_time');" title="<?php echo __('Undo this change'); ?>"><?php echo image_tag('undo.png', array('class' => 'undo')); ?></a>
 					<?php echo image_tag('spinning_16.gif', array('style' => 'display: none; float: left; margin-right: 5px;', 'id' => 'estimated_time_undo_spinning')); ?>
-					<a href="javascript:void(0);" onclick="if ($('estimated_time_change').visible()) { $$('div.dropdown_box').each(Element.hide); } else { $$('div.dropdown_box').each(Element.hide); $('estimated_time_change').toggle(); }" title="<?php echo __('Click to estimate this issue'); ?>"><?php echo image_tag('action_dropdown_small.png', array('class' => 'dropdown')); ?></a>
+					<a href="javascript:void(0);" onclick="if ($('estimated_time_change').visible()) { $$('div.dropdown_box').each(Element.hide); } else { $$('div.dropdown_box').each(Element.hide); $('estimated_time_<?php echo $issue->getID(); ?>_change').toggle(); }" title="<?php echo __('Click to estimate this issue'); ?>"><?php echo image_tag('action_dropdown_small.png', array('class' => 'dropdown')); ?></a>
 				<?php endif; ?>
-				<span id="estimated_time_name"<?php if (!$issue->hasEstimatedTime()): ?> style="display: none;"<?php endif; ?>>
+				<span id="estimated_time_<?php echo $issue->getID(); ?>_name"<?php if (!$issue->hasEstimatedTime()): ?> style="display: none;"<?php endif; ?>>
 					<?php echo $issue->getFormattedTime($issue->getEstimatedTime()); ?>
 				</span>
-				<span class="faded_out" id="no_estimated_time"<?php if ($issue->hasEstimatedTime()): ?> style="display: none;"<?php endif; ?>><?php echo __('Not estimated'); ?></span>
+				<span class="faded_out" id="no_estimated_time_<?php echo $issue->getID(); ?>"<?php if ($issue->hasEstimatedTime()): ?> style="display: none;"<?php endif; ?>><?php echo __('Not estimated'); ?></span>
 			</dd>
 		</dl>
 		<?php if ($issue->isUpdateable() && $issue->canEditEstimatedTime()): ?>
-			<div class="rounded_box white shadowed dropdown_box" id="estimated_time_change" style="display: none; width: 280px; position: absolute; z-index: 10001; margin: 5px 0 5px 0; padding: 5px;">
-				<form id="estimated_time_form" method="post" accept-charset="<?php echo TBGContext::getI18n()->getCharset(); ?>" action="" onsubmit="TBG.Issues.Field.setTime('<?php echo make_url('issue_setfield', array('project_key' => $issue->getProject()->getKey(), 'issue_id' => $issue->getID(), 'field' => 'estimated_time')); ?>', 'estimated_time');return false;">
-					<div class="dropdown_header"><?php echo __('Estimate this issue'); ?></div>
-					<div class="dropdown_content">
-						<a href="javascript:void(0);" onclick="TBG.Issues.Field.set('<?php echo make_url('issue_setfield', array('project_key' => $issue->getProject()->getKey(), 'issue_id' => $issue->getID(), 'field' => 'estimated_time', 'value' => 0)); ?>', 'estimated_time');"><?php echo __('Clear current estimate'); ?></a><br>
-					</div>
-					<div class="dropdown_content">
-						<label for="estimated_time_input"><?php echo trim(__('%clear_current_estimate% type a new estimate %or_select_below%', array('%clear_current_estimate%' => '', '%or_select_below%' => ''))); ?>:</label><br>
-						<?php $estimated_time_title = __('Enter your estimate here'); ?>
-						<input type="text" name="estimated_time" id="estimated_time_input" value="<?php echo $estimated_time_title; ?>" style="width: 240px; padding: 1px 1px 1px;" onblur="if (this.getValue() == '') { this.value = '<?php echo $estimated_time_title; ?>'; this.addClassName('faded_out'); }" onfocus="if (this.getValue() == '<?php echo $estimated_time_title; ?>') { this.clear(); } this.removeClassName('faded_out');" class="faded_out">
-						<input type="submit" style="width: 60px;" value="<?php echo __('Estimate'); ?>">
-						<div class="faded_out" style="padding: 5px 0 5px 0;"><?php echo __('Enter an estimate in plain text, like "1 week, 2 hours", "3 months and 1 day", or similar'); ?>.</div>
-					</div>
-					<div class="dropdown_content">
-						<label for="estimated_time_months"><?php echo __('or enter an estimate below'); ?>:</label><br>
-						<input type="text" style="width: 20px;" value="<?php echo $issue->getEstimatedMonths(); ?>" name="estimated_time_months" id="estimated_time_months"><b><?php echo __('%number_of% months', array('%number_of%' => '')); ?></b><br>
-						<input type="text" style="width: 20px;" value="<?php echo $issue->getEstimatedWeeks(); ?>" name="estimated_time_weeks" id="estimated_time_weeks"><b><?php echo __('%number_of% weeks', array('%number_of%' => '')); ?></b><br>
-						<input type="text" style="width: 20px;" value="<?php echo $issue->getEstimatedDays(); ?>" name="estimated_time_days" id="estimated_time_days"><b><?php echo __('%number_of% days', array('%number_of%' => '')); ?></b><br>
-						<input type="text" style="width: 20px;" value="<?php echo $issue->getEstimatedHours(); ?>" name="estimated_time_hours" id="estimated_time_hours"><b><?php echo __('%number_of% hours', array('%number_of%' => '')); ?></b><br>
-						<input type="submit" style="width: 60px; float: right;" value="<?php echo __('Estimate'); ?>">
-						<input type="text" style="width: 20px;" value="<?php echo $issue->getEstimatedPoints(); ?>" name="estimated_time_points" id="estimated_time_points"><b><?php echo __('%number_of% points', array('%number_of%' => '')); ?></b><br>
-					</div>
-				</form>
-				<div id="estimated_time_spinning" style="margin-top: 3px; display: none;"><?php echo image_tag('spinning_20.gif', array('style' => 'float: left; margin-right: 5px;')) . '&nbsp;' . __('Please wait'); ?>...</div>
-				<div id="estimated_time_change_error" class="error_message" style="display: none;"></div>
-			</div>
+			<?php include_component('main/issueestimator', array('issue' => $issue, 'field' => 'estimated_time')); ?>
 		<?php endif; ?>
 	</li>
 	<li id="spent_time_field"<?php if (!$issue->isSpentTimeVisible()): ?> style="display: none;"<?php endif; ?> class="issue_detail_field<?php if ($issue->isSpentTimeChanged()): ?> issue_detail_changed<?php endif; ?><?php if (!$issue->isSpentTimeMerged()): ?> issue_detail_unmerged<?php endif; ?>">
@@ -349,7 +326,7 @@
 				<?php if ($issue->isUpdateable() && $issue->canEditSpentTime()): ?>
 					<a href="javascript:void(0);" onclick="TBG.Issues.Field.revert('<?php echo make_url('issue_revertfield', array('project_key' => $issue->getProject()->getKey(), 'issue_id' => $issue->getID(), 'field' => 'spent_time')); ?>', 'spent_time');" title="<?php echo __('Undo this change'); ?>"><?php echo image_tag('undo.png', array('class' => 'undo')); ?></a>
 					<?php echo image_tag('spinning_16.gif', array('style' => 'display: none; float: left; margin-right: 5px;', 'id' => 'spent_time_undo_spinning')); ?>
-					<a href="javascript:void(0);" onclick="if ($('spent_time_change').visible()) { $$('div.dropdown_box').each(Element.hide); } else { $$('div.dropdown_box').each(Element.hide); $('spent_time_change').toggle(); }" title="<?php echo __('Click to enter time spent on this issue'); ?>"><?php echo image_tag('action_dropdown_small.png', array('class' => 'dropdown')); ?></a>
+					<a href="javascript:void(0);" onclick="if ($('spent_time_change').visible()) { $$('div.dropdown_box').each(Element.hide); } else { $$('div.dropdown_box').each(Element.hide); $('spent_time_<?php echo $issue->getID(); ?>_change').toggle(); }" title="<?php echo __('Click to enter time spent on this issue'); ?>"><?php echo image_tag('action_dropdown_small.png', array('class' => 'dropdown')); ?></a>
 				<?php endif; ?>
 				<span id="spent_time_name"<?php if (!$issue->hasSpentTime()): ?> style="display: none;"<?php endif; ?>>
 					<?php echo $issue->getFormattedTime($issue->getSpentTime()); ?>
@@ -358,34 +335,7 @@
 			</dd>
 		</dl>
 		<?php if ($issue->isUpdateable() && $issue->canEditSpentTime()): ?>
-			<div class="rounded_box white shadowed dropdown_box" id="spent_time_change" style="display: none; width: 280px; position: absolute; z-index: 10001; margin: 5px 0 5px 0; padding: 5px;">
-				<form id="spent_time_form" method="post" accept-charset="<?php echo TBGContext::getI18n()->getCharset(); ?>" action="" onsubmit="TBG.Issues.Field.setTime('<?php echo make_url('issue_setfield', array('project_key' => $issue->getProject()->getKey(), 'issue_id' => $issue->getID(), 'field' => 'spent_time')); ?>', 'spent_time');return false;">
-					<div class="dropdown_header"><?php echo __('Set time spent on this issue'); ?></div>
-					<div class="dropdown_content">
-						<a href="javascript:void(0);" onclick="TBG.Issues.Field.set('<?php echo make_url('issue_setfield', array('project_key' => $issue->getProject()->getKey(), 'issue_id' => $issue->getID(), 'field' => 'spent_time', 'value' => 0)); ?>', 'spent_time');"><?php echo __('Clear time spent on this issue'); ?></a><br>
-					</div>
-					<div class="dropdown_content">
-						<label for="spent_time_input"><?php echo trim(__("%clear_time_spent% enter how much time you've spent %or_select_below%", array('%clear_time_spent%' => '', '%or_select_below%' => ''))); ?>:</label><br>
-						<?php $spent_time_title = __('Enter time spent here'); ?>
-						<input type="text" name="spent_time" id="spent_time_input" value="<?php echo $spent_time_title; ?>" style="width: 180px; padding: 1px 1px 1px;" onblur="if (this.getValue() == '') { this.value = '<?php echo $spent_time_title; ?>'; this.addClassName('faded_out'); }" onfocus="if (this.getValue() == '<?php echo $spent_time_title; ?>') { this.clear(); } this.removeClassName('faded_out');" class="faded_out">
-						<input type="submit" style="width: 80px;" value="<?php echo __('Spend time'); ?>"><br>
-						<input type="checkbox" checked="checked" name="spent_time_added_text" value="true" id="spent_time_added_text"><label for="spent_time_added_text"><?php echo __('Add entered time to total time spent') ?></label>
-						<div class="faded_out" style="padding: 5px 0 5px 0;"><?php echo __('Enter time spent as plain text, like "1 day, 2 hours", "12 hours / 2 points", or similar'); ?>.</div>
-					</div>
-					<div class="dropdown_content">
-						<label for="spent_time_months"><?php echo __('or enter time spent below'); ?>:</label><br>
-						<input type="text" style="width: 20px;" value="<?php echo $issue->getSpentMonths(); ?>" name="spent_time_months" id="spent_time_months"><b><?php echo __('%number_of% months', array('%number_of%' => '')); ?></b><br>
-						<input type="text" style="width: 20px;" value="<?php echo $issue->getSpentWeeks(); ?>" name="spent_time_weeks" id="spent_time_weeks"><b><?php echo __('%number_of% weeks', array('%number_of%' => '')); ?></b><br>
-						<input type="text" style="width: 20px;" value="<?php echo $issue->getSpentDays(); ?>" name="spent_time_days" id="spent_time_days"><b><?php echo __('%number_of% days', array('%number_of%' => '')); ?></b><br>
-						<input type="text" style="width: 20px;" value="<?php echo $issue->getSpentHours(); ?>" name="spent_time_hours" id="spent_time_hours"><b><?php echo __('%number_of% hours', array('%number_of%' => '')); ?></b><br>
-						<input type="submit" style="width: 80px; float: right;" value="<?php echo __('Spend time'); ?>">
-						<input type="text" style="width: 20px;" value="<?php echo $issue->getSpentPoints(); ?>" name="spent_time_points" id="spent_time_points"><b><?php echo __('%number_of% points', array('%number_of%' => '')); ?></b><br>
-						<input type="checkbox" name="spent_time_added_input" value="true" id="spent_time_added_input"><label for="spent_time_added_input"><?php echo __('Add entered time to total time spent') ?></label>
-					</div>
-				</form>
-				<div id="spent_time_spinning" style="margin-top: 3px; display: none;"><?php echo image_tag('spinning_20.gif', array('style' => 'float: left; margin-right: 5px;')) . '&nbsp;' . __('Please wait'); ?>...</div>
-				<div id="spent_time_change_error" class="error_message" style="display: none;"></div>
-			</div>
+			<?php include_component('main/issueestimator', array('issue' => $issue, 'field' => 'spent_time')); ?>
 		<?php endif; ?>
 	</li>
 	<?php foreach ($fields_list as $field => $info): ?>
@@ -524,7 +474,7 @@
 							?>
 								<a href="javascript:void(0);" onclick="TBG.Issues.Field.set('<?php echo make_url('issue_setfield', array('project_key' => $issue->getProject()->getKey(), 'issue_id' => $issue->getID(), 'field' => $field, $field . '_value' => "")); ?>', '<?php echo $field; ?>');"><?php echo $info['clear']; ?></a><br>
 								<ul class="choices">
-									<?php foreach (TBGEdition::getAllByProjectID($issue->getProject()->getID()) as $choice): ?>
+									<?php foreach ($issue->getProject()->getEditions() as $choice): ?>
 										<li>
 											<?php echo image_tag('icon_edition.png', array('style' => 'float: left; margin-right: 5px;')); ?><a href="javascript:void(0);" onclick="TBG.Issues.Field.set('<?php echo make_url('issue_setfield', array('project_key' => $issue->getProject()->getKey(), 'issue_id' => $issue->getID(), 'field' => $field, $field . '_value' => $choice->getID())); ?>', '<?php echo $field; ?>');"><?php echo $choice->getName(); ?></a>
 										</li>
@@ -548,7 +498,7 @@
 							?>
 								<a href="javascript:void(0);" onclick="TBG.Issues.Field.set('<?php echo make_url('issue_setfield', array('project_key' => $issue->getProject()->getKey(), 'issue_id' => $issue->getID(), 'field' => $field, $field . '_value' => "")); ?>', '<?php echo $field; ?>');"><?php echo $info['clear']; ?></a><br>
 								<ul class="choices">
-									<?php foreach (TBGComponent::getAllByProjectID($issue->getProject()->getID()) as $choice): ?>
+									<?php foreach ($issue->getProject()->getComponents() as $choice): ?>
 										<li>
 											<?php echo image_tag('icon_components.png', array('style' => 'float: left; margin-right: 5px;')); ?><a href="javascript:void(0);" onclick="TBG.Issues.Field.set('<?php echo make_url('issue_setfield', array('project_key' => $issue->getProject()->getKey(), 'issue_id' => $issue->getID(), 'field' => $field, $field . '_value' => $choice->getID())); ?>', '<?php echo $field; ?>');"><?php echo $choice->getName(); ?></a>
 										</li>
@@ -560,7 +510,7 @@
 							?>
 								<a href="javascript:void(0);" onclick="TBG.Issues.Field.set('<?php echo make_url('issue_setfield', array('project_key' => $issue->getProject()->getKey(), 'issue_id' => $issue->getID(), 'field' => $field, $field . '_value' => "")); ?>', '<?php echo $field; ?>');"><?php echo $info['clear']; ?></a><br>
 								<ul class="choices">
-									<?php foreach (TBGBuild::getByProjectID($issue->getProject()->getID()) as $choice): ?>
+									<?php foreach ($issue->getProject()->getBuilds() as $choice): ?>
 										<li>
 											<?php echo image_tag('icon_build.png', array('style' => 'float: left; margin-right: 5px;')); ?><a href="javascript:void(0);" onclick="TBG.Issues.Field.set('<?php echo make_url('issue_setfield', array('project_key' => $issue->getProject()->getKey(), 'issue_id' => $issue->getID(), 'field' => $field, $field . '_value' => $choice->getID())); ?>', '<?php echo $field; ?>');"><?php echo $choice->getName(); ?></a>
 										</li>

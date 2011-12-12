@@ -50,15 +50,23 @@
 				$this->projects = TBGProject::getAllRootProjects(true);
 				$this->project_count = count($this->projects);
 			}
-			elseif ($this->target == TBGIdentifiableClass::TYPE_TEAM)
+			elseif ($this->target == TBGIdentifiableTypeClass::TYPE_TEAM)
 			{
 				$this->team = TBGContext::factory()->TBGTeam($this->id);
-				$own = TBGProject::getAllByOwner($this->team);
-				$leader = TBGProject::getAllByLeader($this->team);
-				$qa = TBGProject::getAllByQaResponsible($this->team);
-				$proj = $this->team->getAssociatedProjects();
+				$projects = array();
+				foreach (TBGProject::getAllByOwner($this->team) as $project) {
+					$projects[$project->getID()] = $project;
+				}
+				foreach (TBGProject::getAllByLeader($this->team) as $project) {
+					$projects[$project->getID()] = $project;
+				}
+				foreach (TBGProject::getAllByQaResponsible($this->team) as $project) {
+					$projects[$project->getID()] = $project;
+				}
+				foreach ($this->team->getAssociatedProjects() as $project_id => $project) {
+					$projects[$project_id] = $project;
+				}
 				
-				$projects = array_unique(array_merge($proj, $own, $leader, $qa));
 				$final_projects = array();
 				
 				foreach ($projects as $project)
@@ -68,7 +76,7 @@
 				
 				$this->projects = $final_projects;
 			}
-			elseif ($this->target == TBGIdentifiableClass::TYPE_CLIENT)
+			elseif ($this->target == TBGIdentifiableTypeClass::TYPE_CLIENT)
 			{
 				$this->client = TBGContext::factory()->TBGClient($this->id);
 				$projects = TBGProject::getAllByClientID($this->client->getID());
@@ -114,6 +122,8 @@
 		public function componentIdentifiableselector()
 		{
 			$this->include_teams = (isset($this->include_teams)) ? $this->include_teams : false;
+			$this->include_users = (isset($this->include_users)) ? $this->include_users : true;
+			$this->callback = (isset($this->callback)) ? $this->callback : null;
 			$this->allow_clear = (isset($this->allow_clear)) ? $this->allow_clear : true;
 		}
 		
@@ -147,7 +157,7 @@
 				$fields_list['severity'] = array('title' => $i18n->__('Severity'), 'choices' => array(), 'visible' => $this->issue->isSeverityVisible(), 'changed' => $this->issue->isSeverityChanged(), 'merged' => $this->issue->isSeverityMerged(), 'name' => (($this->issue->getSeverity() instanceof TBGSeverity) ? $this->issue->getSeverity()->getName() : ''), 'name_visible' => (bool) ($this->issue->getSeverity() instanceof TBGSeverity), 'noname_visible' => (bool) (!$this->issue->getSeverity() instanceof TBGSeverity), 'icon' => false, 'change_tip' => $i18n->__('Click to change severity'), 'change_header' => $i18n->__('Change severity'), 'clear' => $i18n->__('Clear the severity'), 'select' => $i18n->__('%clear_the_severity% or click to select a new severity', array('%clear_the_severity%' => '')));
 				if ($this->issue->isUpdateable() && $this->issue->canEditSeverity()) $fields_list['severity']['choices'] = TBGSeverity::getAll();
 				$fields_list['milestone'] = array('title' => $i18n->__('Targetted for'), 'choices' => array(), 'visible' => $this->issue->isMilestoneVisible(), 'changed' => $this->issue->isMilestoneChanged(), 'merged' => $this->issue->isMilestoneMerged(), 'name' => (($this->issue->getMilestone() instanceof TBGMilestone) ? $this->issue->getMilestone()->getName() : ''), 'name_visible' => (bool) ($this->issue->getMilestone() instanceof TBGMilestone), 'noname_visible' => (bool) (!$this->issue->getMilestone() instanceof TBGMilestone), 'icon' => true, 'icon_name' => 'icon_milestones.png', 'change_tip' => $i18n->__('Click to change which milestone this issue is targetted for'), 'change_header' => $i18n->__('Set issue target / milestone'), 'clear' => $i18n->__('Set as not targetted'), 'select' => $i18n->__('%set_as_not_targetted% or click to set a new target milestone', array('%set_as_not_targetted%' => '')), 'url' => true, 'current_url' => (($this->issue->getMilestone() instanceof TBGMilestone) ? $this->getRouting()->generate('project_milestone_details', array('project_key' => $this->issue->getProject()->getKey(), 'milestone_id' => $this->issue->getMilestone()->getID())) : ''));
-				if ($this->issue->isUpdateable() && $this->issue->canEditMilestone()) $fields_list['milestone']['choices'] = $this->project->getAllMilestones();
+				if ($this->issue->isUpdateable() && $this->issue->canEditMilestone()) $fields_list['milestone']['choices'] = $this->project->getMilestones();
 
 				$customfields_list = array();
 				foreach (TBGCustomDatatype::getAll() as $key => $customdatatype)
@@ -194,7 +204,7 @@
 				$fields_list['severity'] = array();
 				$fields_list['severity']['choices'] = TBGSeverity::getAll();
 				$fields_list['milestone'] = array();
-				$fields_list['milestone']['choices'] = $this->project->getAllMilestones();
+				$fields_list['milestone']['choices'] = $this->project->getMilestones();
 			}
 
 			$this->fields_list = $fields_list;
@@ -320,6 +330,11 @@
 		
 		public function componentIssueaffected()
 		{	
+			$this->editions = ($this->issue->getProject()->isEditionsEnabled()) ? $this->issue->getEditions() : array();
+			$this->components = ($this->issue->getProject()->isComponentsEnabled()) ? $this->issue->getComponents() : array();
+			$this->builds = ($this->issue->getProject()->isBuildsEnabled()) ? $this->issue->getBuilds() : array();
+			$this->statuses = TBGStatus::getAll();
+			$this->count = count($this->editions) + count($this->components) + count($this->builds);
 		}
 
 		public function componentLoginpopup()
@@ -401,7 +416,9 @@
 		{
 			$this->selected_issuetype = $this->selected_issuetype ?: null;
 			$this->selected_edition = null;
-			$this->selected_build = null;
+			$this->selected_build = $this->selected_build ?: null;
+			$this->selected_milestone = $this->selected_milestone ?: null;
+			$this->parent_issue = $this->parent_issue ?: null;
 			$this->selected_component = null;
 			$this->selected_category = null;
 			$this->selected_status = null;
@@ -455,9 +472,35 @@
 		{
 		}
 
+		public function componentDashboardViewRecentComments()
+		{
+			$this->comments = TBGComment::getRecentCommentsByAuthor($this->getUser()->getID());
+		}
+
 		public function componentDashboardViewLoggedActions()
 		{
 			$this->actions = $this->getUser()->getLatestActions();
+		}
+
+		public function componentIssueEstimator()
+		{
+			switch ($this->field)
+			{
+				case 'estimated_time':
+					$this->months = $this->issue->getEstimatedMonths();
+					$this->weeks = $this->issue->getEstimatedWeeks();
+					$this->days = $this->issue->getEstimatedDays();
+					$this->hours = $this->issue->getEstimatedHours();
+					$this->points = $this->issue->getEstimatedPoints();
+					break;
+				case 'spent_time':
+					$this->months = $this->issue->getSpentMonths();
+					$this->weeks = $this->issue->getSpentWeeks();
+					$this->days = $this->issue->getSpentDays();
+					$this->hours = $this->issue->getSpentHours();
+					$this->points = $this->issue->getSpentPoints();
+					break;
+			}
 		}
 
 	}

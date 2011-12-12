@@ -1,4 +1,4 @@
-<?php include_template('search/bulkactions', array('mode' => 'top')); ?>
+<?php if (!$tbg_user->isGuest()) include_template('search/bulkactions', array('mode' => 'top')); ?>
 <?php $current_count = 0; ?>
 <?php foreach ($issues as $issue): ?>
 	<?php list ($showtablestart, $showheader, $prevgroup_id, $groupby_description) = searchActions::resultGrouping($issue, $groupby, $cc, $prevgroup_id); ?>
@@ -11,7 +11,7 @@
 	<?php if ($showheader): ?>
 		<h5>
 			<?php if ($groupby == 'issuetype'): ?>
-				<?php echo image_tag($issue->getIssueType()->getIcon() . '_small.png', array('title' => $issue->getIssueType()->getName())); ?>
+				<?php echo image_tag((($issue->hasIssueType()) ? $issue->getIssueType()->getIcon() : 'icon_unknown') . '_small.png', array('title' => (($issue->hasIssueType()) ? $issue->getIssueType()->getName() : __('Unknown issuetype')))); ?>
 			<?php endif; ?>
 			<?php echo $groupby_description; ?>
 		</h5>
@@ -20,7 +20,9 @@
 		<table style="width: 100%;" cellpadding="0" cellspacing="0" class="results_container resizable sortable">
 			<thead>
 				<tr>
-					<th class="nosort" style="width: 20px; padding: 1px !important;"><input type="checkbox" onclick="TBG.Search.toggleCheckboxes(this);"></th>
+					<?php if (!$tbg_user->isGuest()): ?>
+						<th class="nosort" style="width: 20px; padding: 1px !important;"><input type="checkbox" onclick="TBG.Search.toggleCheckboxes(this);"></th>
+					<?php endif; ?>
 					<?php if (!TBGContext::isProjectContext() && $show_project == true): ?>
 						<th style="padding-left: 3px;"><?php echo __('Project'); ?></th>
 					<?php endif; ?>
@@ -37,22 +39,25 @@
 					<th class="sc_milestone"<?php if (!in_array('milestone', $visible_columns)): ?> style="display: none;"<?php endif; ?>><?php echo __('Milestone'); ?></th>
 					<th class="sc_last_updated"<?php if (!in_array('last_updated', $visible_columns)): ?> style="display: none;"<?php endif; ?>><?php echo __('Last updated'); ?></th>
 					<th class="sc_comments" style="width: 20px; padding-bottom: 0; text-align: center;<?php if (!in_array('comments', $visible_columns)): ?> display: none;<?php endif; ?>"><?php echo image_tag('icon_comments.png', array('title' => __('Number of user comments on this issue'))); ?></th>
+					<th class="sc_actions nosort" style="width: 20px; padding-bottom: 0; text-align: center;">&nbsp;</th>
 				</tr>
 			</thead>
 			<tbody>
 	<?php endif; ?>
 				<tr class="<?php if ($issue->isClosed()): ?> closed<?php endif; ?><?php if ($issue->hasUnsavedChanges()): ?> changed<?php endif; ?><?php if ($issue->isBlocking()): ?> blocking<?php endif; ?> priority_<?php echo ($issue->getPriority() instanceof TBGPriority) ? $issue->getPriority()->getValue() : 0; ?>" id="issue_<?php echo $issue->getID(); ?>">
-					<td style="padding: 2px;">
-						<?php if ($issue->isWorkflowTransitionsAvailable()): ?>
-							<input type="checkbox" name="update_issue[<?php echo $issue->getID(); ?>]" onclick="TBG.Search.toggleCheckbox(this);" value="<?php echo $issue->getID(); ?>">
-						<?php endif; ?>
-					</td>
+					<?php if (!$tbg_user->isGuest()): ?>
+						<td style="padding: 2px;">
+							<?php if ($issue->isWorkflowTransitionsAvailable()): ?>
+								<input type="checkbox" name="update_issue[<?php echo $issue->getID(); ?>]" onclick="TBG.Search.toggleCheckbox(this);" value="<?php echo $issue->getID(); ?>">
+							<?php endif; ?>
+						</td>
+					<?php endif; ?>
 				<?php if (!TBGContext::isProjectContext() && $show_project == true): ?>
 					<td style="padding-left: 5px;"><?php echo link_tag(make_url('project_issues', array('project_key' => $issue->getProject()->getKey())), $issue->getProject()->getName()); ?></td>
 				<?php endif; ?>
 					<td class="sc_issuetype"<?php if (!in_array('issuetype', $visible_columns)): ?> style="display: none;"<?php endif; ?>>
-						<?php echo image_tag($issue->getIssueType()->getIcon() . '_tiny.png', array('title' => $issue->getIssueType()->getName())); ?>
-						<?php echo $issue->getIssuetype()->getName(); ?>
+						<?php echo image_tag((($issue->hasIssueType()) ? $issue->getIssueType()->getIcon() : 'icon_unknown') . '_tiny.png', array('title' => (($issue->hasIssueType()) ? $issue->getIssueType()->getName() : __('Unknown issuetype')))); ?>
+						<?php echo ($issue->hasIssueType()) ? $issue->getIssueType()->getName() : __('Unknown issuetype'); ?>
 					</td>
 					<td class="result_issue"<?php if (TBGContext::isProjectContext()): ?> style="padding-left: 3px;"<?php endif; ?>>
 						<?php if ($issue->countFiles()): ?>
@@ -63,7 +68,7 @@
 					</td>
 					<td class="sc_assigned_to<?php if (!$issue->isAssigned()): ?> faded_out<?php endif; ?>"<?php if (!in_array('assigned_to', $visible_columns)): ?> style="display: none;"<?php endif; ?>>
 						<?php if ($issue->isAssigned()): ?>
-							<?php if ($issue->getAssigneeType() == TBGIdentifiableClass::TYPE_USER): ?>
+							<?php if ($issue->getAssignee() instanceof TBGUser): ?>
 								<?php echo include_component('main/userdropdown', array('user' => $issue->getAssignee())); ?>
 							<?php else: ?>
 								<?php echo include_component('main/teamdropdown', array('team' => $issue->getAssignee())); ?>
@@ -109,6 +114,12 @@
 					<td class="smaller sc_comments" style="text-align: center;<?php if (!in_array('comments', $visible_columns)): ?> display: none;<?php endif; ?>">
 						<?php echo $issue->countUserComments(); ?>
 					</td>
+					<td class="sc_actions">
+						<div style="position: relative;">
+							<a class="image" id="more_actions_button" href="javascript:void(0);" onclick="$(this).toggleClassName('button-pressed');$('more_actions_<?php echo $issue->getID(); ?>').toggle();"><?php echo image_tag('action_dropdown_small.png', array('title' => __('Show more actions'))); ?></a>
+							<?php include_template('main/issuemoreactions', array('issue' => $issue, 'multi' => true)); ?>
+						</div>
+					</td>
 				</tr>
 	<?php if ($cc == count($issues)): ?>
 			</tbody>
@@ -117,7 +128,7 @@
 	<?php endif; ?>
 	<?php $cc++; ?>
 <?php endforeach; ?>
-<?php include_template('search/bulkactions', array('mode' => 'bottom')); ?>
+<?php if (!$tbg_user->isGuest()) include_template('search/bulkactions', array('mode' => 'bottom')); ?>
 <script type="text/javascript">
 	document.observe('dom:loaded', function() {
 		TBG.Search.setColumns('results_normal', ['title', 'issuetype', 'assigned_to', 'status', 'resolution', 'category', 'severity', 'percent_complete', 'reproducability', 'priority', 'milestone', 'last_updated', 'comments'], [<?php echo "'".join("', '", $visible_columns)."'"; ?>], [<?php echo "'".join("', '", $default_columns)."'"; ?>]);

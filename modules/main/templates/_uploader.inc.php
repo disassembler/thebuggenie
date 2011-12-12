@@ -1,5 +1,5 @@
 <?php $apc_enabled = TBGRequest::CanGetUploadStatus(); ?>
-<div id="attach_file" style="display: none;">
+<div id="attach_file" style="display: none;" class="fullpage_backdrop">
 	<div class="backdrop_box medium">
 		<div class="backdrop_detail_header">
 			<?php if ($mode == 'issue'): ?>
@@ -19,14 +19,14 @@
 							<dd style="margin-bottom: 3px;"><input type="file" name="uploader_file" id="uploader_file"></dd>
 							<dd style="width: 100%;"><?php echo __('Files bigger than %max_filesize% can not be attached. Please check that the file you are attaching is not bigger than this.', array('%max_filesize%' => '<b>'.TBGSettings::getUploadsMaxSize().'MB</b>')); ?></dd>
 							<dt style="width: 120px;"><label for="upload_file_description"><?php echo __('Describe the file'); ?></label></dt>
-							<dd style="margin-bottom: 3px;"><input type="text" name="uploader_file_description" id="upload_file_description" style="width: 340px;"></dd>
+							<dd style="margin-bottom: 3px;"><input type="text" name="uploader_file_description" id="upload_file_description" style="width: 440px;"></dd>
 							<dd class="faded_out" style="width: 100%;"><?php echo __('Enter a few words about the file, so people can understand what it is/does'); ?></dd>
-							<?php if ($mode == 'issue'): ?>
-								<dt style="width: 120px;"><label for="upload_file_comment"><?php echo __('Comment'); ?></label> (<?php echo __('optional'); ?>)</dt><br>
-								<dd style="margin-bottom: 3px;"><textarea name="comment" cols="70" rows="3" id="upload_file_comment" style="width: 340px; height: 50px;"></textarea></dd>
-								<dd class="faded_out" style="width: 100%;"><?php echo __('If you want to add a comment with the file, enter the comment here, and it will automatically be added to the issue with the file'); ?></dd>
-							<?php endif; ?>
 						</dl>
+						<?php if ($mode == 'issue'): ?>
+							<label for="upload_file_comment"><?php echo __('Comment'); ?></label> (<?php echo __('optional'); ?>)<br>
+							<textarea name="comment" cols="70" rows="10" id="upload_file_comment" style="width: 560px; height: 150px;"></textarea></dd>
+							<div class="faded_out" style="width: auto;"><?php echo __('If you want to add a comment with the file, enter the comment here, and it will automatically be added to the issue with the file'); ?></div>
+						<?php endif; ?>
 					</div>
 					<div style="text-align: center; clear: both;" id="upload_and_attach">
 						<p style="margin-bottom: 5px;"><?php echo __('Press the %upload_and_attach% button to upload and attach the file', array('%upload_and_attach%' => '<i>'.__('Upload and attach').'</i>')); ?></p>
@@ -64,7 +64,6 @@
 			<a href="javascript:void(0)" onclick="$('attach_file').hide();"><?php echo __('Close'); ?></a>
 		</div>
 	</div>
-	<div style="background-color: #000; width: 100%; height: 100%; position: absolute; top: 0; left: 0; margin: 0; padding: 0; z-index: 100000;" class="semi_transparent" onclick="$('attach_file').hide();"> </div>
 </div>
 <?php if ($apc_enabled): ?>
 	<script type="text/javascript">

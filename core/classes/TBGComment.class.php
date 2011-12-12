@@ -15,11 +15,11 @@
 	 *
 	 * @package thebuggenie
 	 * @subpackage main
+	 *
+	 * @Table(name="TBGCommentsTable")
 	 */
-	class TBGComment extends TBGIdentifiableClass 
+	class TBGComment extends TBGIdentifiableScopedClass
 	{
-		
-		static protected $_b2dbtablename = 'TBGCommentsTable';
 		
 		/**
 		 * Issue comment
@@ -31,13 +31,17 @@
 		 */
 		const TYPE_ARTICLE = 2;
 
+		/**
+		 * @Column(type="text")
+		 */
 		protected $_content;
 		
 		/**
 		 * Who posted the comment
 		 * 
 		 * @var TBGUser
-		 * @Class TBGUser
+		 * @Column(type="integer", length=10)
+		 * @Relates(class="TBGUser")
 		 */
 		protected $_posted_by;
 		
@@ -45,27 +49,61 @@
 		 * Who last updated the comment
 		 * 
 		 * @var TBGUser
-		 * @Class TBGUser
+		 * @Column(type="integer", length=10)
+		 * @Relates(class="TBGUser")
 		 */
 		protected $_updated_by;
-		
+
+		/**
+		 * @Column(type="integer", length=10)
+		 */
 		protected $_posted;
 
+		/**
+		 * @Column(type="integer", length=10)
+		 */
 		protected $_updated;
 		
+		/**
+		 * @Column(type="integer", length=10)
+		 */
 		protected $_target_id;
 		
+		/**
+		 * @Column(type="integer", length=5)
+		 */
 		protected $_target_type = self::TYPE_ISSUE;
 		
+		/**
+		 * @Column(type="boolean")
+		 */
 		protected $_is_public = true;
 		
+		/**
+		 * @Column(type="string", length=100)
+		 */
 		protected $_module = 'core';
 		
+		/**
+		 * @Column(type="boolean")
+		 */
 		protected $_deleted = false;
 		
+		/**
+		 * @Column(type="boolean")
+		 */
 		protected $_system_comment = false;
 
+		/**
+		 * @Column(type="integer", length=10)
+		 */
 		protected $_comment_number = 0;
+
+		/**
+		 * @Column(type="integer", length=10)
+		 * @Relates(class="TBGComment")
+		 */
+		protected $_reply_to_comment = 0;
 
 		protected static $_comment_count = array();
 
@@ -189,6 +227,7 @@
 
 		protected function _preSave($is_new)
 		{
+			parent::_preSave($is_new);
 			if ($is_new)
 			{
 				if (!$this->_posted)
@@ -237,16 +276,6 @@
 		public function __toString()
 		{
 			return $this->_name;
-		}
-		
-		public function getName()
-		{
-			return $this->_name;
-		}
-		
-		public function getID()
-		{
-			return $this->_id;
 		}
 		
 		/**
@@ -383,6 +412,25 @@
 			);
 
 			return $return_values;
+		}
+
+		public function setReplyToComment($reply_to_comment_id)
+		{
+			$this->_reply_to_comment = $reply_to_comment_id;
+		}
+
+		public function getReplyToComment()
+		{
+			if (!is_object($this->_reply_to_comment) && $this->_reply_to_comment)
+			{
+				$this->_b2dbLazyload('_reply_to_comment');
+			}
+			return $this->_reply_to_comment;
+		}
+
+		public function isReply()
+		{
+			return (bool) (is_object($this->_reply_to_comment) || $this->_reply_to_comment);
 		}
 
 	}

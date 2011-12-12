@@ -15,6 +15,8 @@
 	 *
 	 * @package thebuggenie
 	 * @subpackage tables
+	 *
+	 * @Table(name="builds")
 	 */
 	class TBGBuildsTable3dot1 extends TBGB2DBTable
 	{
@@ -33,9 +35,9 @@
 		const PROJECT = 'builds.project';
 		const RELEASED = 'builds.isreleased';
 		
-		public function __construct()
+		public function _initialize()
 		{
-			parent::__construct(self::B2DBNAME, self::ID);
+			parent::_setup(self::B2DBNAME, self::ID);
 			parent::_addVarchar(self::NAME, 100);
 			parent::_addInteger(self::VERSION_MAJOR, 3);
 			parent::_addInteger(self::VERSION_MINOR, 3);

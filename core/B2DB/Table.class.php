@@ -27,7 +27,7 @@
 		protected $_indexes = array();
 		protected $_charset = 'utf8';
 		protected $_autoincrement_start_at = 1;
-		protected $_foreigntables = array();
+		protected $_foreigntables = null;
 		protected $_foreigncolumns = array();
 
 		public function __clone()
@@ -35,7 +35,27 @@
 			$this->b2db_alias = $this->b2db_name . Core::addAlias();
 		}
 		
-		public function __construct($b2db_name, $id_column)
+		final public function __construct()
+		{
+			if ($entity_class = Core::getCachedTableEntityClass(\get_called_class())) {
+				if ($details = Core::getCachedTableDetails($entity_class)) {
+					$this->_columns = $details['columns'];
+					$this->_foreigncolumns = $details['foreign_columns'];
+					$this->b2db_name = $details['name'];
+					$this->b2db_alias = $details['name'] . Core::addAlias();
+					$this->id_column = $details['id'];
+				}
+			} else {
+				$this->_initialize();
+			}
+		}
+
+		protected function _initialize()
+		{
+			throw new Exception('The table "'.\get_class($this).'" has no corresponding entity class. You must override the _initialize() method to set up the table details.');
+		}
+
+		protected function _setup($b2db_name, $id_column)
 		{
 			$this->b2db_name = $b2db_name;
 			$this->b2db_alias = $b2db_name . Core::addAlias();
@@ -91,6 +111,7 @@
 		
 		protected function _addIndex($index_name, $columns, $index_type = null)
 		{
+			if (!is_array($columns)) $columns = array($columns);
 			$this->_indexes[$index_name] = array('columns' => $columns, 'type' => $index_type);
 		}
 
@@ -101,12 +122,12 @@
 		 * @param Table $table
 		 * @param string $key
 		 */
-		protected function _addForeignKeyColumn($column, $table, $key)
+		protected function _addForeignKeyColumn($column, Table $table, $key = null)
 		{
 			$addtable = clone $table;
+			$key = ($key !== null) ? $key : $addtable->getIdColumn();
 			$foreign_column = $addtable->getColumn($key);
-			switch ($foreign_column['type'])
-			{
+			switch ($foreign_column['type']) {
 				case 'integer':
 					$this->_addInteger($column, $foreign_column['length'], $foreign_column['default_value'], false, false, $foreign_column['unsigned']);
 					break;
@@ -117,26 +138,25 @@
 					$this->_addVarchar($column, $foreign_column['length'], $foreign_column['default_value'], false);
 					break;
 				case 'text':
-					$this->_addText($column, $foreign_column['default_value'], false);
-					break;
+//					$this->_addText($column, $foreign_column['default_value'], false);
+//					break;
 				case 'boolean':
 				case 'blob':
-					throw new Exception('Cannot use a blob or boolean column as a foreign key');
+					throw new Exception('Cannot use a text, blob or boolean column as a foreign key');
 			}
-			$this->_foreigntables[$addtable->getB2DBAlias()] = array('table' => $addtable, 'key' => $key, 'column' => $column);
-			$this->_foreigncolumns[$column] = $column;
+			//$this->_foreigntables[$addtable->getB2DBAlias()] = array('table' => $addtable, 'key' => $key, 'column' => $column);
+			$this->_foreigncolumns[$column] = array('class' => \get_class($table), 'key' => $key, 'name' => $column);
 		}
 
 		public function getForeignTableByLocalColumn($column)
 		{
-			foreach ($this->_foreigntables as $foreign_table)
-			{
-				if ($foreign_table['column'] == $column)
-				{
-					return $foreign_table;
+			if (is_array($this->_foreigntables)) {
+				foreach ($this->_foreigntables as $foreign_table) {
+					if ($foreign_table['column'] == $column) {
+						return $foreign_table;
+					}
 				}
 			}
-			return null;
 		}
 		
 		public function __toString()
@@ -167,8 +187,7 @@
 		protected function getQC()
 		{
 			$qc = '`';
-			switch (Core::getDBtype())
-			{
+			switch (Core::getDBtype()) {
 				case 'pgsql':
 					$qc = '"';
 					break;
@@ -196,8 +215,22 @@
 			return $this->b2db_alias;
 		}
 		
+		protected function _initializeForeignTables()
+		{
+			$this->_foreigntables = array();
+			foreach ($this->_foreigncolumns as $column) {
+				$table_classname = $column['class'];
+				$table = clone $table_classname::getTable();
+				$key = ($column['key'] !== null) ? $column['key'] : $table->getIdColumn();
+				$this->_foreigntables[$table->getB2DBAlias()] = array('table' => $table, 'key' => $key, 'column' => $column['name']);
+			}
+		}
+
 		public function getForeignTables()
 		{
+			if ($this->_foreigntables === null) {
+				$this->_initializeForeignTables();
+			}
 			return $this->_foreigntables;
 		}
 		
@@ -246,8 +279,7 @@
 		public function getAliasColumns()
 		{
 			$retcolumns = array();
-			foreach ($this->_columns as $column => $col_data)
-			{
+			foreach ($this->_columns as $column => $col_data) {
 				$column_name = explode('.', $column);
 				$retcolumns[] = $this->b2db_alias . '.' . $column_name[1];
 			}
@@ -261,29 +293,18 @@
 		 */
 		public function doSelectAll()
 		{
-			try
-			{
-				$crit = new Criteria();
-				$crit->setFromTable($this);
-				$crit->generateSelectSQL(true);
-	
-				$statement = Statement::getPreparedStatement($crit);
-				$resultSet = $statement->performQuery();
-			}
-			catch (\Exception $e)
-			{
-				if (Core::throwExceptionAsHTML())
-				{
-					Core::fatalError($e);
-					exit();
-				}
-				else
-				{
-					throw $e;
-				}
-			}
+			$crit = new Criteria();
+			$crit->setFromTable($this);
+			$crit->generateSelectSQL(true);
 
-			return $resultSet;
+			$statement = Statement::getPreparedStatement($crit);
+			return $statement->performQuery();
+		}
+
+		public function selectAll()
+		{
+			$resultset = $this->doSelectAll();
+			return $this->_populateFromResultset($resultset);
 		}
 
 		/**
@@ -297,36 +318,24 @@
 		 */
 		public function doSelectById($id, Criteria $crit = null, $join = 'all')
 		{
-			try
-			{
-				if ($crit == null)
-				{
-					$crit = new Criteria();
-				}
-				$crit->addWhere($this->id_column, $id);
-				$crit->setLimit(1);
-				return $this->doSelectOne($crit, $join);
-			}
-			catch (\Exception $e)
-			{
-				if (Core::throwExceptionAsHTML())
-				{
-					Core::fatalError($e);
-					exit();
-				}
-				else
-				{
-					throw $e;
-				}
-			}
-			
-			
-			if ($resultSet->count() == 0)
-			{
-				throw new Exception("The row $id does not exist");
-			}
+			if ($crit == null) $crit = new Criteria();
+			$crit->addWhere($this->id_column, $id);
+			$crit->setLimit(1);
+			return $this->doSelectOne($crit, $join);
+		}
 
-			return $resultSet->getCurrentRow();
+		/**
+		 *
+		 * @param type $id
+		 * @param Criteria $crit
+		 * @param type $join
+		 *
+		 * @return Saveable
+		 */
+		public function selectById($id, Criteria $crit = null, $join = 'all')
+		{
+			$row = $this->doSelectById($id, $crit, $join);
+			return $this->_populateFromRow($row);
 		}
 
 		/**
@@ -337,29 +346,17 @@
 		 */
 		public function doCount(Criteria $crit)
 		{
-			try
-			{
-				$crit->setFromTable($this);
-				$crit->generateCountSQL();
-				$statement = Statement::getPreparedStatement($crit);
-	
-				$resultSet = $statement->performQuery();
-				$cnt = $resultSet->getCount();
-			}
-			catch (\Exception $e)
-			{
-				if (Core::throwExceptionAsHTML())
-				{
-					Core::fatalError($e);
-					exit();
-				}
-				else
-				{
-					throw $e;
-				}
-			}
+			$crit->setFromTable($this);
+			$crit->generateCountSQL();
+			$statement = Statement::getPreparedStatement($crit);
 
-			return $cnt;
+			$resultset = $statement->performQuery();
+			return $resultset->getCount();
+		}
+
+		public function count(Criteria $crit)
+		{
+			return $this->doCount($crit);
 		}
 
 		/**
@@ -371,41 +368,21 @@
 		 */
 		public function doSelect(Criteria $crit, $join = 'all')
 		{
-			try
-			{
-				if ($crit == null)
-				{
-					$crit = new Criteria();
-				}
-				$crit->setFromTable($this);
-				$crit->setupJoinTables($join);
-				$crit->generateSelectSQL();
-				
-				$statement = Statement::getPreparedStatement($crit);
-	
-				$resultSet = $statement->performQuery();
-			}
-			catch (Exception $e)
-			{
-				if (Core::throwExceptionAsHTML())
-				{
-					Core::fatalError($e);
-					exit();
-				}
-				else
-				{
-					throw $e;
-				}
-			}
+			if ($crit == null) $crit = new Criteria();
+			$crit->setFromTable($this);
+			$crit->setupJoinTables($join);
+			$crit->generateSelectSQL();
 
-			if ($resultSet->count())
-			{
-				return $resultSet;
-			}
-			else
-			{
-				return null;
-			}
+			$statement = Statement::getPreparedStatement($crit);
+
+			$resultset = $statement->performQuery();
+			return ($resultset->count()) ? $resultset : null;
+		}
+
+		public function select(Criteria $crit, $join = 'all')
+		{
+			$resultset = $this->doSelect($crit, $join);
+			return $this->_populateFromResultset($resultset);
 		}
 
 		/**
@@ -417,31 +394,22 @@
 		 */
 		public function doSelectOne(Criteria $crit, $join = 'all')
 		{
-			try
-			{
-				$crit->setFromTable($this);
-				$crit->setupJoinTables($join);
-				$crit->setLimit(1);
-				$crit->generateSelectSQL();
-				
-				$statement = Statement::getPreparedStatement($crit);
-				$resultset = $statement->performQuery();
-				$resultset->next();
-			}
-			catch (\Exception $e)
-			{
-				if (Core::throwExceptionAsHTML())
-				{
-					Core::fatalError($e);
-					exit();
-				}
-				else
-				{
-					throw $e;
-				}
-			}
+			$crit->setFromTable($this);
+			$crit->setupJoinTables($join);
+			$crit->setLimit(1);
+			$crit->generateSelectSQL();
 
+			$statement = Statement::getPreparedStatement($crit);
+			$resultset = $statement->performQuery();
+			$resultset->next();
+			
 			return $resultset->getCurrentRow();
+		}
+
+		public function selectOne(Criteria $crit, $join = 'all')
+		{
+			$row = $this->doSelectOne($crit, $join);
+			return $this->_populateFromRow($row);
 		}
 
 		/**
@@ -453,29 +421,11 @@
 		 */
 		public function doInsert(Criteria $crit)
 		{
-			try
-			{
-				$crit->setFromTable($this);
-				$crit->generateInsertSQL();
-				
-				$statement = Statement::getPreparedStatement($crit);
-	
-				$resultset = $statement->performQuery('insert');
-			}
-			catch (\Exception $e)
-			{
-				if (Core::throwExceptionAsHTML())
-				{
-					Core::fatalError($e);
-					exit();
-				}
-				else
-				{
-					throw $e;
-				}
-			}
+			$crit->setFromTable($this);
+			$crit->generateInsertSQL();
 
-			return $resultset;
+			$statement = Statement::getPreparedStatement($crit);
+			return $statement->performQuery('insert');
 		}
 
 		/**
@@ -487,29 +437,12 @@
 		 */
 		public function doUpdate(Criteria $crit)
 		{
-			try
-			{
-				$crit->setFromTable($this);
-				$crit->generateUpdateSQL();
-				
-				$statement = Statement::getPreparedStatement($crit);
-	
-				$res = $statement->performQuery('update');
-			}
-			catch (\Exception $e)
-			{
-				if (Core::throwExceptionAsHTML())
-				{
-					Core::fatalError($e);
-					exit();
-				}
-				else
-				{
-					throw $e;
-				}
-			}
+			$crit->setFromTable($this);
+			$crit->generateUpdateSQL();
 
-			return $res;
+			$statement = Statement::getPreparedStatement($crit);
+
+			return $statement->performQuery('update');
 		}
 
 		/**
@@ -522,31 +455,14 @@
 		 */
 		public function doUpdateById(Criteria $crit, $id)
 		{
-			try
-			{
-				$crit->setFromTable($this);
-				$crit->addWhere($this->id_column, $id);
-				$crit->setLimit(1);
-				$crit->generateUpdateSQL();
-				
-				$statement = Statement::getPreparedStatement($crit);
-	
-				$resultset = $statement->performQuery('update');
-			}
-			catch (\Exception $e)
-			{
-				if (Core::throwExceptionAsHTML())
-				{
-					Core::fatalError($e);
-					exit();
-				}
-				else
-				{
-					throw $e;
-				}
-			}
+			$crit->setFromTable($this);
+			$crit->addWhere($this->id_column, $id);
+			$crit->setLimit(1);
+			$crit->generateUpdateSQL();
 
-			return $resultset;
+			$statement = Statement::getPreparedStatement($crit);
+
+			return $statement->performQuery('update');
 		}
 
 		/**
@@ -558,28 +474,12 @@
 		 */
 		public function doDelete(Criteria $crit)
 		{
-			try
-			{
-				$crit->setFromTable($this);
-				$crit->generateDeleteSQL();
-				
-				$statement = Statement::getPreparedStatement($crit);
-	
-				$resultset = $statement->performQuery('delete');
-				return $resultset;
-			}
-			catch (\Exception $e)
-			{
-				if (Core::throwExceptionAsHTML())
-				{
-					Core::fatalError($e);
-					exit();
-				}
-				else
-				{
-					throw $e;
-				}
-			}
+			$crit->setFromTable($this);
+			$crit->generateDeleteSQL();
+
+			$statement = Statement::getPreparedStatement($crit);
+
+			return $statement->performQuery('delete');
 		}
 
 		/**
@@ -591,30 +491,14 @@
 		 */
 		public function doDeleteById($id)
 		{
-			try
-			{
-				$crit = new Criteria();
-				$crit->setFromTable($this);
-				$crit->addWhere($this->id_column, $id);
-				$crit->generateDeleteSQL();
-				
-				$statement = Statement::getPreparedStatement($crit);
-	
-				$resultset = $statement->performQuery('delete');
-				return $resultset;
-			}
-			catch (\Exception $e)
-			{
-				if (Core::throwExceptionAsHTML())
-				{
-					Core::fatalError($e);
-					exit();
-				}
-				else
-				{
-					throw $e;
-				}
-			}
+			$crit = new Criteria();
+			$crit->setFromTable($this);
+			$crit->addWhere($this->id_column, $id);
+			$crit->generateDeleteSQL();
+
+			$statement = Statement::getPreparedStatement($crit);
+
+			return $statement->performQuery('delete');
 		}
 		
 		/**
@@ -622,67 +506,56 @@
 		 *
 		 * @return Resultset
 		 */
-		public function create($debug = false)
+		public function create()
 		{
 			$sql = '';
-			try
-			{
+			try {
 				$res = $this->drop();
 				
 				$sql = $this->_createToSQL();
-				if ($debug)
-				{
-					echo $sql;
-				}
 				$statement = Statement::getPreparedStatement($sql);
-				$res = $statement->performQuery('create');
+				return $statement->performQuery('create');
+			} catch (\Exception $e) {
+				throw new Exception('Error creating table ' . $this->getB2DBName() . ': ' . $e->getMessage(), $sql);
 			}
-			catch (\Exception $e)
-			{
-				throw new Exception('Error creating table ' . $this->getB2DBName() . ': ' . $e->getMessage() . '. SQL was: ' . $sql);
-			}
-			return $res;			
 		}
 		
-		protected function _setupIndexes()
-		{
-		}
+		protected function _setupIndexes() { }
 		
 		public function createIndexes()
 		{
-			$this->_setupIndexes();
-			$qc = $this->getQC();
-			
-			foreach ($this->_indexes as $index_name => $details)
-			{
-				$sql = '';
-				switch (Core::getDBtype())
-				{
-					case 'pgsql':
-						$sql .= " CREATE INDEX " . Core::getTablePrefix() . $this->b2db_name . "_{$index_name} ON " . $this->_getTableNameSQL() . " (";
-						break;
-					case 'mysql':
-						$sql .= " ALTER TABLE " . $this->_getTableNameSQL() . " ADD INDEX " . Core::getTablePrefix() . $this->b2db_name . "_{$index_name}(";
-						break;
+			try {
+				$this->_setupIndexes();
+				$qc = $this->getQC();
+
+				foreach ($this->_indexes as $index_name => $details) {
+					$sql = '';
+					switch (Core::getDBtype()) {
+						case 'pgsql':
+							$sql .= " CREATE INDEX " . Core::getTablePrefix() . $this->b2db_name . "_{$index_name} ON " . $this->_getTableNameSQL() . " (";
+							break;
+						case 'mysql':
+							$sql .= " ALTER TABLE " . $this->_getTableNameSQL() . " ADD INDEX " . Core::getTablePrefix() . $this->b2db_name . "_{$index_name}(";
+							break;
+					}
+					$index_column_sqls = array();
+					foreach ($details['columns'] as $column) {
+						$index_column_sqls[] = "$qc" . $this->_getRealColumnFieldName($column) . "$qc";
+					}
+					$sql .= join (', ', $index_column_sqls);
+					$sql .= ");";
+
+					$statement = Statement::getPreparedStatement($sql);
+					$res = $statement->performQuery('create index');
 				}
-				$index_column_sqls = array();
-				foreach ($details['columns'] as $column)
-				{
-					$index_column_sqls[] = "$qc" . $this->_getRealColumnFieldName($column) . "$qc";
-				}
-				$sql .= join (', ', $index_column_sqls);
-				$sql .= ");";
-				
-				$statement = Statement::getPreparedStatement($sql);
-				$res = $statement->performQuery('create index');
+			} catch (Exception $e) {
+				throw new Exception('An error occured when trying to create indexes for table "'.$this->getB2DBName().'" (defined in "'.\get_class($this).')": '.$e->getMessage(), $e->getSQL());
 			}
 		}
 
 		protected function _dropToSQL()
 		{
-			$sql = '';
-			$sql .= 'DROP TABLE IF EXISTS ' . Core::getTablePrefix() . $this->b2db_name;
-			return $sql;
+			return 'DROP TABLE IF EXISTS ' . Core::getTablePrefix() . $this->b2db_name;
 		}
 
 		/**
@@ -692,17 +565,13 @@
 		 */
 		public function drop()
 		{
-			try
-			{
+			try {
 				$sql = $this->_dropToSQL();
 				$statement = Statement::getPreparedStatement($sql);
-				$res = $statement->performQuery('drop');
+				return $statement->performQuery('drop');
+			} catch (\Exception $e) {
+				throw new Exception('Error dropping table ' . $this->getB2DBName() . ': ' . $e->getMessage(), $sql);
 			}
-			catch (\Exception $e)
-			{
-				throw new Exception('Error dropping table ' . $this->getB2DBName() . ': ' . $e->getMessage() . '. SQL was: ' . $sql);
-			}
-			return $res;			
 		}
 		
 		/**
@@ -720,10 +589,9 @@
 		
 		protected function formatify($value, $type)
 		{
-			switch ($type)
-			{
+			switch ($type) {
 				case 'float':
-					return settype(gmp_strval($value));
+					return ($value) ? settype(gmp_strval($value)) : $value;
 				case 'varchar':
 				case 'text':
 					return (string) $value;
@@ -740,38 +608,25 @@
 		{
 			$crit = $this->getCriteria();
 			$id = $object->getB2DBID();
-			foreach ($this->getColumns() as $property)
-			{
-				$property = $property['name'];
-				$value = $this->formatify($object->getB2DBSaveablePropertyValue(mb_strtolower($property)), $property['type']);
-				if ($property == $this->getIdColumn())
-				{
-					$res_id = $value;
+			foreach ($this->getColumns() as $column) {
+				if (!array_key_exists('property', $column)) {
+					throw new Exception('Could not match all columns to properties for object of type '.\get_class($object).". Make sure you're not mixing between initializing the table manually and using column (property) annotations");
 				}
-				if (is_object($value))
-				{
-					$value = (int) $value->getID();
-				}
-				if (in_array($property, $this->_foreigncolumns))
-				{
-					$value = ($value) ? (int) $value : null;
-				}
-				if ($id)
-				{
-					$crit->addUpdate($property, $value);
-				}
-				elseif ($property != $this->getIdColumn())
-				{
-					$crit->addInsert($property, $value);
+				$property = $column['property'];
+				$value = $this->formatify($object->getB2DBSaveablePropertyValue(mb_strtolower($property)), $column['type']);
+				if ($column['name'] == $this->getIdColumn()) $res_id = $value;
+				if (is_object($value)) $value = (int) $value->getID();
+				if (in_array($column['name'], $this->_foreigncolumns)) $value = ($value) ? (int) $value : null;
+				if ($id) {
+					$crit->addUpdate($column['name'], $value);
+				} elseif ($column != $this->getIdColumn()) {
+					$crit->addInsert($column['name'], $value);
 				}
 			}
-			if ($id)
-			{
+			if ($id) {
 				$res = $this->doUpdateById($crit, $id);
-				return $res_id;
-			}
-			else
-			{
+				$res_id = $id;
+			} else {
 				$res = $this->doInsert($crit);
 				$res_id = $res->getInsertID();
 			}
@@ -787,24 +642,19 @@
 		protected function _getColumnDefinitionSQL($column)
 		{
 			$fsql = '';
-			switch ($column['type'])
-			{
+			switch ($column['type']) {
 				case 'integer':
-					if (Core::getDBtype() == 'pgsql' && isset($column['auto_inc']) && $column['auto_inc'] == true)
-					{
+					if (Core::getDBtype() == 'pgsql' && isset($column['auto_inc']) && $column['auto_inc'] == true) {
 						$fsql .= 'SERIAL';
-					}
-					elseif (Core::getDBtype() == 'pgsql')
-					{
+					} elseif (Core::getDBtype() == 'pgsql') {
 						$fsql .= 'INTEGER';
-					}
-					else
-					{
+					} else {
 						$fsql .= 'INTEGER(' . $column['length'] . ')';
 					}
 					if ($column['unsigned'] && Core::getDBtype() != 'pgsql') $fsql .= ' UNSIGNED';
 					break;
 				case 'varchar':
+					if (!$column['length']) throw new Exception("Column '{$column['name']}' (defined in ".\get_class($this).") is missing required 'length' property");
 					$fsql .= 'VARCHAR(' . $column['length'] . ')';
 					break;
 				case 'float':
@@ -812,16 +662,11 @@
 					if ($column['unsigned'] && Core::getDBtype() != 'pgsql') $fsql .= ' UNSIGNED';
 					break;
 				case 'blob':
-					if (Core::getDBtype() == 'mysql')
-					{
+					if (Core::getDBtype() == 'mysql') {
 						$fsql .= 'LONGBLOB';
-					}
-					elseif (Core::getDBtype() == 'pgsql')
-					{
+					} elseif (Core::getDBtype() == 'pgsql') {
 						$fsql .= 'BYTEA';
-					}
-					else
-					{
+					} else {
 						$fsql .= 'BLOB';
 					}
 					break;
@@ -831,28 +676,18 @@
 					break;
 			}
 			if ($column['not_null']) $fsql .= ' NOT NULL';
-			if ($column['type'] != 'text')
-			{
-				if (isset($column['auto_inc']) && $column['auto_inc'] == true && Core::getDBtype() != 'pgsql')
-				{
+			if ($column['type'] != 'text') {
+				if (isset($column['auto_inc']) && $column['auto_inc'] == true && Core::getDBtype() != 'pgsql') {
 					$fsql .= ' AUTO_INCREMENT';
-				}
-				elseif (isset($column['default_value']) && $column['default_value'] !== null && !(isset($column['auto_inc']) && $column['auto_inc'] == true && Core::getDBtype() == 'pgsql'))
-				{
-					if (is_int($column['default_value']))
-					{
-						if ($column['type'] == 'boolean')
-						{
+				} elseif (isset($column['default_value']) && $column['default_value'] !== null && !(isset($column['auto_inc']) && $column['auto_inc'] == true && Core::getDBtype() == 'pgsql')) {
+					if (is_int($column['default_value'])) {
+						if ($column['type'] == 'boolean') {
 							$fsql .= ' DEFAULT ';
 							$fsql .= ($column['default_value']) ? 'true' : 'false';
-						}
-						else
-						{
+						} else {
 							$fsql .= ' DEFAULT ' . $column['default_value'];
 						}
-					}
-					else
-					{
+					} else {
 						$fsql .= ' DEFAULT \'' . $column['default_value'] . '\'';
 					}
 				}
@@ -874,8 +709,7 @@
 			$qc = $this->getQC();
 			$sql .= "CREATE TABLE " . $this->_getTableNameSQL() . " (\n";
 			$field_sql = array();
-			foreach ($this->_columns as $column)
-			{
+			foreach ($this->_columns as $column) {
 				$_sql = " $qc" . $this->_getRealColumnFieldName($column['name']) . "$qc ";
 				$field_sql[] = $_sql . $this->_getColumnDefinitionSQL($column);
 			}
@@ -902,16 +736,12 @@
 		{
 			$sql = 'ALTER TABLE ' . $this->_getTableNameSQL();
 			$qc = $this->getQC();
-			switch (Core::getDBtype())
-			{
+			switch (Core::getDBtype()) {
 				case 'mysql':
-					$sql .= ' MODIFY ';
-					$sql .= " $qc" . $this->_getRealColumnFieldName($details['name']) . "$qc ";
+					$sql .= " MODIFY $qc" . $this->_getRealColumnFieldName($details['name']) . "$qc ";
 					break;
 				case 'pgsql':
-					$sql .= ' ALTER COLUMN ';
-					$sql .= " $qc" . $this->_getRealColumnFieldName($details['name']) . "$qc ";
-					$sql .= ' TYPE ';
+					$sql .= " ALTER COLUMN $qc" . $this->_getRealColumnFieldName($details['name']) . "$qc TYPE ";
 					break;
 			}
 			$sql .= $this->_getColumnDefinitionSQL($details);
@@ -927,10 +757,7 @@
 			return $sql;
 		}
 
-		protected function _migrateData(Table $old_table)
-		{
-			
-		}
+		protected function _migrateData(Table $old_table) { }
 
 		/**
 		 * Perform upgrade for a table, by comparing one table to an old version
@@ -951,13 +778,11 @@
 			$dropped_columns = \array_keys(array_diff_key($old_columns, $new_columns));
 
 			$sqls = array();
-			foreach ($added_columns as $column => $details)
+			foreach ($added_columns as $column => $details) {
 				$sqls[] = $this->_getAddColumnSQL($column, $details);
-
-			if (count($sqls))
-			{
-				foreach ($sqls as $sqlStmt)
-				{
+			}
+			if (count($sqls)) {
+				foreach ($sqls as $sqlStmt) {
 					$statement = Statement::getPreparedStatement($sqlStmt);
 					$res = $statement->performQuery('alter');
 				}
@@ -966,21 +791,122 @@
 			$this->_migrateData($old_table);
 
 			$sqls = array();
-			foreach ($altered_columns as $column => $details)
+			foreach ($altered_columns as $column => $details) {
+				if (in_array($column, $dropped_columns)) continue;
 				$sqls[] = $this->_getAlterColumnSQL($column, $new_columns[$column]);
-
-			foreach ($dropped_columns as $column => $details)
-				$sqls[] = $this->_getDropColumnSQL($column);
-
-			if (count($sqls))
-			{
-				foreach ($sqls as $sqlStmt)
-				{
+			}
+			foreach ($dropped_columns as $details) {
+				$sqls[] = $this->_getDropColumnSQL($details);
+			}
+			if (count($sqls)) {
+				foreach ($sqls as $sqlStmt) {
 					$statement = Statement::getPreparedStatement($sqlStmt);
 					$res = $statement->performQuery('alter');
 				}
 			}
 		}
 
+		protected function _populateFromRow($row = null, $classname = null, $id_column = null)
+		{
+			$item = null;
+			if ($row) {
+				$classname = ($classname !== null) ? $classname : Core::getCachedTableEntityClass(\get_class($this));
+				if (!$classname)
+					throw new Exception("Classname '{$classname}' for table '{$this->getB2DBName()}' is not valid");
+
+				$id_column = ($id_column !== null) ? $id_column : $row->getCriteria()->getTable()->getIdColumn();
+				$row_id = $row->get($id_column);
+				$item = new $classname($row_id, $row);
+			}
+			return $item;
+		}
+
+		protected function _populateFromResultset($resultset = null, $classname = null, $id_column = null, $index_column = null)
+		{
+			$items = array();
+			if ($resultset instanceof Resultset) {
+				$criteria = $resultset->getCriteria();
+				$id_column = ($id_column !== null) ? $id_column : $criteria->getTable()->getIdColumn();
+				if ($index_column === null) {
+					$index_column = ($criteria->getIndexBy()) ? $criteria->getIndexBy() : $id_column;
+				}
+				$classnames = Core::getCachedTableEntityClasses(\get_class($this));
+				if ($classname === null) {
+					$classname = Core::getCachedTableEntityClass(\get_class($this));
+				}
+				while ($row = $resultset->getNextRow()) {
+					if ($classnames) {
+						$identifier = $row->get($this->getB2DBName() . '.' . $classnames['identifier']);
+						$classname = (\array_key_exists($identifier, $classnames['classes'])) ? $classnames['classes'][$identifier] : null;
+						if (!$classname) {
+							throw new Exception("No classname has been specified in the @SubClasses annotation for identifier '{$identifier}'");
+						}
+					}
+					$item = $this->_populateFromRow($row, $classname, $id_column);
+					$items[$row->get($index_column)] = $item;
+				}
+			}
+			return $items;
+		}
+
+		public function generateForeignItemsCriteria(Saveable $class, $relation_details)
+		{
+			$criteria = $this->getCriteria();
+			$foreign_table = $class->getB2DBTable();
+			$foreign_table_class = \get_class($foreign_table);
+			$item_class = (array_key_exists('class', $relation_details)) ? $relation_details['class'] : null;
+			$item_column = null;
+			if ($relation_details['manytomany']) {
+				$item_table_class = Core::getCachedB2DBTableClass($item_class);
+			}
+			if ($relation_details['foreign_column']) {
+				$saveable_class = \get_class($class);
+				$table_details = ($item_class) ? Core::getCachedTableDetails($item_class) : Core::getTableDetails($relation_details['joinclass']);
+				$criteria->addWhere("{$table_details['name']}.".$relation_details['foreign_column'], $class->getB2DBSaveablePropertyValue(Core::getCachedColumnPropertyName($saveable_class, $foreign_table->getIdColumn())));
+				if (array_key_exists('discriminator', $table_details) && $table_details['discriminator'] && array_key_exists($saveable_class, $table_details['discriminator']['discriminators'])) {
+					$criteria->addWhere($table_details['discriminator']['column'], $table_details['discriminator']['discriminators'][$saveable_class]);
+				}
+			} else {
+				foreach ($this->getForeignColumns() as $column => $details) {
+					if ($details['class'] == $foreign_table_class) {
+						$foreign_column = ($details['key']) ? $details['key'] : $foreign_table->getIdColumn();
+						$property_name = Core::getCachedColumnPropertyName(Core::getCachedTableEntityClass($details['class']), $foreign_column);
+						$value = $class->getB2DBSaveablePropertyValue($property_name);
+						$criteria->addWhere($column, $value);
+					} elseif ($item_class && $details['class'] == $item_table_class) {
+						$item_column = $column;
+					}
+				}
+			}
+			return array($criteria, $item_class, $item_column);
+		}
+
+		public function getForeignItems(Saveable $class, $relation_details)
+		{
+			list ($criteria, $item_class, $item_column) = $this->generateForeignItemsCriteria($class, $relation_details);
+			if (!$item_class) {
+				$items = array();
+				$resultset = $this->doSelect($criteria);
+				if ($resultset) {
+					$column = "{$this->getB2DBName()}.".$relation_details['column'];
+					while ($row = $resultset->getNextRow()) {
+						$items[] = $row->get($column);
+					}
+				}
+				return $items;
+			} elseif (!$relation_details['manytomany']) {
+				return $this->select($criteria);
+			} else {
+				$resultset = $this->doSelect($criteria);
+				return $this->_populateFromResultset($resultset, $item_class, $item_column, $item_column);
+			}
+		}
+
+		public function countForeignItems(Saveable $class, $relation_details)
+		{
+			list ($criteria, $item_class, $item_column) = $this->generateForeignItemsCriteria($class, $relation_details);
+			$result = $this->doCount($criteria);
+			return $result;
+		}
+
 	}
-	

@@ -19,6 +19,8 @@
 	 *
 	 * @package thebuggenie
 	 * @subpackage tables
+	 *
+	 * @Table(name="permissions")
 	 */
 	class TBGPermissionsTable extends TBGB2DBTable 
 	{
@@ -35,28 +37,17 @@
 		const ALLOWED = 'permissions.allowed';
 		const MODULE = 'permissions.module';
 
-		/**
-		 * Return an instance of this table
-		 *
-		 * @return TBGPermissionsTable
-		 */
-		public static function getTable()
+		public function _initialize()
 		{
-			return Core::getTable('TBGPermissionsTable');
-		}
-
-		public function __construct()
-		{
-			parent::__construct(self::B2DBNAME, self::ID);
-			
+			parent::_setup(self::B2DBNAME, self::ID);
 			parent::_addVarchar(self::PERMISSION_TYPE, 100);
 			parent::_addVarchar(self::TARGET_ID, 200, 0);
 			parent::_addBoolean(self::ALLOWED);
 			parent::_addVarchar(self::MODULE, 50);
-			parent::_addForeignKeyColumn(self::UID, TBGUsersTable::getTable(), TBGUsersTable::ID);
-			parent::_addForeignKeyColumn(self::GID, TBGGroupsTable::getTable(), TBGGroupsTable::ID);
-			parent::_addForeignKeyColumn(self::TID, Core::getTable('TBGTeamsTable'), TBGTeamsTable::ID);
-			parent::_addForeignKeyColumn(self::SCOPE, TBGScopesTable::getTable(), TBGScopesTable::ID);
+			parent::_addForeignKeyColumn(self::UID, TBGUsersTable::getTable());
+			parent::_addForeignKeyColumn(self::GID, TBGGroupsTable::getTable());
+			parent::_addForeignKeyColumn(self::TID, Core::getTable('TBGTeamsTable'));
+			parent::_addForeignKeyColumn(self::SCOPE, TBGScopesTable::getTable());
 		}
 		
 		protected function _setupIndexes()
@@ -84,6 +75,20 @@
 			$crit->addWhere(self::TARGET_ID, $target_id);
 			$crit->addWhere(self::SCOPE, $scope);
 			
+			$res = $this->doDelete($crit);
+		}
+
+		public function deleteAllPermissionsForCombination($uid, $gid, $tid, $target_id = 0, $module = 'core', $scope = null)
+		{
+			$scope = ($scope !== null) ? $scope : TBGContext::getScope()->getID();
+			$crit = $this->getCriteria();
+			$crit->addWhere(self::UID, $uid);
+			$crit->addWhere(self::GID, $gid);
+			$crit->addWhere(self::TID, $tid);
+			$crit->addWhere(self::MODULE, $module);
+			$crit->addWhere(self::TARGET_ID, $target_id);
+			$crit->addWhere(self::SCOPE, $scope);
+
 			$res = $this->doDelete($crit);
 		}
 

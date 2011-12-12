@@ -15,17 +15,28 @@
 	 *
 	 * @package thebuggenie
 	 * @subpackage main
+	 *
+	 * @Table(name="TBGGroupsTable")
 	 */
-	class TBGGroup extends TBGIdentifiableClass 
+	class TBGGroup extends TBGIdentifiableScopedClass
 	{
 		
 		protected static $_groups = null;
-		
-		static protected $_b2dbtablename = 'TBGGroupsTable';
 
+		/**
+		 * @Relates(class="TBGUser", collection=true, foreign_column="group_id")
+		 */
 		protected $_members = null;
 
 		protected $_num_members = null;
+
+		/**
+		 * The name of the object
+		 *
+		 * @var string
+		 * @Column(type="string", length=200)
+		 */
+		protected $_name;
 
 		public static function doesGroupNameExist($group_name)
 		{
@@ -46,11 +57,6 @@
 				}
 			}
 			return self::$_groups;
-		}
-		
-		public function __toString()
-		{
-			return $this->_name;
 		}
 		
 		public static function postSave($is_new)
@@ -90,7 +96,27 @@
 			TBGPermissionsTable::getTable()->loadFixtures($scope, $admin_group->getID(), $guest_group->getID());
 		}
 		
-		public function _preDelete()
+		/**
+		 * Return the items name
+		 *
+		 * @return string
+		 */
+		public function getName()
+		{
+			return $this->_name;
+		}
+
+		/**
+		 * Set the edition name
+		 *
+		 * @param string $name
+		 */
+		public function setName($name)
+		{
+			$this->_name = $name;
+		}
+
+		protected function _preDelete()
 		{
 			$crit = TBGUsersTable::getTable()->getCriteria();
 			$crit->addWhere(TBGUsersTable::GROUP_ID, $this->getID());
@@ -112,15 +138,7 @@
 		{
 			if ($this->_members === null)
 			{
-				$this->_members = array();
-				if ($res = TBGUsersTable::getTable()->getUsersByGroupID($this->getID()))
-				{
-					while ($row = $res->getNextRow())
-					{
-						$uid = $row->get(TBGUsersTable::ID);
-						$this->_members[$uid] = TBGContext::factory()->TBGUser($uid);
-					}
-				}
+				$this->_b2dbLazyload('_members');
 			}
 			return $this->_members;
 		}
@@ -133,7 +151,7 @@
 			}
 			elseif ($this->_num_members === null)
 			{
-				$this->_num_members = TBGUsersTable::getTable()->getNumberOfMembersByGroupID($this->getID());
+				$this->_num_members = $this->_b2dbLazycount('_members');
 			}
 
 			return $this->_num_members;

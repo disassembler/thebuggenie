@@ -29,7 +29,7 @@
 				<?php if (!$tbg_user->isThisGuest() && !TBGSettings::isSingleProjectTracker() && !TBGContext::isProjectContext()): ?>
 					<li<?php if ($tbg_response->getPage() == 'dashboard'): ?> class="selected"<?php endif; ?>><div><?php echo link_tag(make_url('dashboard'), image_tag('icon_dashboard_small.png').__('Dashboard')); ?></div></li>
 				<?php endif; ?>
-				<?php if (TBGContext::isProjectContext() && !TBGContext::getCurrentProject()->isArchived() && ($tbg_user->canReportIssues() || $tbg_user->canReportIssues(TBGContext::getCurrentProject()->getID()))): ?>
+			<?php if (TBGContext::isProjectContext() && !TBGContext::getCurrentProject()->isArchived() && !TBGContext::getCurrentProject()->isLocked() && ($tbg_user->canReportIssues() || $tbg_user->canReportIssues(TBGContext::getCurrentProject()->getID()))): ?>
 					<li<?php if ($tbg_response->getPage() == 'reportissue'): ?> class="selected"<?php endif; ?>>
 						<div>
 							<?php echo link_tag(make_url('project_reportissue', array('project_key' => TBGContext::getCurrentProject()->getKey())), image_tag('tab_reportissue.png') . __('Report an issue')); ?>
@@ -56,6 +56,8 @@
 								<?php echo link_tag(make_url('project_closed_issues', array('project_key' => TBGContext::getCurrentProject()->getKey())), image_tag('icon_savedsearch.png') . __('Closed issues for this project')); ?>
 								<?php echo link_tag(make_url('project_milestone_todo_list', array('project_key' => TBGContext::getCurrentProject()->getKey())), image_tag('icon_savedsearch.png') . __('Milestone todo-list for this project')); ?>
 								<?php echo link_tag(make_url('project_most_voted_issues', array('project_key' => TBGContext::getCurrentProject()->getKey())), image_tag('icon_savedsearch.png') . __('Most voted for issues')); ?>
+								<?php echo link_tag(make_url('project_month_issues', array('project_key' => TBGContext::getCurrentProject()->getKey())), image_tag('icon_savedsearch.png') . __('Issues reported this month')); ?>
+								<?php echo link_tag(make_url('project_last_issues', array('project_key' => TBGContext::getCurrentProject()->getKey(), 'days' => 30)), image_tag('icon_savedsearch.png') . __('Issues reported last 30 days')); ?>
 							</div>
 						<?php endif; ?>
 					</li>
@@ -74,7 +76,7 @@
 						</div>
 					</li>
 				<?php endif; ?>
-				<?php if (!TBGContext::isProjectContext() && ($tbg_user->hasPageAccess('clientlist') || count($tbg_user->getClients())) && !is_null(TBGClientsTable::getTable()->getAll())): ?>
+				<?php if (!TBGContext::isProjectContext() && ($tbg_user->hasPageAccess('clientlist') || count($tbg_user->getClients())) && !is_null(TBGClient::getAll())): ?>
 					<li<?php if ($tbg_response->getPage() == 'client'): ?> class="selected"<?php endif; ?>>
 						<div>
 							<?php echo link_tag('javascript:void(0)', image_tag('tab_clients.png') . __('Clients'), array('class' => 'not_clickable')); ?>
@@ -94,7 +96,7 @@
 		</nav>
 		<nav class="tab_menu header_menu" id="header_userinfo">
 			<ul>
-				<li>
+				<li<?php if ($tbg_request->hasCookie('tbg3_original_username')): ?> class="temporarily_switched"<?php endif; ?>>
 					<div>
 						<?php if ($tbg_user->isGuest()): ?>
 							<a href="javascript:void(0);" onclick="TBG.Main.Helpers.Backdrop.show('<?php echo make_url('get_partial_for_backdrop', array('key' => 'login')); ?>')"><?php echo image_tag($tbg_user->getAvatarURL(true), array('alt' => '[avatar]'), true) . __('You are not logged in'); ?></a>
@@ -119,6 +121,10 @@
 								<?php echo javascript_link_tag(image_tag('icon_dashboard_config.png').__('Customize your dashboard'), array('title' => __('Customize your dashboard'), 'onclick' => "TBG.Main.Helpers.Backdrop.show('".make_url('get_partial_for_backdrop', array('key' => 'dashboard_config', 'tid' => TBGContext::getUser()->getID(), 'target_type' => TBGDashboardViewsTable::TYPE_USER))."')")); ?>
 							<?php endif; ?>
 							<?php echo link_tag(make_url('account'), image_tag('icon_account.png').__('Your account')); ?>
+							<?php if ($tbg_request->hasCookie('tbg3_original_username')): ?>
+							<div class="header"><?php echo __('You are temporarily this user'); ?></div>
+							<?php echo link_tag(make_url('switch_back_user'), image_tag('switchuser.png').__('Switch back to original user')); ?>
+							<?php endif; ?>
 							<?php if ($tbg_user->canAccessConfigurationPage()): ?>
 								<?php echo link_tag(make_url('configure'), image_tag('tab_config.png').__('Configure The Bug Genie')); ?>
 							<?php endif; ?>

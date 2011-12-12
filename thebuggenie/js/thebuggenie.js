@@ -5,7 +5,9 @@ function is_string(element) {
 
 // The core js class used by thebuggenie
 var TBG = {
-	Core: {}, // The "Core" namespace is for functions used by thebuggenie core, not to be invoked outside the js class
+	Core: {
+		AjaxCalls: []
+	}, // The "Core" namespace is for functions used by thebuggenie core, not to be invoked outside the js class
 	Main: { // The "Main" namespace contains regular functions in use across the site
 		Helpers: {
 			Message: {},
@@ -31,6 +33,7 @@ var TBG = {
 			Story: {},
 			Sprint: {}
 		},
+		Roles: {},
 		Build: {},
 		Component: {},
 		Edition: {
@@ -40,6 +43,7 @@ var TBG = {
 	},
 	Config: {
 		Permissions: {},
+		Roles: {},
 		User: {},
 		Collection: {},
 		Issuefields: {
@@ -80,6 +84,7 @@ var TBG = {
 		successmessage: 'TBG_successmessage',
 		failedmessage: 'TBG_failedmessage'
 	},
+	debug: false,
 	activated_popoutmenu: undefined,
 	autocompleter_url: undefined,
 	available_fields: ['description', 'user_pain', 'reproduction_steps', 'category', 'resolution', 'priority', 'reproducability', 'percent_complete', 'severity', 'edition', 'build', 'component', 'estimated_time', 'spent_time', 'milestone']
@@ -118,7 +123,7 @@ TBG.Core._extractAutocompleteValue = function(elem, value) {
  * Monitors viewport resize to adapt backdrops and dashboard containers
  */
 TBG.Core._resizeWatcher = function() {
-	if (($('fullpage_backdrop') && $('fullpage_backdrop').visible()) || ($('attach_file') && $('attach_file').visible())) {
+	if (/*($('fullpage_backdrop') && $('fullpage_backdrop').visible()) || */ ($('attach_file') && $('attach_file').visible())) {
 		var docheight = document.viewport.getHeight();
 		var backdropheight = $('backdrop_detail_content').getHeight();
 		if (backdropheight > (docheight - 100)) {
@@ -293,8 +298,28 @@ TBG.initialize = function(options) {
 	Event.observe(window, 'resize', TBG.Core._resizeWatcher);
 	Event.observe(window, 'scroll', TBG.Core._scrollWatcher);
 	TBG.Core._resizeWatcher();
+	if (TBG.Main.Dashboard.views.size() > 0) {
+		TBG.Main.Dashboard.views.each(function(view_id) {
+			TBG.Main.Dashboard.View.init(TBG.Main.Dashboard.url, view_id);
+		});
+	} else {
+		$$('html')[0].setStyle({ 'cursor': 'default' });
+	}
 	$('fullpage_backdrop_content').observe('click', TBG.Core._resizeWatcher);
 	document.observe('click', TBG.Main.toggleBreadcrumbMenuPopout);
+};
+
+TBG.loadDebugInfo = function(debug_id, cb) {
+	url = TBG.debugUrl.replace('___debugid___', debug_id);
+	TBG.Main.Helpers.ajax(url, {
+		loading: {indicator: 'tbg___DEBUGINFO___indicator'},
+		success: {update: 'tbg___DEBUGINFO___'},
+		complete: {
+			callback: cb,
+			show: 'tbg___DEBUGINFO___'
+		},
+		debug: false
+	});
 };
 
 /**
@@ -361,10 +386,11 @@ TBG.Main.Helpers.Message.success = function(title, content) {
 };
 
 TBG.Main.Helpers.Dialog.show = function(title, content, options) {
+	TBG.Main.Helpers.Message.clear();
 	$('dialog_title').update(title);
 	$('dialog_content').update(content);
-	$('dialog_yes').setAttribute('href', 'javascript:void()');
-	$('dialog_no').setAttribute('href', 'javascript:void()');
+	$('dialog_yes').setAttribute('href', 'javascript:void(0)');
+	$('dialog_no').setAttribute('href', 'javascript:void(0)');
 	$('dialog_yes').stopObserving('click');
 	$('dialog_no').stopObserving('click');
 	if (options['yes']['click']) {
@@ -442,6 +468,9 @@ TBG.Main.Helpers.ajax = function(url, options) {
 		evalScripts: true,
 		onLoading: function () {
 			if (options.loading) {
+				if (TBG.debug) {
+					$('tbg___DEBUGINFO___indicator').show();
+				}
 				if ($(options.loading.indicator)) {
 					$(options.loading.indicator).show();
 				}
@@ -451,15 +480,15 @@ TBG.Main.Helpers.ajax = function(url, options) {
 				}
 			}
 		},
-		onSuccess: function (transport) {
-			var json = transport.responseJSON;
+		onSuccess: function (response) {
+			var json = response.responseJSON;
 			if (json || (options.success && options.success.update)) {
 				if (json && json.forward != undefined) {
 					document.location = json.forward;
 				} else {
 					if (options.success && options.success.update) {
 						var json_content_element = (is_string(options.success.update) || options.success.update.from == undefined) ? 'content' : options.success.update.from;
-						var content = (json) ? json[json_content_element] : transport.responseText;
+						var content = (json) ? json[json_content_element] : response.responseText;
 						var update_element = (is_string(options.success.update)) ? options.success.update : options.success.update.element;
 						if ($(update_element)) {
 							var insertion = (is_string(options.success.update)) ? false : (options.success.update.insertion) ? options.success.update.insertion : false;
@@ -474,7 +503,7 @@ TBG.Main.Helpers.ajax = function(url, options) {
 						}
 					} else if (options.success && options.success.replace) {
 						var json_content_element = (is_string(options.success.replace) || options.success.replace.from == undefined) ? 'content' : options.success.replace.from;
-						var content = (json) ? json[json_content_element] : transport.responseText;
+						var content = (json) ? json[json_content_element] : response.responseText;
 						var replace_element = (is_string(options.success.replace)) ? options.success.replace : options.success.replace.element;
 						if ($(replace_element)) {
 							Element.replace(replace_element, content);
@@ -496,30 +525,50 @@ TBG.Main.Helpers.ajax = function(url, options) {
 				}
 			}
 		},
-		onFailure: function (transport) {
-			var json = (transport.responseJSON) ? transport.responseJSON : undefined;
-			if (transport.responseJSON) {
+		onFailure: function (response) {
+			var json = (response.responseJSON) ? response.responseJSON : undefined;
+			if (response.responseJSON) {
 				TBG.Main.Helpers.Message.error(json.error, json.message);
-			}else {
-				TBG.Main.Helpers.Message.error(transport.responseText);
+			} else {
+				TBG.Main.Helpers.Message.error(response.responseText);
 			}
 			if (options.failure) {
 				TBG.Core._processCommonAjaxPostEvents(options.failure);
 				if (options.failure.callback) {
-					options.failure.callback(transport);
+					options.failure.callback(response);
 				}
 			}
 		},
-		onComplete: function (transport) {
+		onComplete: function (response) {
+			if (TBG.debug) {
+				$('tbg___DEBUGINFO___indicator').hide();
+				var d = new Date(),
+					d_id = response.getHeader('x-tbg-debugid');
+
+				TBG.Core.AjaxCalls.push({location: url, time: d, debug_id: d_id});
+				TBG.updateDebugInfo();
+			}
 			$(options.loading.indicator).hide();
 			if (options.complete) {
 				TBG.Core._processCommonAjaxPostEvents(options.complete);
 				if (options.complete.callback) {
-					var json = (transport.responseJSON) ? transport.responseJSON : undefined;
+					var json = (response.responseJSON) ? response.responseJSON : undefined;
 					options.complete.callback(json);
 				}
 			}
 		}
+	});
+};
+
+TBG.updateDebugInfo = function() {
+	if ($('log_ajax_items')) $('log_ajax_items').update('');
+	if ($('debug_ajax_count')) $('debug_ajax_count').update(TBG.Core.AjaxCalls.size());
+	var ct = function(time) {
+		return (time < 10) ? '0'+time : time;
+	};
+	TBG.Core.AjaxCalls.each(function(info) {
+		var content = '<li style="clear: both;"><span class="faded_out dark small">'+ct(info.time.getHours())+':'+ct(info.time.getMinutes())+':'+ct(info.time.getSeconds())+'</span> '+info.location+' <a class="button button-silver" style="float: right;" href="javascript:void(0);" onclick="TBG.loadDebugInfo(\''+info.debug_id+'\');">Show debug info</a></li>';
+		$('log_ajax_items').insert(content, 'top');
 	});
 };
 
@@ -534,6 +583,7 @@ TBG.Main.Helpers.formSubmit = function(url, form_id) {
 
 TBG.Main.Helpers.Backdrop.show = function(url) {
 	$('fullpage_backdrop').appear({duration: 0.2});
+	$$('body')[0].setStyle({'overflow': 'hidden'});
 	$('fullpage_backdrop_indicator').show();
 
 	if (url != undefined) {
@@ -552,6 +602,7 @@ TBG.Main.Helpers.Backdrop.show = function(url) {
 };
 
 TBG.Main.Helpers.Backdrop.reset = function() {
+	$$('body')[0].setStyle({'overflow': 'auto'});
 	$('fullpage_backdrop').fade({duration: 0.2});
 };
 
@@ -800,7 +851,15 @@ TBG.Main.Dashboard.View.init = function(url, view_id) {
 		additional_params: '&view_id=' + view_id,
 		loading: {indicator: 'dashboard_' + view_id + '_indicator'},
 		success: {update: 'dashboard_' + view_id},
-		complete: {callback: TBG.Core._resizeWatcher}
+		complete: {
+			callback: function() {
+				TBG.Core._resizeWatcher();
+				TBG.Main.Dashboard.views.splice(0, 1);
+				if (TBG.Main.Dashboard.views.size() == 0) {
+					$$('html')[0].setStyle({ 'cursor': 'default' });
+				}
+			}
+		}
 	});
 };
 
@@ -920,6 +979,27 @@ TBG.Main.Comment.add = function(url, commentcount_span) {
 		},
 		failure: {
 			show: 'comment_add_controls'
+		}
+	});
+};
+
+TBG.Main.Comment.reply = function(url, reply_comment_id) {
+	TBG.Main.Helpers.ajax(url, {
+		form: 'comment_reply_form_' + reply_comment_id,
+		loading: {
+			indicator: 'comment_reply_indicator_' + reply_comment_id,
+			hide: 'comment_reply_controls_' + reply_comment_id
+		},
+		success: {
+			hide: ['comment_reply_' + reply_comment_id],
+			clear: 'comment_reply_bodybox_' + reply_comment_id,
+			update: {element: 'comments_box', insertion: true, from: 'comment_data'},
+			callback: function(json) {
+				$('comment_reply_visibility_' + reply_comment_id).setValue(1);
+			}
+		},
+		failure: {
+			show: 'comment_reply_controls_' + reply_comment_id
 		}
 	});
 };
@@ -1729,9 +1809,11 @@ TBG.Project.setUser = function(url, field) {
 	});
 }
 
-TBG.Project.assign = function(url, form_id) {
+TBG.Project.assign = function(url, container_id) {
+	var role_id = $(container_id).down('select').getValue();
+	var parameters = "&role_id="+role_id;
 	TBG.Main.Helpers.ajax(url, {
-		form: form_id,
+		params: parameters,
 		loading: {indicator: 'assign_dev_indicator'},
 		success: {update: 'assignees_list'}
 	});
@@ -1851,8 +1933,15 @@ TBG.Config.Issuetype.update = function(url, id) {
 
 TBG.Config.Issuetype.remove = function(url, id) {
 	TBG.Main.Helpers.ajax(url, {
-		loading: {indicator: 'delete_issuetype_' + id + '_indicator'},
-		success: {remove: 'issuetype_' + id + '_box'}
+		loading: {
+			indicator: 'fullpage_backdrop',
+			clear: 'fullpage_backdrop_content',
+			show: 'fullpage_backdrop_indicator'
+		},
+		success: {
+			remove: 'issuetype_' + id + '_box',
+			callback: TBG.Main.Helpers.Dialog.dismiss
+		}
 	});
 }
 
@@ -2017,11 +2106,12 @@ TBG.Config.Issuefields.Custom.update = function(url, type) {
 
 TBG.Config.Issuefields.Custom.remove = function(url, type, id) {
 	TBG.Config.Issuefields.Options.remove(url, type, id);
-}
+};
 
 TBG.Config.Permissions.set = function(url, field) {
 	TBG.Main.Helpers.ajax(url, {
-		loading: {indicator: field + '_indicator'}
+		loading: {indicator: field + '_indicator'},
+		success: {update: field}
 	});
 };
 
@@ -2034,6 +2124,87 @@ TBG.Config.Permissions.getOptions = function(url, field) {
 		});
 	}
 }
+
+TBG.Config.Roles.getPermissions = function(url, field) {
+	$(field).toggle();
+	if ($(field).childElements().size() == 0) {
+		TBG.Main.Helpers.ajax(url, {
+			url_method: 'get',
+			loading: {indicator: field + '_indicator'},
+			success: {update: field}
+		});
+	}
+}
+
+TBG.Config.Roles.getPermissionsEdit = function(url, field) {
+	$(field).toggle();
+	if ($(field).childElements().size() == 0) {
+		TBG.Main.Helpers.ajax(url, {
+			url_method: 'get',
+			loading: {indicator: field + '_indicator'},
+			success: {update: field}
+		});
+	}
+}
+
+TBG.Config.Roles.update = function(url, role_id) {
+	TBG.Main.Helpers.ajax(url, {
+		form: 'role_' + role_id + '_form',
+		loading: {indicator: 'role_' + role_id + '_form_indicator'},
+		success: {
+			hide: 'role_' + role_id + '_permissions_edit',
+			callback: function(json) {
+				$('role_'+role_id+'_permissions_count').update(json.permissions_count);
+				$('role_'+role_id+'_permissions_list').update('');
+				$('role_'+role_id+'_permissions_list').hide();
+				$('role_'+role_id+'_name').update(json.role_name);
+			}
+		}
+	});
+}
+
+TBG.Config.Roles.remove = function(url, role_id) {
+	TBG.Main.Helpers.ajax(url, {
+		url_method: 'post',
+		loading: {
+			indicator: 'fullpage_backdrop',
+			clear: 'fullpage_backdrop_content',
+			show: 'fullpage_backdrop_indicator',
+			hide: 'dialog_backdrop'
+		},
+		success: {
+			callback: function() {
+				var rc = $('role_' + role_id + '_container');
+				if (rc.up('ul').childElements().size() == 2) {
+					rc.up('ul').down('li.no_roles').show();
+				}
+				rc.remove();
+			}
+		}
+	});
+}
+
+TBG.Config.Roles.add = function(url) {
+	TBG.Main.Helpers.ajax(url, {
+		form: 'new_role_form',
+		loading: {indicator: 'new_role_form_indicator'},
+		success: {
+			update: {element: 'global_roles_list', insertion: true},
+			hide: ['global_roles_no_roles', 'new_role']
+		}
+	});
+};
+
+TBG.Project.Roles.add = function(url) {
+	TBG.Main.Helpers.ajax(url, {
+		form: 'new_project_role_form',
+		loading: {indicator: 'new_project_role_form_indicator'},
+		success: {
+			update: {element: 'project_roles_list', insertion: true},
+			hide: ['project_roles_no_roles', 'new_project_role']
+		}
+	});
+};
 
 TBG.Config.User.show = function(url, findstring) {
 	TBG.Main.Helpers.ajax(url, {
@@ -2447,11 +2618,17 @@ TBG.Issues.updateFields = function(url)
 						}
 					});				
 				}
+			},
+			complete: {
+				callback: function() {
+					$('title').focus();
+				}
 			}
 		});
 	} else {
 		$('report_form').hide();
 		$('report_more_here').show();
+		$('issuetype_list').show();
 	}
 	
 }
@@ -2592,6 +2769,30 @@ TBG.Issues.toggleFavourite = function(url, issue_id)
 	});
 }
 
+TBG.Issues.toggleBlocking = function(url, issue_id)
+{
+	TBG.Main.Helpers.ajax(url, {
+		loading: {
+			indicator: 'fullpage_backdrop',
+			clear: 'fullpage_backdrop_content',
+			show: 'fullpage_backdrop_indicator'
+		},
+		success: {
+			callback: function(json) {
+				$('more_actions_mark_notblocking_link_'+issue_id).toggle();
+				$('more_actions_mark_blocking_link_'+issue_id).toggle();
+
+				if ($('blocking_div')) {
+					$('blocking_div').toggle();
+				}
+				if ($('issue_'+issue_id)) {
+					$('issue_'+issue_id).toggleClassName('blocking');
+				}
+			}
+		}
+	});
+}
+
 TBG.Issues.Link.add = function(url) {
 	TBG.Main.Helpers.ajax(url, {
 		form: 'attach_link_form',
@@ -2661,29 +2862,54 @@ TBG.Issues.Field.Updaters.dualFromJSON = function(dualfield, field) {
 	}
 }
 
-TBG.Issues.Field.Updaters.fromObject = function(object, field) {
+TBG.Issues.Field.Updaters.fromObject = function(issue_id, object, field) {
+	var fn = field + '_' + issue_id + '_name';
+	var nf = 'no_ ' + field + '_' + issue_id;
+	if (!$(fn)) {
+		fn = field + '_name';
+		nf = 'no_' + field;
+	}
 	if ((Object.isUndefined(object.id) == false && object.id == 0) || (object.value && object.value == '')) {
-		$(field + '_name').hide();
-		$('no_' + field).show();
+		$(fn).hide();
+		$(nf).show();
 	} else {
-		$(field + '_name').update(object.name);
-		if (object.url) $(field + '_name').href = object.url;
-		$('no_' + field).hide();
-		$(field + '_name').show();
+		$(fn).update(object.name);
+		if (object.url) $(fn).href = object.url;
+		$(nf).hide();
+		$(fn).show();
 	}
 }
 
-TBG.Issues.Field.Updaters.timeFromObject = function(object, values, field) {
-	if (object.id == 0) {
-		$(field + '_name').hide();
-		$('no_' + field).show();
-	} else {
-		$(field + '_name').update(object.name);
-		$('no_' + field).hide();
-		$(field + '_name').show();
+TBG.Issues.Field.Updaters.timeFromObject = function(issue_id, object, values, field) {
+	var fn = field + '_' + issue_id + '_name';
+	var nf = 'no_ ' + field + '_' + issue_id;
+	if (!$(fn)) {
+		fn = field + '_name';
+		nf = 'no_' + field;
 	}
+	if ($(fn) && $(nf)) {
+		if (object.id == 0) {
+			$(fn).hide();
+			$(nf).show();
+		} else {
+			$(fn).update(object.name);
+			$(nf).hide();
+			$(fn).show();
+		}
+	}
+	console.log('fuu');
 	['points', 'hours', 'days', 'weeks', 'months'].each(function(unit) {
-		$(field + '_' + unit).setValue(values[unit]);
+		if ($(field + '_' + issue_id + '_' + unit + '_input'))
+			$(field + '_' + issue_id + '_' + unit + '_input').setValue(values[unit]);
+
+		if ($(field + '_' + issue_id + '_' + unit)) {
+			$(field + '_' + issue_id + '_' + unit).update(values[unit]);
+			if (values[unit] == 0) {
+				$(field + '_' + issue_id + '_' + unit).addClassName('faded_out');
+			} else {
+ 				$(field + '_' + issue_id + '_' + unit).removeClassName('faded_out');
+			}
+		}
 	});
 }
 
@@ -2736,7 +2962,7 @@ TBG.Issues.Field.set = function(url, field, serialize_form) {
 				if (json.field != undefined)
 				{
 					if (field == 'status' || field == 'issuetype') TBG.Issues.Field.Updaters.dualFromJSON(json.field, field);
-					else TBG.Issues.Field.Updaters.fromObject(json.field, field);
+					else TBG.Issues.Field.Updaters.fromObject(json.issue_id, json.field, field);
 					
 					if (field == 'issuetype') TBG.Issues.Field.Updaters.allVisible(json.visible_fields);
 					else if (field == 'pain_bug_type' || field == 'pain_likelihood' || field == 'pain_effect')
@@ -2764,26 +2990,26 @@ TBG.Issues.Field.set = function(url, field, serialize_form) {
 	});
 }
 
-TBG.Issues.Field.setTime = function(url, field) {
+TBG.Issues.Field.setTime = function(url, field, issue_id) {
 	TBG.Main.Helpers.ajax(url, {
-		form: field + '_form',
+		form: field + '_' + issue_id + '_form',
 		loading: {
-			indicator: field + '_spinning',
-			clear: field + '_change_error',
-			hide: field + '_change_error'
+			indicator: field + '_' + issue_id + '_spinning',
+			clear: field + '_' + issue_id + '_change_error',
+			hide: field + '_' + issue_id + '_change_error'
 		},
 		success: {
 			callback: function(json) {
-				TBG.Issues.Field.Updaters.timeFromObject(json.field, json.values, field);
+				TBG.Issues.Field.Updaters.timeFromObject(json.issue_id, json.field, json.values, field);
 				(json.changed == true) ? TBG.Issues.markAsChanged(field) : TBG.Issues.markAsUnchanged(field);
 			},
-			hide: field + '_change'
+			hide: field + '_' + issue_id + '_change'
 		},
 		failure: {
-			update: field + '_change_error',
-			show: field + '_change_error',
+			update: field + '_' + issue_id + '_change_error',
+			show: field + '_' + issue_id + '_change_error',
 			callback: function(json) {
-				new Effect.Pulsate($(field + '_change_error'));
+				new Effect.Pulsate($(field + '_' + issue_id + '_change_error'));
 			}
 		}
 	});
@@ -2955,8 +3181,7 @@ TBG.Issues.updateWorkflowAssigneeTeamup = function(url, assignee_id, assignee_ty
 
 TBG.Search.Filter.add = function(url) {
 	TBG.Main.Helpers.ajax(url, {
-		form: 'add_filter_form',
-		additional_params: '&key=' + $('max_filters').value,
+		params: '&filter_name=' + $('add_search_filter_dropdown').value + '&key=' + $('max_filters').value,
 		loading: {indicator: 'add_filter_indicator'},
 		success: {
 			update: {element: 'search_filters_list', insertion: true},
@@ -2972,6 +3197,32 @@ TBG.Search.Filter.remove = function(key) {
 	if ($('search_filters_list').childElements().size() == 0) {
 		$('max_filters').value = 0;
 	}
+};
+
+TBG.Search.Filter.setIdentifiable = function(url, filter, key, i_id, i_type)
+{
+	TBG.Main.Helpers.ajax(url, {
+		additional_params: '&i_id=' + i_id + '&i_type=' + i_type,
+		loading: {
+			indicator: 'filter_'+filter+'_'+key+'_indicator'
+		},
+		success: {
+			update: 'filter_'+filter+'_'+key+'_name'
+		},
+		complete: {
+			callback: function() {
+				$('filter_'+filter+'_'+key).setValue(i_id);
+				$('filter_'+filter+'_'+key+'_type').setValue(i_id);
+			},
+			hide: 'filter_'+filter+'_'+key+'_popup'
+		}
+	});
+}
+
+TBG.Search.Filter.setTimestamp = function(filter, key) {
+	var d = new Date();
+	d.setFullYear($('filter_'+filter+'_'+key+'_year').value, $('filter_'+filter+'_'+key+'_month').value, $('filter_'+filter+'_'+key+'_day').value);
+	$('filter_'+filter+'_'+key).setValue(parseInt(+d / 1000));
 };
 
 TBG.Search.deleteSavedSearch = function(url, id) {
@@ -3269,24 +3520,234 @@ jQuery(document).ready(function(){jQuery('textarea').markItUp({
 	previewParserPath:	'', // path to your Wiki parser
 	onShiftEnter:		{keepDefault:false, replaceWith:'\n\n'},
 	markupSet: [
-		{name:'Heading 1', key:'1', openWith:'== ', closeWith:' ==', placeHolder:'Your title here...' },
-		{name:'Heading 2', key:'2', openWith:'=== ', closeWith:' ===', placeHolder:'Your title here...' },
-		{name:'Heading 3', key:'3', openWith:'==== ', closeWith:' ====', placeHolder:'Your title here...' },
-		{name:'Heading 4', key:'4', openWith:'===== ', closeWith:' =====', placeHolder:'Your title here...' },
-		{name:'Heading 5', key:'5', openWith:'====== ', closeWith:' ======', placeHolder:'Your title here...' },
-		{separator:'---------------' },
+		{name:'Heading 1', key:'1', openWith:'== ', closeWith:' ==', placeHolder:'Your title here...'},
+		{name:'Heading 2', key:'2', openWith:'=== ', closeWith:' ===', placeHolder:'Your title here...'},
+		{name:'Heading 3', key:'3', openWith:'==== ', closeWith:' ====', placeHolder:'Your title here...'},
+		{name:'Heading 4', key:'4', openWith:'===== ', closeWith:' =====', placeHolder:'Your title here...'},
+		{name:'Heading 5', key:'5', openWith:'====== ', closeWith:' ======', placeHolder:'Your title here...'},
+		{separator:'---------------'},
 		{name:'Bold', key:'B', openWith:"'''", closeWith:"'''"},
 		{name:'Italic', key:'I', openWith:"''", closeWith:"''"},
 		{name:'Stroke through', key:'S', openWith:'<s>', closeWith:'</s>'},
-		{separator:'---------------' },
+		{separator:'---------------'},
 		{name:'Bulleted list', openWith:'(!(* |!|*)!)'},
 		{name:'Numeric list', openWith:'(!(# |!|#)!)'},
-		{separator:'---------------' },
+		{separator:'---------------'},
 		{name:'Picture', key:"P", replaceWith:'[[Image:[![Url:!:http://]!]|[![name]!]]]'},
-		{name:'Link', key:"L", openWith:"[[![Link]!] ", closeWith:']', placeHolder:'Your text to link here...' },
-		{name:'Url', openWith:"[[![Url:!:http://]!] ", closeWith:']', placeHolder:'Your text to link here...' },
-		{separator:'---------------' },
+		{name:'Link', key:"L", openWith:"[[![Link]!] ", closeWith:']', placeHolder:'Your text to link here...'},
+		{name:'Url', openWith:"[[![Url:!:http://]!] ", closeWith:']', placeHolder:'Your text to link here...'},
+		{separator:'---------------'},
 		{name:'Quotes', openWith:'(!(> |!|>)!)', placeHolder:''},
 		{name:'Code', openWith:'(!(<source lang="[![Language:!:php]!]">|!|<pre>)!)', closeWith:'(!(</source>|!|</pre>)!)'}
 	]
 });});
+
+/*
+	Simple OpenID Plugin
+	http://code.google.com/p/openid-selector/
+
+	This code is licensed under the New BSD License.
+*/
+
+var providers;
+
+var openid = {
+	version : '1.3', // version constant
+	demo : false,
+	demo_text : null,
+	cookie_expires : 6 * 30, // 6 months.
+	cookie_name : 'openid_provider',
+	cookie_path : '/',
+
+	img_path : 'images/',
+	locale : null, // is set in openid-<locale>.js
+	sprite : null, // usually equals to locale, is set in
+	// openid-<locale>.js
+	signin_text : null, // text on submit button on the form
+	all_small : false, // output large providers w/ small icons
+	no_sprite : false, // don't use sprite image
+	image_title : '%openid_provider_name%', // for image title
+
+	input_id : null,
+	provider_url : null,
+	provider_id : null,
+	providers_small : null,
+	providers_large : null,
+
+	/**
+	 * Class constructor
+	 *
+	 * @return {Void}
+	 */
+	init : function(input_id) {
+		providers = {};
+		Object.extend(providers, this.providers_large);
+		Object.extend(providers, this.providers_small);
+		var openid_btns = $('openid_btns');
+		this.input_id = input_id;
+		$('openid_choice').setStyle({
+			display: 'block'
+		});
+		$('openid_input_area').innerHTML = "";
+		var i = 0;
+		// add box for each provider
+		for (id in this.providers_large) {
+			box = this.getBoxHTML(id, this.providers_large[id], (this.all_small ? 'small' : 'large'), i++);
+			openid_btns.insert(box);
+		}
+		if (this.providers_small) {
+			openid_btns.insert('<br/>');
+			for (id in this.providers_small) {
+				box = this.getBoxHTML(id, this.providers_small[id], 'small', i++);
+				openid_btns.insert(box);
+			}
+		}
+//		$('openid_form').submit = this.submit;
+		var box_id = this.readCookie();
+		if (box_id) {
+			this.signin(box_id, true);
+		}
+	},
+
+	/**
+	 * @return {String}
+	 */
+	getBoxHTML : function(box_id, provider, box_size, index) {
+		if (this.no_sprite) {
+			var image_ext = box_size == 'small' ? '.ico.png' : '.png';
+			return '<a title="' + this.image_title.replace('%openid_provider_name%', provider["name"]) + '" href="javascript:openid.signin(\'' + box_id + '\');"'
+					+ 'class="' + box_id + ' openid_' + box_size + '_btn button button-silver"><img src="../../iconsets/oxygen/openid_providers.' + box_size + '/' + box_id + image_ext + '"></a>';
+		}
+		var x = box_size == 'small' ? -index * 24 : -index * 100;
+		var y = box_size == 'small' ? -60 : 0;
+		return '<a title="' + this.image_title.replace('%openid_provider_name%', provider["name"]) + '" href="javascript:openid.signin(\'' + box_id + '\');"'
+				+ ' style="background: #FFF url(' + this.img_path + '../../iconsets/oxygen/openid-providers-' + this.sprite + '.png); background-position: ' + x + 'px ' + y + 'px" '
+				+ 'class="' + box_id + ' openid_' + box_size + '_btn button button-silver"></a>';
+	},
+
+	/**
+	 * Provider image click
+	 *
+	 * @return {Void}
+	 */
+	signin : function(box_id, onload) {
+		var provider = providers[box_id];
+		if (!provider) {
+			return;
+		}
+		this.highlight(box_id);
+		this.setCookie(box_id);
+		this.provider_id = box_id;
+		this.provider_url = provider['url'];
+		// prompt user for input?
+		if (provider['label']) {
+			this.useInputBox(provider);
+		} else {
+			$('openid_input_area').innerHTML = '';
+			if (!onload) {
+				$('openid_form').submit();
+			}
+		}
+	},
+
+	/**
+	 * Sign-in button click
+	 *
+	 * @return {Boolean}
+	 */
+	submit : function() {
+		var url = openid.provider_url;
+		var username_field = $('openid_username');
+		var username = username_field ? $('openid_username').getValue() : '';
+		console.log(username);
+		console.log(url);
+		if (url) {
+			url = url.replace('{username}', username);
+			openid.setOpenIdUrl(url);
+		}
+		if (url.indexOf("javascript:") == 0) {
+			url = url.substr("javascript:".length);
+			eval(url);
+			return false;
+		}
+		return true;
+	},
+
+	/**
+	 * @return {Void}
+	 */
+	setOpenIdUrl : function(url) {
+		var hidden = document.getElementById(this.input_id);
+		if (hidden != null) {
+			hidden.value = url;
+		} else {
+			$('openid_form').insert('<input type="hidden" id="' + this.input_id + '" name="' + this.input_id + '" value="' + url + '"/>');
+		}
+	},
+
+	/**
+	 * @return {Void}
+	 */
+	highlight : function(box_id) {
+		// remove previous highlight.
+		var highlight = $$('.openid_highlight');
+		if (highlight[0]) {
+			highlight[0].removeClassName('button-pressed');
+			highlight[0].removeClassName('openid_highlight');
+		}
+		// add new highlight.
+		var box = $$('.' + box_id)[0];
+		box.addClassName('openid_highlight');
+		box.addClassName('button-pressed');
+	},
+
+	setCookie : function(value) {
+		var date = new Date();
+		date.setTime(date.getTime() + (this.cookie_expires * 24 * 60 * 60 * 1000));
+		var expires = "; expires=" + date.toGMTString();
+		document.cookie = this.cookie_name + "=" + value + expires + "; path=" + this.cookie_path;
+	},
+
+	readCookie : function() {
+		var nameEQ = this.cookie_name + "=";
+		var ca = document.cookie.split(';');
+		for ( var i = 0; i < ca.length; i++) {
+			var c = ca[i];
+			while (c.charAt(0) == ' ')
+				c = c.substring(1, c.length);
+			if (c.indexOf(nameEQ) == 0)
+				return c.substring(nameEQ.length, c.length);
+		}
+		return null;
+	},
+
+	/**
+	 * @return {Void}
+	 */
+	useInputBox : function(provider) {
+		var input_area = $('openid_input_area');
+		var html = '';
+		var id = 'openid_username';
+		var value = '';
+		var label = provider['label'];
+		var style = '';
+		if (provider['name'] == 'OpenID') {
+			id = this.input_id;
+			value = 'http://';
+			style = 'background: #FFF url(../../iconsets/oxygen/openid-inputicon.gif) no-repeat scroll 0 50%; padding-left:18px;';
+		}
+		html = '<input id="' + id + '" type="text" style="' + style + '" name="' + id + '" value="' + value + '" />';
+		if (label) {
+			html += '<label for="' + id + '">' + label + '</label>';
+		}
+				/*+ '<input id="openid_submit" type="submit" value="' + this.signin_text + '"/>'; */
+		input_area.innerHTML = html;
+
+//		$('openid_submit').onclick = this.submit;
+		$(id).focus();
+	},
+
+	setDemoMode : function(demoMode) {
+		this.demo = demoMode;
+	}
+};

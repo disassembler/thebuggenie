@@ -4,10 +4,12 @@
 	$routes[] = array('project_closed_issues', '/:project_key/issues/closed/*', 'search', 'findIssues', array('predefined_search' => TBGContext::PREDEFINED_SEARCH_PROJECT_CLOSED_ISSUES, 'search' => true));
 	$routes[] = array('project_milestone_todo_list', '/:project_key/issues/todo/*', 'search', 'findIssues', array('predefined_search' => TBGContext::PREDEFINED_SEARCH_PROJECT_MILESTONE_TODO, 'search' => true));
 	$routes[] = array('project_most_voted_issues', '/:project_key/issues/mostvoted/*', 'search', 'findIssues', array('predefined_search' => TBGContext::PREDEFINED_SEARCH_PROJECT_MOST_VOTED, 'search' => true));
+	$routes[] = array('project_month_issues', '/:project_key/issues/this/month/*', 'search', 'findIssues', array('predefined_search' => TBGContext::PREDEFINED_SEARCH_PROJECT_REPORTED_THIS_MONTH, 'search' => true));
+	$routes[] = array('project_last_issues', '/:project_key/issues/last/:days/days/*', 'search', 'findIssues', array('predefined_search' => TBGContext::PREDEFINED_SEARCH_PROJECT_REPORTED_LAST_NUMBEROF_DAYS, 'search' => true));
 	$routes[] = array('project_my_teams_assigned_issues', '/:project_key/issues/my/assigned/teams', 'search', 'findIssues', array('predefined_search' => TBGContext::PREDEFINED_SEARCH_TEAM_ASSIGNED_OPEN_ISSUES, 'search' => true));
 	$routes[] = array('project_my_assigned_issues', '/:project_key/issues/my/assigned/*', 'search', 'findIssues', array('predefined_search' => TBGContext::PREDEFINED_SEARCH_MY_ASSIGNED_OPEN_ISSUES, 'search' => true));
 	$routes[] = array('project_my_reported_issues', '/:project_key/issues/my/*', 'search', 'findIssues', array('predefined_search' => TBGContext::PREDEFINED_SEARCH_MY_REPORTED_ISSUES, 'search' => true));
-	$routes[] = array('viewissue_find_issue', '/:project_key/findissues/:type', 'main', 'findIssue', array('format' => 'json'));
+	$routes[] = array('viewissue_find_issue', '/:project_key/findissues/:issue_id/:type', 'main', 'findIssue', array('format' => 'json'));
 	$routes[] = array('viewissue_relate_issues', '/:project_key/issues/:issue_id/relate', 'main', 'relateIssues', array('format' => 'json'));
 	$routes[] = array('closeissue', '/:project_key/issues/:issue_id/close', 'main', 'closeIssue');
 	$routes[] = array('markasduplicate', '/:project_key/issues/:issue_id/markasduplicate', 'main', 'markAsDuplicate');
@@ -29,6 +31,7 @@
 	$routes[] = array('project_planning', '/:project_key/planning', 'project', 'planning');
 	$routes[] = array('project_milestone', '/:project_key/milestone', 'project', 'milestone');
 	$routes[] = array('project_settings', '/:project_key/settings', 'project', 'settings');
+	$routes[] = array('project_create_role', '/:project_key/roles/new', 'project', 'addRole');
 	$routes[] = array('project_releases', '/:project_key/releases', 'project', 'releases');
 	$routes[] = array('project_release_center', '/:project_key/release_center', 'project', 'releaseCenter');
 	$routes[] = array('project_milestone_details', '/:project_key/milestone/:milestone_id/details/*', 'project', 'milestoneDetails');

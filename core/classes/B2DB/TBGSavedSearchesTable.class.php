@@ -4,6 +4,9 @@
 		b2db\Criteria,
 		b2db\Criterion;
 
+	/**
+	 * @Table(name="savedsearches")
+	 */
 	class TBGSavedSearchesTable extends TBGB2DBTable 
 	{
 
@@ -31,16 +34,34 @@
 			{
 				case TBGContext::PREDEFINED_SEARCH_PROJECT_OPEN_ISSUES:
 					$filters['state'] = array('operator' => '=', 'value' => TBGIssue::STATE_OPEN);
+					$filters['project_id'] = array('operator' => '=', 'value' => TBGContext::getCurrentProject()->getID());
 					$groupby = 'issuetype';
 					break;
 				case TBGContext::PREDEFINED_SEARCH_PROJECT_CLOSED_ISSUES:
 					$filters['state'] = array('operator' => '=', 'value' => TBGIssue::STATE_CLOSED);
+					$filters['project_id'] = array('operator' => '=', 'value' => TBGContext::getCurrentProject()->getID());
 					$groupby = 'issuetype';
 					break;
+				case TBGContext::PREDEFINED_SEARCH_PROJECT_REPORTED_LAST_NUMBEROF_DAYS:
+					$filters['project_id'] = array('operator' => '=', 'value' => TBGContext::getCurrentProject()->getID());
+					$filters['posted'] = array(
+						array('operator' => '<=', 'value' => NOW),
+						array('operator' => '>=', 'value' => NOW - (86400 * (int) TBGContext::getRequest()->getParameter('days')))
+					);
+					break;
+				case TBGContext::PREDEFINED_SEARCH_PROJECT_REPORTED_THIS_MONTH:
+					$filters['project_id'] = array('operator' => '=', 'value' => TBGContext::getCurrentProject()->getID());
+					$filters['posted'] = array(
+						array('operator' => '<=', 'value' => mktime(date('H'), date('i'), date('s'), date('n'))),
+						array('operator' => '>=', 'value' => mktime(date('H'), date('i'), date('s'), date('n'), 1))
+					);
+					break;
 				case TBGContext::PREDEFINED_SEARCH_PROJECT_MILESTONE_TODO:
+					$filters['project_id'] = array('operator' => '=', 'value' => TBGContext::getCurrentProject()->getID());
 					$groupby = 'milestone';
 					break;
 				case TBGContext::PREDEFINED_SEARCH_PROJECT_MOST_VOTED:
+					$filters['project_id'] = array('operator' => '=', 'value' => TBGContext::getCurrentProject()->getID());
 					$filters['state'] = array('operator' => '=', 'value' => TBGIssue::STATE_OPEN);
 					$groupby = 'votes';
 					$grouporder = 'desc';
@@ -51,17 +72,16 @@
 					break;
 				case TBGContext::PREDEFINED_SEARCH_MY_ASSIGNED_OPEN_ISSUES:
 					$filters['state'] = array('operator' => '=', 'value' => TBGIssue::STATE_OPEN);
-					$filters['assigned_type'] = array('operator' => '=', 'value' => TBGIdentifiableClass::TYPE_USER);
-					$filters['assigned_to'] = array('operator' => '=', 'value' => TBGContext::getUser()->getID());
+					$filters['assignee_user'] = array('operator' => '=', 'value' => TBGContext::getUser()->getID());
 					$groupby = 'issuetype';
 					break;
 				case TBGContext::PREDEFINED_SEARCH_TEAM_ASSIGNED_OPEN_ISSUES:
 					$filters['state'] = array('operator' => '=', 'value' => TBGIssue::STATE_OPEN);
-					$filters['assigned_type'] = array('operator' => '=', 'value' => TBGIdentifiableClass::TYPE_TEAM);
 					foreach (TBGContext::getUser()->getTeams() as $team_id => $team)
 					{
-						$filters['assigned_to'][] = array('operator' => '=', 'value' => $team_id);
+						$filters['assignee_team'][] = array('operator' => '=', 'value' => $team_id);
 					}
+					$filters['assignee_team'][] = array('operator' => '!=', 'value' => 0);
 					$groupby = 'issuetype';
 					break;
 			}
@@ -69,9 +89,9 @@
 			return array($filters, $groupby, $grouporder);
 		}
 
-		public function __construct()
+		public function _initialize()
 		{
-			parent::__construct(self::B2DBNAME, self::ID);
+			parent::_setup(self::B2DBNAME, self::ID);
 			parent::_addVarchar(self::NAME, 200);
 			parent::_addVarchar(self::DESCRIPTION, 255, '');
 			parent::_addBoolean(self::IS_PUBLIC);

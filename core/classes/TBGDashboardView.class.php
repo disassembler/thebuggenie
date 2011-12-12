@@ -15,8 +15,10 @@
 	 *
 	 * @package thebuggenie
 	 * @subpackage main
+	 *
+	 * @Table(name="TBGDashboardViewsTable")
 	 */
-	class TBGDashboardView extends TBGIdentifiableClass
+	class TBGDashboardView extends TBGIdentifiableScopedClass
 	{
 
 		const VIEW_PREDEFINED_SEARCH = 1;
@@ -47,16 +49,32 @@
 		const TYPE_TEAM = 3;
 		const TYPE_CLIENT = 4;
 
-		public static $_b2dbtablename = 'TBGDashboardViewsTable';
+		/**
+		 * The name of the object
+		 *
+		 * @var string
+		 * @Column(type="string", length=200)
+		 */
+		protected $_name;
 
-		protected $_type;
-
+		/**
+		 * @Column(type="integer", length=10)
+		 */
 		protected $_view;
 
+		/**
+		 * @Column(type="integer", length=10)
+		 */
 		protected $_pid;
 
+		/**
+		 * @Column(type="integer", length=10)
+		 */
 		protected $_tid;
 
+		/**
+		 * @Column(type="integer", length=10)
+		 */
 		protected $_target_type;
 
 		public static function getViews($tid, $target_type)
@@ -154,14 +172,34 @@
 			self::setUserViews($tid, $target_type, $views);
 		}
 
+		/**
+		 * Return the items name
+		 *
+		 * @return string
+		 */
+		public function getName()
+		{
+			return $this->_name;
+		}
+
+		/**
+		 * Set the edition name
+		 *
+		 * @param string $name
+		 */
+		public function setName($name)
+		{
+			$this->_name = $name;
+		}
+
 		public function getType()
 		{
-			return $this->_type;
+			return $this->_name;
 		}
 
 		public function setType($_type)
 		{
-			$this->_type = $_type;
+			$this->_name = $_type;
 		}
 
 		public function getDetail()
@@ -231,7 +269,7 @@
 
 		public function getJS()
 		{
-			return array('jquery.flot.min.js', 'jquery.flot.resize.min.js');
+			return array('js/jquery.flot.min.js', 'js/jquery.flot.resize.min.js');
 		}
 
 		public function getRSSUrl()
@@ -313,7 +351,7 @@
 				case self::VIEW_PROJECT_DOWNLOADS:
 					return 'project/dashboardviewprojectdownloads';
 				case self::VIEW_RECENT_COMMENTS:
-					return 'main/dashboardviewprojectrecentcomments';
+					return 'main/dashboardviewrecentcomments';
 				case self::VIEW_LOGGED_ACTIONS:
 					return 'main/dashboardviewloggedactions';
 			}

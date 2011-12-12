@@ -15,6 +15,8 @@
 	 *
 	 * @package thebuggenie
 	 * @subpackage publish
+	 * 
+	 * @Table(name="TBGModulesTable")
 	 */
 	class TBGPublish extends TBGModule 
 	{
@@ -65,10 +67,11 @@
 				TBGEvent::listen('core', 'breadcrumb_main_links', array($this, 'listen_BreadcrumbMainLinks'));
 				TBGEvent::listen('core', 'breadcrumb_project_links', array($this, 'listen_BreadcrumbProjectLinks'));
 			}
-			TBGEvent::listen('core', 'TBGProject::createNew', array($this, 'listen_createNewProject'));
+			TBGEvent::listen('core', 'TBGProject::_postSave', array($this, 'listen_createNewProject'));
 			TBGEvent::listen('core', 'upload', array($this, 'listen_upload'));
 			TBGEvent::listen('core', 'quicksearch_dropdown_firstitems', array($this, 'listen_quicksearchDropdownFirstItems'));
 			TBGEvent::listen('core', 'quicksearch_dropdown_founditems', array($this, 'listen_quicksearchDropdownFoundItems'));
+			TBGEvent::listen('core', 'rolepermissionsedit', array($this, 'listen_rolePermissionsEdit'));
 		}
 
 		protected function _addRoutes()
@@ -82,6 +85,7 @@
 			TBGContext::setPermission('publish_postonteambillboard', 0, 'publish', 0, 1, 0, true, $scope);
 			TBGContext::setPermission('manage_billboard', 0, 'publish', 0, 1, 0, true, $scope);
 			$this->saveSetting('allow_camelcase_links', 1);
+			$this->saveSetting('require_change_reason', 1);
 
 			TBGContext::getRouting()->addRoute('publish_article', '/wiki/:article_name', 'publish', 'showArticle');
 			TBGTextParser::addRegex('/(?<![\!|\"|\[|\>|\/\:])\b[A-Z]+[a-z]+[A-Z][A-Za-z]*\b/', array($this, 'getArticleLinkTag'));
@@ -212,7 +216,7 @@
 			}
 			else
 			{
-				$settings = array('allow_camelcase_links', 'menu_title', 'hide_wiki_links', 'free_edit');
+				$settings = array('allow_camelcase_links', 'menu_title', 'hide_wiki_links', 'free_edit', 'require_change_reason');
 				foreach ($settings as $setting)
 				{
 					if ($request->hasParameter($setting))
@@ -336,6 +340,29 @@
 		public function listen_projectLinks(TBGEvent $event)
 		{
 			TBGActionComponent::includeTemplate('publish/projectlinks', array('project' => $event->getSubject()));
+		}
+
+		protected function _getPermissionslist()
+		{
+			$permissions = array();
+			$permissions['readarticle'] = array('description' => TBGContext::getI18n()->__('Can access the project wiki'), 'permission' => 'readarticle');
+			$permissions['editarticle'] = array('description' => TBGContext::getI18n()->__('Can write articles in project wiki'), 'permission' => 'editarticle');
+			$permissions['deletearticle'] = array('description' => TBGContext::getI18n()->__('Can delete articles from project wiki'), 'permission' => 'deletearticle');
+			return $permissions;
+		}
+
+		public function getPermissionDetails($permission)
+		{
+			$permissions = $this->_getPermissionslist();
+			if (array_key_exists($permission, $permissions))
+			{
+				return $permissions[$permission];
+			}
+		}
+
+		public function listen_rolePermissionsEdit(TBGEvent $event)
+		{
+			TBGActionComponent::includeTemplate('configuration/rolepermissionseditlist', array('role' => $event->getSubject(), 'permissions_list' => $this->_getPermissionslist(), 'module' => 'publish', 'target_id' => '%project_key%'));
 		}
 
 		public function listen_BreadcrumbMainLinks(TBGEvent $event)

@@ -19,6 +19,8 @@
 	 *
 	 * @package thebuggenie
 	 * @subpackage tables
+	 *
+	 * @Table(name="issuefields")
 	 */
 	class TBGIssueFieldsTable extends TBGB2DBTable 
 	{
@@ -34,9 +36,9 @@
 		const REPORTABLE = 'issuefields.is_reportable';
 		const REQUIRED = 'issuefields.required';
 
-		public function __construct()
+		public function _initialize()
 		{
-			parent::__construct(self::B2DBNAME, self::ID);
+			parent::_setup(self::B2DBNAME, self::ID);
 			parent::_addVarchar(self::FIELD_KEY, 100);
 			parent::_addBoolean(self::REQUIRED);
 			parent::_addBoolean(self::REPORTABLE);
@@ -46,6 +48,11 @@
 			parent::_addForeignKeyColumn(self::SCOPE, TBGScopesTable::getTable(), TBGScopesTable::ID);
 		}
 		
+		protected function _setupIndexes()
+		{
+			$this->_addIndex('scope_issuetypescheme_issuetype', array(self::SCOPE, self::ISSUETYPE_SCHEME_ID, self::ISSUETYPE_ID));
+		}
+
 		public function getSchemeVisibleFieldsArrayByIssuetypeID($scheme_id, $issuetype_id)
 		{
 			$res = $this->getBySchemeIDandIssuetypeID($scheme_id, $issuetype_id);

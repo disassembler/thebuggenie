@@ -19,6 +19,8 @@
 	 *
 	 * @package thebuggenie
 	 * @subpackage tables
+	 *
+	 * @Table(name="issueaffectsedition")
 	 */
 	class TBGIssueAffectsEditionTable extends TBGB2DBTable 
 	{
@@ -32,19 +34,9 @@
 		const CONFIRMED = 'issueaffectsedition.confirmed';
 		const STATUS = 'issueaffectsedition.status';
 		
-		/**
-		 * Return an instance of TBGIssueAffectsEditionTable
-		 * 
-		 * @return TBGIssueAffectsEditionTable
-		 */
-		public static function getTable()
+		public function _initialize()
 		{
-			return Core::getTable('TBGIssueAffectsEditionTable');
-		}
-		
-		public function __construct()
-		{
-			parent::__construct(self::B2DBNAME, self::ID);
+			parent::_setup(self::B2DBNAME, self::ID);
 			parent::_addBoolean(self::CONFIRMED);
 			parent::_addForeignKeyColumn(self::EDITION, Core::getTable('TBGEditionsTable'), TBGEditionsTable::ID);
 			parent::_addForeignKeyColumn(self::ISSUE, TBGIssuesTable::getTable(), TBGIssuesTable::ID);
@@ -52,6 +44,11 @@
 			parent::_addForeignKeyColumn(self::STATUS, TBGListTypesTable::getTable(), TBGListTypesTable::ID);
 		}
 		
+		protected function _setupIndexes()
+		{
+			$this->_addIndex('issue', self::ISSUE);
+		}
+
 		public function getOpenAffectedIssuesByEditionID($edition_id, $limit_status, $limit_category, $limit_issuetype)
 		{
 			$crit = $this->getCriteria();

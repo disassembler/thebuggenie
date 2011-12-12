@@ -8,12 +8,12 @@
 		<?php include_template('project/projectinfosidebar', array('selected_project' => $selected_project, 'table_id' => 'project_planning')); ?>
 		<div class="planning_container">
 			<h3>
-				<?php if ($tbg_user->canAddScrumSprints($selected_project)): ?>
+				<?php if ($tbg_user->canManageProjectReleases($selected_project)): ?>
 					<?php echo javascript_link_tag(__('Add new milestone'), array('onclick' => "TBG.Main.Helpers.Backdrop.show('".make_url('get_partial_for_backdrop', array('key' => 'milestone', 'project_id' => $selected_project->getId()))."');", 'class' => 'button button-green')); ?>
 				<?php endif; ?>
 				<?php echo __('Project milestones'); ?>
 			</h3>
-			<?php if ($tbg_user->canAddScrumSprints($selected_project)): ?>
+			<?php if ($tbg_user->canManageProjectReleases($selected_project)): ?>
 				<table cellpadding=0 cellspacing=0 style="display: none; margin-left: 5px; width: 300px;" id="sprint_add_indicator">
 					<tr>
 						<td style="width: 20px; padding: 2px;"><?php echo image_tag('spinning_20.gif'); ?></td>
@@ -21,21 +21,21 @@
 					</tr>
 				</table>
 			<?php endif; ?>
-			<div class="faded_out" style="margin-top: 10px; font-size: 13px;<?php if (count($selected_project->getAllMilestones()) > 0): ?> display: none;<?php endif; ?>" id="no_milestones"><?php echo __('No milestones have been created yet.'); ?></div>
+			<div class="faded_out" style="margin-top: 10px; font-size: 13px;<?php if (count($selected_project->getMilestones()) > 0): ?> display: none;<?php endif; ?>" id="no_milestones"><?php echo __('No milestones have been created yet.'); ?></div>
 			<div id="search_results">
-				<?php include_template('search/bulkactions', array('mode' => 'top')); ?>
+				<?php if ($tbg_user->canEditProjectDetails($selected_project)) include_template('search/bulkactions', array('mode' => 'top')); ?>
 				<div id="milestone_list">
-					<?php foreach ($selected_project->getAllMilestones() as $milestone): ?>
+					<?php foreach ($selected_project->getMilestones() as $milestone): ?>
 						<?php include_template('milestonebox', array('milestone' => $milestone)); ?>
 					<?php endforeach; ?>
 					<?php include_template('milestonebox', array('milestone' => $unassigned_milestone)); ?>
 				</div>
-				<?php include_template('search/bulkactions', array('mode' => 'bottom')); ?>
+				<?php if ($tbg_user->canEditProjectDetails($selected_project)) include_template('search/bulkactions', array('mode' => 'bottom')); ?>
 			</div>
 		</div>
 		<?php if ($tbg_user->canAssignScrumUserStories($selected_project)): ?>
 			<script type="text/javascript">
-				<?php foreach ($selected_project->getAllMilestones() as $milestone): ?>
+				<?php foreach ($selected_project->getMilestones() as $milestone): ?>
 					Droppables.add('milestone_<?php echo $milestone->getID(); ?>', { hoverclass: 'highlighted', onDrop: function (dragged, dropped, event) { TBG.Project.Planning.assign('<?php echo make_url('project_scrum_assign_story', array('project_key' => $selected_project->getKey())); ?>', dragged, dropped)}});
 				<?php endforeach; ?>
 					<?php /* foreach ($milestone->getIssues() as $issue): ?>

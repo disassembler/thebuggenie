@@ -14,6 +14,8 @@
 	 *
 	 * @package thebuggenie
 	 * @subpackage vcs_integration
+	 * 
+	 * @Table(name="TBGModulesTable")
 	 */
 	class TBGVCSIntegration extends TBGModule 
 	{
@@ -90,7 +92,7 @@
 			parent::_uninstall();
 		}
 		
-		public function upgrade()
+		protected function _upgrade()
 		{
 			switch ($this->_version)
 			{

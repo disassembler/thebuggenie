@@ -23,64 +23,68 @@
 		const PREDEFINED_SEARCH_PROJECT_CLOSED_ISSUES = 2;
 		const PREDEFINED_SEARCH_PROJECT_MILESTONE_TODO = 6;
 		const PREDEFINED_SEARCH_PROJECT_MOST_VOTED = 7;
+		const PREDEFINED_SEARCH_PROJECT_REPORTED_THIS_MONTH = 8;
+		const PREDEFINED_SEARCH_PROJECT_REPORTED_LAST_NUMBEROF_DAYS = 9;
 		const PREDEFINED_SEARCH_MY_ASSIGNED_OPEN_ISSUES = 3;
 		const PREDEFINED_SEARCH_TEAM_ASSIGNED_OPEN_ISSUES = 4;
 		const PREDEFINED_SEARCH_MY_REPORTED_ISSUES = 5;
 		
-		static protected $_environment = 2;
+		protected static $_environment = 2;
 
-		static protected $debug_mode = true;
+		protected static $debug_mode = true;
+
+		protected static $debug_id = null;
 		
-		static protected $_partials_visited = array();
+		protected static $_partials_visited = array();
 		
 		/**
 		 * Outdated modules
 		 * 
 		 * @var array
 		 */
-		static protected $_outdated_modules = null;
+		protected static $_outdated_modules = null;
 
 		/**
 		 * The current user
 		 *
 		 * @var TBGUser
 		 */
-		static protected $_user = null;
+		protected static $_user = null;
 		
 		/**
 		 * List of modules 
 		 * 
 		 * @var array
 		 */
-		static protected $_modules = null;
+		protected static $_modules = array();
 		
 		/**
 		 * List of permissions
 		 *  
 		 * @var array
 		 */
-		static protected $_permissions = array();
+		protected static $_permissions = array();
 		
 		/**
 		 * List of available permissions
 		 * 
 		 * @var array
 		 */
-		static protected $_available_permissions = null;
+		protected static $_available_permissions = null;
 		
 		/**
 		 * The include path
 		 * 
 		 * @var string
 		 */
-		static protected $_includepath = null;
+		protected static $_includepath = null;
 		
 		/**
 		 * The path to thebuggenie relative from url server root
 		 * 
 		 * @var string
 		 */
-		static protected $_tbgpath = null;
+		protected static $_tbgpath = null;
 		
 		/**
 		 * Stripped version of the $_tbgpath
@@ -89,121 +93,114 @@
 		 * 
 		 * @var string
 		 */
-		static protected $_stripped_tbgpath = null;
+		protected static $_stripped_tbgpath = null;
 		
 		/**
 		 * Whether we're in installmode or not
 		 * 
 		 * @var boolean
 		 */
-		static protected $_installmode = false;
+		protected static $_installmode = false;
 		
 		/**
 		 * Whether we're in upgrademode or not
 		 * 
 		 * @var boolean
 		 */
-		static protected $_upgrademode = false;
+		protected static $_upgrademode = false;
 		
 		/**
 		 * The i18n object
 		 *
 		 * @var TBGI18n
 		 */
-		static protected $_i18n = null;
+		protected static $_i18n = null;
 		
 		/**
 		 * The request object
 		 * 
 		 * @var TBGRequest
 		 */
-		static protected $_request = null;
+		protected static $_request = null;
 		
 		/**
 		 * The response object
 		 * 
 		 * @var TBGResponse
 		 */
-		static protected $_response = null;
+		protected static $_response = null;
 		
 		/**
 		 * The current scope object
 		 *
 		 * @var TBGScope
 		 */
-		static protected $_scope = null;
+		protected static $_scope = null;
 
 		/**
 		 * The TBGFactory instance
 		 *
 		 * @var TBGFactory
 		 */
-		static protected $_factory = null;
+		protected static $_factory = null;
 		
 		/**
 		 * The currently selected project, if any
 		 * 
 		 * @var TBGProject
 		 */
-		static protected $_selected_project = null;
+		protected static $_selected_project = null;
 		
 		/**
 		 * The currently selected client, if any
 		 * 
 		 * @var TBGClient
 		 */
-		static protected $_selected_client = null;
+		protected static $_selected_client = null;
 		
 		/**
 		 * Used to determine when the b2 engine started loading
 		 * 
 		 * @var integer
 		 */
-		static protected $_loadstart = null;
-		
-		/**
-		 * Used for timing purposes
-		 * 
-		 * @var integer
-		 */
-		static protected $_loadend = null;
+		protected static $_loadstart = null;
 		
 		/**
 		 * List of classpaths
 		 * 
 		 * @var array
 		 */
-		static protected $_classpaths = array();
+		protected static $_classpaths = array();
 		
 		/**
 		 * List of loaded libraries
 		 * 
 		 * @var string
 		 */
-		static protected $_libs = array();
+		protected static $_libs = array();
 		
 		/**
 		 * The routing object
 		 * 
 		 * @var TBGRouting
 		 */
-		static protected $_routing = null;
+		protected static $_routing = null;
 
 		/**
 		 * Messages passed on from the previous request
 		 *
 		 * @var array
 		 */
-		static protected $_messages = null;
+		protected static $_messages = null;
 
-		static protected $_redirect_login = null;
+		protected static $_redirect_login = null;
 		
 		/**
 		 * Do you want to disable minifcation of javascript and css?
 		 * 
 		 * @var boolean
 		 */
-		static protected $_minifyoff = true;
+		protected static $_minifyoff = true;
 
 		/**
 		 * Returns whether or not we're in install mode
@@ -235,6 +232,155 @@
 			return self::$_upgrademode;
 		}
 
+		protected static function cliError($title, $exception)
+		{
+			$trace_elements = null;
+			if ($exception instanceof Exception)
+			{
+				if ($exception instanceof TBGActionNotFoundException)
+				{
+					TBGCliCommand::cli_echo("Could not find the specified action\n", 'white', 'bold');
+				}
+				elseif ($exception instanceof TBGTemplateNotFoundException)
+				{
+					TBGCliCommand::cli_echo("Could not find the template file for the specified action\n", 'white', 'bold');
+				}
+				elseif ($exception instanceof \b2db\Exception)
+				{
+					TBGCliCommand::cli_echo("An exception was thrown in the B2DB framework\n", 'white', 'bold');
+				}
+				else
+				{
+					TBGCliCommand::cli_echo("An unhandled exception occurred:\n", 'white', 'bold');
+				}
+				echo TBGCliCommand::cli_echo($exception->getMessage(), 'red', 'bold')."\n";
+				echo "\n";
+				TBGCliCommand::cli_echo('Stack trace').":\n";
+				$trace_elements = $exception->getTrace();
+			}
+			else
+			{
+				if ($exception['code'] == 8)
+				{
+					TBGCliCommand::cli_echo('The following notice has stopped further execution:', 'white', 'bold');
+				}
+				else
+				{
+					TBGCliCommand::cli_echo('The following error occured:', 'white', 'bold');
+				}
+				echo "\n";
+				echo "\n";
+				TBGCliCommand::cli_echo($title, 'red', 'bold');
+				echo "\n";
+				TBGCliCommand::cli_echo("occured in\n");
+				TBGCliCommand::cli_echo($exception['file'].', line '.$exception['line'], 'blue', 'bold');
+				echo "\n";
+				echo "\n";
+				TBGCliCommand::cli_echo("Backtrace:\n", 'white', 'bold');
+				$trace_elements = debug_backtrace();
+			}
+			foreach ($trace_elements as $trace_element)
+			{
+				if (array_key_exists('class', $trace_element))
+				{
+					if (array_key_exists('class', $trace_element) && $trace_element['class'] == 'TBGContext' && array_key_exists('function', $trace_element) && in_array($trace_element['function'], array('errorHandler', 'cliError'))) continue;
+					TBGCliCommand::cli_echo($trace_element['class'].$trace_element['type'].$trace_element['function'].'()');
+				}
+				elseif (array_key_exists('function', $trace_element))
+				{
+					TBGCliCommand::cli_echo($trace_element['function'].'()');
+				}
+				else
+				{
+					TBGCliCommand::cli_echo('unknown function');
+				}
+				echo "\n";
+				if (array_key_exists('file', $trace_element))
+				{
+					TBGCliCommand::cli_echo($trace_element['file'].', line '.$trace_element['line'], 'blue', 'bold');
+				}
+				else
+				{
+					TBGCliCommand::cli_echo('unknown file', 'red', 'bold');
+				}
+				echo "\n";
+			}
+			if (class_exists('\\b2db\\Core'))
+			{
+				echo "\n";
+				$sqlhits = \b2db\Core::getSQLHits();
+				if (count($sqlhits))
+				{
+					TBGCliCommand::cli_echo("SQL queries:\n", 'white', 'bold');
+					try
+					{
+						$cc = 1;
+						foreach ($sqlhits as $details)
+						{
+							TBGCliCommand::cli_echo("(".$cc++.") [");
+							$str = ($details['time'] >= 1) ? round($details['time'], 2) . ' seconds' : round($details['time'] * 1000, 1) . 'ms';
+							TBGCliCommand::cli_echo($str);
+							TBGCliCommand::cli_echo("] from ");
+							TBGCliCommand::cli_echo($details['filename'], 'blue');
+							TBGCliCommand::cli_echo(", line ");
+							TBGCliCommand::cli_echo($details['line'], 'white', 'bold');
+							TBGCliCommand::cli_echo(":\n");
+							TBGCliCommand::cli_echo("{$details['sql']}\n");
+						}
+						echo "\n";
+					}
+					catch (Exception $e)
+					{
+						TBGCliCommand::cli_echo("Could not generate query list (there may be no database connection)", "red", "bold");
+					}
+				}
+			}
+			echo "\n";
+		}
+
+		/**
+		 * Displays a nicely formatted exception message
+		 *
+		 * @param string $title
+		 * @param \Exception $exception
+		 */
+		public static function exceptionHandler($exception)
+		{
+			if (self::isDebugMode() && !self::isInstallmode()) self::generateDebugInfo();
+
+			if (self::getRequest() instanceof TBGRequest && self::getRequest()->isAjaxCall()) {
+				self::getResponse()->ajaxResponseText(404, $exception->getMessage());
+			}
+
+			if (self::isCLI()) {
+				self::cliError($exception->getMessage(), $exception);
+			} else {
+				self::getResponse()->cleanBuffer();
+				require THEBUGGENIE_CORE_PATH . 'templates' . DS . 'error.php';
+			}
+			die();
+		}
+
+		public static function errorHandler($code, $error, $file, $line)
+		{
+			if (self::isDebugMode()) self::generateDebugInfo();
+
+			if (self::getRequest() instanceof TBGRequest && self::getRequest()->isAjaxCall()) {
+				self::getResponse()->ajaxResponseText(404, $error);
+			}
+
+			$details = compact('code', 'error', 'file', 'line');
+
+			if (self::isCLI()) {
+				self::cliError($error, $details);
+			} else {
+				//if (self::getResponse() instanceof TBGResponse) self::getResponse()->cleanBuffer();
+				self::getResponse()->cleanBuffer();
+				require THEBUGGENIE_CORE_PATH . 'templates' . DS . 'error.php';
+			}
+			die();
+		}
+
 		/**
 		 * Add a path to the list of searched paths in the autoloader
 		 * Class files must contain one class with the same name as the class
@@ -254,7 +400,7 @@
 		public static function addAutoloaderClassPath($path)
 		{
 			$path = realpath($path);
-			if (!file_exists($path)) throw new Exception("Cannot add {$path} to autoload, since the path doesn't exist");
+			if (!file_exists($path)) return; // throw new Exception("Cannot add {$path} to autoload, since the path doesn't exist");
 
 			if (file_exists($path . DS . 'actions.class.php'))
 				require_once $path . DS . 'actions.class.php';
@@ -285,23 +431,26 @@
 		{
 			$class_details = explode('\\', $classname);
 			$namespaces = self::getAutoloadedNamespaces();
-			
 			if (count($class_details) > 1)
 			{
-				$namespace = array_shift($class_details);
-				if (array_key_exists($namespace, $namespaces))
+				$classname_element = array_pop($class_details);
+				$orig_class_details = $class_details;
+				$cc = count($class_details);
+				while (!empty($class_details))
 				{
-					if (count($class_details) > 2 && $namespace == 'caspar' && current($class_details) == 'modules')
+					$namespace = join('\\', $class_details);
+					if (array_key_exists($namespace, $namespaces))
 					{
-						$basepath = realpath($namespaces[$namespace] . DS . '..');
-					}
-					else
-					{
+						for ($ccc = 1; $ccc <= $cc; $ccc++) array_shift($orig_class_details);
+
+						$classpath = (count($orig_class_details)) ? join(DS, $orig_class_details) . DS : '';
 						$basepath = $namespaces[$namespace];
+						$filename = $basepath . DS . $classpath . $classname_element . '.class.php';
+						$filename_alternate = $basepath . DS . $classpath . "classes" . DS . $classname_element . ".class.php";
+						break;
 					}
-					$filename = $basepath . DS . join(DS, $class_details) . '.class.php';
-					$classname_element = array_pop($class_details);
-					$filename_alternate = $basepath . DS . join(DS, $class_details) . DS . "classes" . DS . $classname_element . ".class.php";
+					array_pop($class_details);
+					$cc--;
 				}
 			}
 			else
@@ -311,19 +460,22 @@
 					if (file_exists($classpath . DS . $classname . '.class.php'))
 					{
 						$filename = $classpath . DS . $classname . '.class.php';
+						break;
 					}
 				}
 			}
 			if (isset($filename) && file_exists($filename))
 			{
 				require $filename;
+				return;
 			}
 			elseif (isset($filename_alternate) && file_exists($filename_alternate))
 			{
 				require $filename_alternate;
+				return;
 			}
 		}
-		
+
 		/**
 		 * Returns the classpaths that has been registered to the autoloader
 		 *
@@ -360,24 +512,6 @@
 				self::$_routing = new TBGRouting();
 			}
 			return self::$_routing;
-		}
-		
-		/**
-		 * Get when we last loaded the engine
-		 * 
-		 * @return integer
-		 */
-		public static function getLastLoadedAt()
-		{
-			return $_SESSION['b2lastreloadtime'];
-		}
-		
-		/**
-		 * Set when we last loaded the engine
-		 */
-		public static function setLoadedAt()
-		{
-			$_SESSION['b2lastreloadtime'] = NOW;
 		}
 		
 		/**
@@ -429,15 +563,6 @@
 		}
 		
 		/**
-		 * Manually ping the loader
-		 */
-		public static function ping()
-		{
-			$endtime = explode(' ', microtime());
-			self::$_loadend = $endtime[1] + $endtime[0];
-		}
-
-		/**
 		 * Get the time from when we started loading
 		 * 
 		 * @param integer $precision
@@ -445,8 +570,8 @@
 		 */
 		public static function getLoadtime($precision = 5)
 		{
-			self::ping();
-			return round((self::$_loadend - self::$_loadstart), $precision);
+			$endtime = explode(' ', microtime());
+			return round((($endtime[1] + $endtime[0]) - self::$_loadstart), $precision);
 		}
 		
 		public static function checkInstallMode()
@@ -459,6 +584,14 @@
 				throw new Exception("The Bug Genie seems installed, but B2DB isn't configured. This usually indicates an error with the installation. Try removing the file ".THEBUGGENIE_PATH."installed and try again.");
 		}
 
+		public static function initializeSession()
+		{
+			TBGLogging::log('Initializing session');
+			session_name(THEBUGGENIE_SESSION_NAME);
+			session_start();
+			TBGLogging::log('done (initializing session)');
+		}
+
 		/**
 		 * Initialize the context
 		 * 
@@ -466,39 +599,80 @@
 		 */
 		public static function initialize()
 		{
+			if (self::$debug_mode) self::$debug_id = uniqid();
 			try
 			{
+				// The time the script was loaded
+				$starttime = explode(' ', microtime());
+				define('NOW', $starttime[1]);
+
+				// Set up error and exception handling
+				set_exception_handler(array('TBGContext', 'exceptionHandler'));
+				set_error_handler(array('TBGContext', 'errorHandler'));
+				error_reporting(E_ALL | E_NOTICE | E_STRICT);
+
+				// Set the start time
+				self::setLoadStart($starttime[1] + $starttime[0]);
+				TBGLogging::log('Initializing Caspar framework');
+				TBGLogging::log('PHP_SAPI says "' . PHP_SAPI . '"');
+
+				if (!is_writable(THEBUGGENIE_CORE_PATH . DIRECTORY_SEPARATOR . 'cache'))
+					throw new Exception('The cache directory is not writable. Please correct the permissions of core/cache, and try again');
+
+				if (!self::isCLI() && !ini_get('session.auto_start'))
+					self::initializeSession();
+
+				TBGCache::checkEnabled();
+				TBGLogging::log((TBGCache::isEnabled()) ? 'APC cache is enabled' : 'APC cache is not enabled');
+
+				TBGLogging::log('Loading B2DB');
+				if (self::isCLI()) \b2db\Core::setHTMLException(false);
+				\b2db\Core::initialize(THEBUGGENIE_CORE_PATH . 'b2db_bootstrap.inc.php');
+				TBGLogging::log('...done (Initializing B2DB)');
+
+				if (\b2db\Core::isInitialized())
+				{
+					TBGLogging::log('Database connection details found, connecting');
+					\b2db\Core::doConnect();
+					TBGLogging::log('...done (Database connection details found, connecting)');
+				}
+
+				TBGLogging::log('...done');
+
+				TBGLogging::log('Initializing context');
+
 				mb_internal_encoding("UTF-8");
 				mb_language('uni');
 				mb_http_output("UTF-8");
-				
-				self::$_request = new TBGRequest();
-				self::$_response = new TBGResponse();
-				self::$_factory = new TBGFactory();
-				
-				self::checkInstallMode();
-				self::loadPreModuleRoutes();
-				self::setScope();
 
-				if (!self::$_installmode)
-				{
-					self::loadModules();
-					self::initializeUser();
-				}
-				
-				else
-					self::$_modules = array();
-				
-//				var_dump(self::getUser());die();
+				self::checkInstallMode();
+
+				TBGLogging::log('Loading pre-module routes');
+				self::loadPreModuleRoutes();
+				TBGLogging::log('done (loading pre-module routes)');
+
+				TBGLogging::log('Loading scope');
+				self::setScope();
+				TBGLogging::log('done (loading scope)');
+
+				TBGLogging::log('Loading modules');
+				self::loadModules();
+				TBGLogging::log('done (loading modules)');
+
+				if (!self::$_installmode) self::initializeUser();
+
+				TBGLogging::log('Initializing i18n');
 				self::setupI18n();
-				
-				if (!is_writable(THEBUGGENIE_CORE_PATH . DIRECTORY_SEPARATOR . 'cache'))
-				{
-					throw new Exception(self::geti18n()->__('The cache directory is not writable. Please correct the permissions of core/cache, and try again'));
-				}
-				
+				TBGLogging::log('done (initializing i18n)');
+
+				TBGLogging::log('Loading post-module routes');
 				self::loadPostModuleRoutes();
+				TBGLogging::log('done (loading post-module routes)');
+
+				TBGLogging::log('...done');
 				TBGLogging::log('...done initializing');
+
+				TBGLogging::log('Caspar framework loaded');
 			}
 			catch (Exception $e)
 			{
@@ -570,6 +744,8 @@
 					self::$_redirect_login = true;
 				else
 					self::$_user = self::factory()->TBGUser(TBGSettings::getDefaultUserID());
+
+				throw $e;
 			}
 			TBGLogging::log('...done');
 		}
@@ -633,6 +809,10 @@
 		 */
 		public static function factory()
 		{
+			if (!self::$_factory instanceof TBGFactory)
+			{
+				self::$_factory = new TBGFactory();
+			}
 			return self::$_factory;
 		}
 
@@ -643,6 +823,10 @@
 		 */
 		public static function getRequest()
 		{
+			if (!self::$_request instanceof TBGRequest)
+			{
+				self::$_request = new TBGRequest();
+			}
 			return self::$_request;
 		}
 		
@@ -653,6 +837,10 @@
 		 */
 		public static function getResponse()
 		{
+			if (!self::$_response instanceof TBGResponse)
+			{
+				self::$_response = new TBGResponse();
+			}
 			return self::$_response;
 		}
 		
@@ -744,7 +932,10 @@
 					{
 						self::$_user->setOnline();
 					}
-					self::$_user->updateLastSeen();
+					if (!self::getRequest()->hasCookie('tbg3_original_username'))
+					{
+						self::$_user->updateLastSeen();
+					}
 					self::$_user->setTimezone(TBGSettings::getUserTimezone());
 					self::$_user->setLanguage(TBGSettings::getUserLanguage());
 					self::$_user->save();
@@ -787,94 +978,42 @@
 		public static function loadModules()
 		{
 			TBGLogging::log('Loading modules');
-			if (self::$_modules === null)
+			if (self::isInstallmode()) return;
+
+			$modules = array();
+
+			TBGLogging::log('getting modules from database');
+			$module_paths = array();
+
+			if ($res = \b2db\Core::getTable('TBGModulesTable')->getAll())
 			{
-				self::$_modules = array();
-				if (self::isInstallmode()) return;
-
-				if (!TBGCache::has(TBGCache::KEY_MODULE_PATHS) || !TBGCache::has(TBGCache::KEY_MODULES))
+				while ($moduleRow = $res->getNextRow())
 				{
-					$modules = array();
+					$module_name = $moduleRow->get(TBGModulesTable::MODULE_NAME);
+					$classname = $moduleRow->get(TBGModulesTable::CLASSNAME);
+					$moduleClassPath = THEBUGGENIE_MODULES_PATH . $module_name . DS . "classes" . DS;
+					self::addAutoloaderClassPath($moduleClassPath);
+					self::addAutoloaderClassPath($moduleClassPath . 'B2DB' . DS);
+					self::addAutoloaderClassPath($moduleClassPath . 'cli' . DS);
+					if ($classname == '' || $classname == 'TBGModule')
+						throw new Exception('Cannot load module "' . $module_name . '" as class TBGModule - modules should extend the TBGModule class with their own class.');
 
-					TBGLogging::log('getting modules from database');
-					$module_paths = array();
-
-					if ($res = \b2db\Core::getTable('TBGModulesTable')->getAll())
-					{
-						while ($moduleRow = $res->getNextRow())
-						{
-							$module_name = $moduleRow->get(TBGModulesTable::MODULE_NAME);
-							$modules[$module_name] = $moduleRow;
-							$moduleClassPath = THEBUGGENIE_MODULES_PATH . $module_name . DS . "classes" . DS;
-							try
-							{
-								self::addAutoloaderClassPath($moduleClassPath);
-								$module_paths[] = $moduleClassPath;
-								if (file_exists($moduleClassPath . 'B2DB'))
-								{
-									self::addAutoloaderClassPath($moduleClassPath . 'B2DB' . DS);
-									$module_paths[] = $moduleClassPath . 'B2DB' . DS;
-								}
-							}
-							catch (Exception $e) { } // ignore "dir not exists" errors
-						}
-					}
-					TBGLogging::log('done (getting modules from database)');
-					TBGCache::add(TBGCache::KEY_MODULE_PATHS, $module_paths);
-					TBGLogging::log('setting up module objects');
-					foreach ($modules as $module_name => $moduleRow)
-					{
-						$classname = $moduleRow->get(TBGModulesTable::CLASSNAME);
-						if ($classname != '' && $classname != 'TBGModule')
-						{
-							if (class_exists($classname))
-							{
-								self::$_modules[$module_name] = new $classname($moduleRow->get(TBGModulesTable::ID), $moduleRow);
-							}
-							else
-							{
-								TBGLogging::log('Cannot load module "' . $module_name . '" as class "' . $classname . '", the class is not defined in the classpaths.', 'modules', TBGLogging::LEVEL_WARNING_RISK);
-								TBGLogging::log('Removing module "' . $module_name . '" as it cannot be loaded', 'modules', TBGLogging::LEVEL_NOTICE);
-								TBGModule::removeModule($moduleRow->get(TBGModulesTable::ID));
-							}
-						}
-						else
-						{
-							throw new Exception('Cannot load module "' . $module_name . '" as class TBGModule - modules should extend the TBGModule class with their own class.');
-						}
-					}
-					TBGCache::add(TBGCache::KEY_MODULES, self::$_modules);
-					TBGLogging::log('done (setting up module objects)');
+					self::$_modules[$module_name] = new $classname($moduleRow->get(TBGModulesTable::ID), $moduleRow);
 				}
-				else
+			}
+			TBGLogging::log('done (setting up module objects)');
+			TBGLogging::log('initializing modules');
+			if (!empty(self::$_modules))
+			{
+				foreach (self::$_modules as $module_name => $module)
 				{
-					TBGLogging::log('using cached modules');
-					$module_paths = TBGCache::get(TBGCache::KEY_MODULE_PATHS);
-					foreach ($module_paths as $path)
-					{
-						self::addAutoloaderClassPath($path);
-					}
-					self::$_modules = TBGCache::get(TBGCache::KEY_MODULES);
-					TBGLogging::log('done (using cached modules)');
+					$module->initialize();
 				}
-
-				TBGLogging::log('initializing modules');
-				if (!empty(self::$_modules))
-				{
-					foreach (self::$_modules as $module_name => $module)
-					{
-						$module->initialize();
-					}
-					TBGLogging::log('done (initializing modules)');
-				}
-				else
-				{
-					TBGLogging::log('no modules found');
-				}
+				TBGLogging::log('done (initializing modules)');
 			}
 			else
 			{
-				TBGLogging::log('Modules already loaded', 'core', TBGLogging::LEVEL_FATAL);
+				TBGLogging::log('no modules found');
 			}
 			TBGLogging::log('...done');
 		}
@@ -1045,7 +1184,7 @@
 			TBGLogging::log('caches permissions');
 			self::$_permissions = array();
 			
-			if ($permissions = TBGCache::get('permissions'))
+			if ($permissions = TBGCache::get(TBGCache::KEY_PERMISSIONS_CACHE))
 			{
 				self::$_permissions = $permissions;
 				TBGLogging::log('Using cached permissions');
@@ -1081,7 +1220,7 @@
 				{
 					self::$_permissions = $permissions;
 				}
-				TBGCache::add('permissions', self::$_permissions);
+				TBGCache::add(TBGCache::KEY_PERMISSIONS_CACHE, self::$_permissions);
 			}
 			TBGLogging::log('...cached');
 		}
@@ -1096,16 +1235,6 @@
 				}
 			}
 			TBGPermissionsTable::getTable()->deleteModulePermissions($module_name, $scope);
-		}
-
-		/**
-		 * Cache a permission
-		 * 
-		 * @param array $perm_cache
-		 */
-		public static function cachePermission($perm_cache)
-		{
-			self::$_permissions[] = $perm_cache; 
 		}
 
 		/**
@@ -1124,9 +1253,16 @@
 		{
 			if ($scope === null) $scope = self::getScope()->getID();
 			
-			\b2db\Core::getTable('TBGPermissionsTable')->removeSavedPermission($uid, $gid, $tid, $module, $permission_type, $target_id, $scope);
-			
+			TBGPermissionsTable::getTable()->removeSavedPermission($uid, $gid, $tid, $module, $permission_type, $target_id, $scope);
+			TBGCache::delete(TBGCache::KEY_PERMISSIONS_CACHE);
+
 			if ($recache) self::cacheAllPermissions();
+		}
+
+		public static function removeAllPermissionsForCombination($uid, $gid, $tid, $target_id = 0, $module = 'core', $scope = null)
+		{
+			$scope = ($scope !== null) ? $scope : self::getScope()->getID();
+			TBGPermissionsTable::getTable()->deleteAllPermissionsForCombination($uid, $gid, $tid, $target_id, $module, $scope);
 		}
 
 		/**
@@ -1147,7 +1283,8 @@
 			
 			self::removePermission($permission_type, $target_id, $module, $uid, $gid, $tid, false, $scope);
 			TBGPermissionsTable::getTable()->setPermission($uid, $gid, $tid, $allowed, $module, $permission_type, $target_id, $scope);
-			
+			TBGCache::delete(TBGCache::KEY_PERMISSIONS_CACHE);
+
 			self::cacheAllPermissions();
 		}
 
@@ -1313,6 +1450,24 @@
 			return TBGSettings::isPermissive();
 		}
 		
+		public static function getPermissionDetails($permission, $permissions_list = null)
+		{
+			self::_cacheAvailablePermissions();
+			$permissions_list = ($permissions_list === null) ? self::$_available_permissions : $permissions_list;
+			foreach ($permissions_list as $permission_key => $permission_info)
+			{
+				if (is_numeric($permission_key)) return null;
+				if ($permission_key == $permission) return $permission_info;
+				
+				if (in_array($permission_key, array_keys(self::$_available_permissions)) || (array_key_exists('details', $permission_info) && is_array($permission_info['details']) && count($permission_info['details'])))
+				{
+					$p_info = (in_array($permission_key, array_keys(self::$_available_permissions))) ? $permission_info : $permission_info['details'];
+					$retval = self::getPermissionDetails($permission, $p_info);
+					if ($retval) return $retval;
+				}
+			}
+		}
+
 		protected static function _cacheAvailablePermissions()
 		{
 			if (self::$_available_permissions === null)
@@ -1345,7 +1500,6 @@
 				self::$_available_permissions['configuration']['cansaveconfig']['details'][] = array('cansaveconfig' => array('description' => $i18n->__('Read + write access: "Modules" configuration page and any modules'), 'target_id' => 15));
 				self::$_available_permissions['general']['canfindissuesandsavesearches'] = array('description' => $i18n->__('Can search for issues and create saved searches'), 'details' => array());
 				self::$_available_permissions['general']['canfindissuesandsavesearches']['details']['canfindissues'] = array('description' => $i18n->__('Can search for issues'));
-				//self::$_available_permissions['general']['canfindissuesandsavesearches']['details']['cancreatesavedsearches'] = array('description' => $i18n->__('Can create saved searches'));
 				self::$_available_permissions['general']['canfindissuesandsavesearches']['details']['cancreatepublicsearches'] = array('description' => $i18n->__('Can create saved searches that are public'));
 				self::$_available_permissions['general']['caneditmainmenu'] = array('description' => $i18n->__('Can edit main menu'));
 				self::$_available_permissions['pages']['page_home_access'] = array('description' => $i18n->__('Can access the frontpage'));
@@ -1370,11 +1524,11 @@
 				self::$_available_permissions['project']['canseeprojecthierarchy']['details']['canseeallprojectcomponents'] = array('description' => $i18n->__('Can see all components'));
 				self::$_available_permissions['project']['canseeprojecthierarchy']['details']['canseeallprojectbuilds'] = array('description' => $i18n->__('Can see all releases'));
 				self::$_available_permissions['project']['canseeprojecthierarchy']['details']['canseeallprojectmilestones'] = array('description' => $i18n->__('Can see all milestones'));
-				self::$_available_permissions['project']['candoscrumplanning'] = array('description' => $i18n->__('Can manage stories, tasks, sprints and backlog on the sprint planning page'), 'details' => array());
-				self::$_available_permissions['project']['candoscrumplanning']['details']['canaddscrumuserstories'] = array('description' => $i18n->__('Can add new user stories to the backlog on the sprint planning page'));
-				self::$_available_permissions['project']['candoscrumplanning']['details']['candoscrumplanning_backlog'] = array('description' => $i18n->__('Can manage the backlog on the sprint planning page'));
-				self::$_available_permissions['project']['candoscrumplanning']['details']['canaddscrumsprints'] = array('description' => $i18n->__('Can add sprints on the sprint planning page'));
-				self::$_available_permissions['project']['candoscrumplanning']['details']['canassignscrumuserstoriestosprints'] = array('description' => $i18n->__('Can add stories to sprints on the sprint planning page'));
+				self::$_available_permissions['project']['candoscrumplanning'] = array('description' => $i18n->__('Can manage stories, tasks, sprints and backlog on the project planning page'), 'details' => array());
+				self::$_available_permissions['project']['candoscrumplanning']['details']['canaddscrumuserstories'] = array('description' => $i18n->__('Can add new issues/tasks/stories to the backlog on the project planning page'));
+				self::$_available_permissions['project']['candoscrumplanning']['details']['candoscrumplanning_backlog'] = array('description' => $i18n->__('Can manage the backlog on the project planning page'));
+				self::$_available_permissions['project']['candoscrumplanning']['details']['canaddscrumsprints'] = array('description' => $i18n->__('Can add milestones/sprints on the project planning page'));
+				self::$_available_permissions['project']['candoscrumplanning']['details']['canassignscrumuserstoriestosprints'] = array('description' => $i18n->__('Can (re-)assign issues/tasks/stories to milestones/sprints on the project planning page'));
 				self::$_available_permissions['project']['canmanageproject'] = array('description' => $i18n->__('Can manage project'));
 				self::$_available_permissions['project']['canmanageproject']['details']['canmanageprojectreleases'] = array('description' => $i18n->__('Can manage project releases and components'));
 				self::$_available_permissions['project']['canmanageproject']['details']['caneditprojectdetails'] = array('description' => $i18n->__('Can edit project details and settings'));
@@ -1499,75 +1653,6 @@
 			}
 		}
 		
-		public static function getProjectAssigneeDefaultPermissionSet($ownable, $type)
-		{
-			$return_values = array();
-			if ($ownable instanceof TBGProject)
-			{
-				$return_values[] = 'page_project_allpages_access';
-				$return_values[] = 'canseeproject';
-				$return_values[] = 'canseeprojecthierarchy';
-				$return_values[] = 'cancreateandeditissues';
-				$return_values[] = 'canpostandeditcomments';
-			}
-			elseif ($ownable instanceof TBGEdition)
-			{
-				$return_values[] = 'canseeedition';
-			}
-			elseif ($ownable instanceof TBGComponent)
-			{
-				$return_values[] = 'canseecomponent';
-			}
-			
-			if(is_numeric($type))
-			{
-				$role = TBGProjectAssigneesTable::getTypeName($type);
-				$type = $role->getItemdata();
-			}
-
-			switch ($type)
-			{
-				case '_leader':
-					$return_values[] = 'canmanageproject';
-					$return_values[] = 'candoscrumplanning';
-					break;
-				case '_owner':
-					$return_values[] = 'canmanageproject';
-					$return_values[] = 'candoscrumplanning';
-					break;
-				case '_qa_responsible':
-					$return_values[] = 'candoscrumplanning';
-					$return_values[] = 'caneditissue';
-					$return_values[] = 'caneditissuecustomfields';
-					$return_values[] = 'canaddextrainformationtoissues';
-					break;
-				case TBGProjectAssigneesTable::TYPE_DEVELOPER:
-					$return_values[] = 'candoscrumplanning';
-					$return_values[] = 'caneditissue';
-					$return_values[] = 'caneditissuecustomfields';
-					$return_values[] = 'canaddextrainformationtoissues';
-					break;
-				case TBGProjectAssigneesTable::TYPE_PROJECTMANAGER:
-					$return_values[] = 'candoscrumplanning';
-					$return_values[] = 'caneditissue';
-					$return_values[] = 'caneditissuecustomfields';
-					$return_values[] = 'canaddextrainformationtoissues';
-					break;
-				case TBGProjectAssigneesTable::TYPE_TESTER:
-					$return_values[] = 'caneditissue';
-					$return_values[] = 'caneditissuecustomfields';
-					$return_values[] = 'canaddextrainformationtoissues';
-					break;
-				case TBGProjectAssigneesTable::TYPE_DOCUMENTOR:
-					$return_values[] = 'caneditissue';
-					$return_values[] = 'caneditissuecustomfields';
-					$return_values[] = 'canaddextrainformationtoissues';
-					break;
-			}
-			
-			return $return_values;
-		}
-		
 		/**
 		 * Log out the current user (does not work when auth method is set to http)
 		 */
@@ -1615,9 +1700,9 @@
 				}
 				
 				if (!self::isUpgrademode() && !self::isInstallmode())
-					$row = TBGScopesTable::getTable()->getByHostnameOrDefault($hostname);
+					$scope = TBGScopesTable::getTable()->getByHostnameOrDefault($hostname);
 				
-				if (!$row instanceof \b2db\Row)
+				if (!$scope instanceof TBGScope)
 				{
 					TBGLogging::log("It couldn't", 'main', TBGLogging::LEVEL_WARNING);
 					if (!self::isInstallmode())
@@ -1627,7 +1712,7 @@
 				}
 				
 				TBGLogging::log("Setting scope from hostname");
-				self::$_scope = TBGContext::factory()->TBGScope($row->get(TBGScopesTable::ID), $row);
+				self::$_scope = $scope;
 				TBGSettings::forceSettingsReload();
 				TBGSettings::loadSettings();
 				TBGLogging::log("...done (Setting scope from hostname)");
@@ -1694,6 +1779,7 @@
 							$itemsubmenulinks = array();
 							foreach ($all_projects as $child)
 							{
+								if (!$child->hasAccess()) continue;
 								$itemsubmenulinks[] = array('url' => self::getRouting()->generate('project_dashboard', array('project_key' => $child->getKey())), 'title' => $child->getName());
 							}
 							
@@ -1726,6 +1812,7 @@
 								$itemsubmenulinks = array();
 								foreach ($children as $child)
 								{
+									if (!$child->hasAccess()) continue;
 									$itemsubmenulinks[] = array('url' => self::getRouting()->generate('project_dashboard', array('project_key' => $child->getKey())), 'title' => $child->getName());
 								}
 							}
@@ -1932,24 +2019,7 @@
 			if ($token == self::getRequest()->getParameter('csrf_token')) return true;
 
 			$message = self::getI18n()->__('An authentication error occured. Please reload your page and try again');
-			/*if ($handle_response)
-			{
-				self::$_response->setHttpStatus(301);
-				if (self::getRequest()->getRequestedFormat() == 'json')
-				{
-					self::$_response->setContentType('application/json');
-					echo json_encode(array('message' => $message));
-				}
-				else
-				{
-					echo $message;
-				}
-			}
-			else
-			{*/
-				throw new TBGCSRFFailureException($message);
-			//}
-			return false;
+			throw new TBGCSRFFailureException($message);
 		}
 
 		/**
@@ -2010,7 +2080,7 @@
 			}
 		}
 		
-		public static function getVisitedPartials()
+		protected static function getVisitedPartials()
 		{
 			return self::$_partials_visited;
 		}
@@ -2178,7 +2248,7 @@
 				}
 
 				self::loadLibrary('common');
-				TBGLogging::log('rendering content');
+				TBGLogging::log('rendering final content');
 				
 				if (TBGSettings::isMaintenanceModeEnabled() && !mb_strstr(self::getRouting()->getCurrentRouteName(), 'configure'))
 				{
@@ -2197,7 +2267,10 @@
 
 				if (self::getResponse()->getDecoration() == TBGResponse::DECORATE_DEFAULT && !self::getRequest()->isAjaxCall())
 				{
+					ob_start('mb_output_handler');
+					ob_implicit_flush(0);
 					require THEBUGGENIE_CORE_PATH . 'templates/layout.php';
+					ob_flush();
 				}
 				else
 				{
@@ -2229,6 +2302,7 @@
 
 					TBGLogging::log('...done');
 				}
+				TBGLogging::log('done (rendering final content)');
 
 				if (self::isDebugMode()) self::getI18n()->addMissingStringsToStringsFile();
 				
@@ -2241,19 +2315,6 @@
 			}
 		}
 
-		public static function calculateTimings(&$tbg_summary)
-		{
-			$load_time = self::getLoadtime();
-			if (\b2db\Core::isInitialized())
-			{
-				$tbg_summary['db_queries'] = \b2db\Core::getSQLHits();
-				$tbg_summary['db_timing'] = \b2db\Core::getSQLTiming();
-			}
-			$tbg_summary['load_time'] = ($load_time >= 1) ? round($load_time, 2) . ' seconds' : round($load_time * 1000, 1) . 'ms';
-			$tbg_summary['scope_id'] = self::getScope() instanceof TBGScope ? self::getScope()->getID() : 'unknown';
-			self::ping();
-		}
-		
 		/**
 		 * Returns all the links on the frontpage
 		 * 
@@ -2287,7 +2348,7 @@
 					{
 						$route = array('module' => 'installation', 'action' => 'installIntro');
 					}
-					if (self::$_redirect_login)
+					if (self::$_redirect_login && !self::getRouting()->getCurrentRouteName('debug'))
 					{
 						TBGLogging::log('An error occurred setting up the user object, redirecting to login', 'main', TBGLogging::LEVEL_NOTICE);
 						TBGContext::setMessage('login_message_err', TBGContext::geti18n()->__('Please log in'));
@@ -2305,6 +2366,7 @@
 						}
 						if (self::performAction($route['module'], $route['action']))
 						{
+							if (self::isDebugMode()) self::generateDebugInfo();
 							if (\b2db\Core::isInitialized())
 							{
 								\b2db\Core::closeDBLink();
@@ -2315,52 +2377,97 @@
 					else
 					{
 						throw new Exception('Cannot load the ' . $route['module'] . ' module');
-						return;
 					}
 				}
 				else
 				{
 					require THEBUGGENIE_MODULES_PATH . 'main' . DS . 'classes' . DS . 'actions.class.php';
 					self::performAction('main', 'notFound');
+					if (self::isDebugMode()) self::generateDebugInfo();
 				}
 			}
 			catch (TBGTemplateNotFoundException $e)
 			{
 				\b2db\Core::closeDBLink();
-				TBGContext::setLoadedAt();
 				header("HTTP/1.0 404 Not Found", true, 404);
-				tbg_exception($e->getMessage() /*'Template file does not exist for current action'*/, $e);
+				throw $e;
 			}
 			catch (TBGActionNotFoundException $e)
 			{
 				\b2db\Core::closeDBLink();
-				TBGContext::setLoadedAt();
 				header("HTTP/1.0 404 Not Found", true, 404);
-				tbg_exception('Module action "' . $route['action'] . '" does not exist for module "' . $route['module'] . '"', $e);
+				throw $e;
 			}
 			catch (TBGCSRFFailureException $e)
 			{
 				\b2db\Core::closeDBLink();
-				TBGContext::setLoadedAt();
-				self::$_response->setHttpStatus(301);
+				if (self::isDebugMode()) self::generateDebugInfo();
+				$this->getResponse()->setHttpStatus(301);
 				$message = $e->getMessage();
 
 				if (self::getRequest()->getRequestedFormat() == 'json')
 				{
-					self::$_response->setContentType('application/json');
+					$this->getResponse()->setContentType('application/json');
 					$message = json_encode(array('message' => $message));
 				}
 
-				self::$_response->renderHeaders();
+				$this->getResponse()->renderHeaders();
 				echo $message;
 			}
 			catch (Exception $e)
 			{
 				\b2db\Core::closeDBLink();
-				TBGContext::setLoadedAt();
 				header("HTTP/1.0 404 Not Found", true, 404);
-				tbg_exception('An error occured', $e);
+				throw $e;
 			}
+		}
+
+		protected static function generateDebugInfo()
+		{
+			$tbg_summary = array();
+			$load_time = self::getLoadtime();
+			if (\b2db\Core::isInitialized())
+			{
+				$tbg_summary['db']['queries'] = \b2db\Core::getSQLHits();
+				$tbg_summary['db']['timing'] = \b2db\Core::getSQLTiming();
+			}
+			$tbg_summary['load_time'] = ($load_time >= 1) ? round($load_time, 2) . ' seconds' : round($load_time * 1000, 1) . 'ms';
+			$tbg_summary['scope'] = array();
+			$scope = self::getScope();
+			$tbg_summary['scope']['id'] = $scope instanceof TBGScope ? $scope->getID() : 'unknown';
+			$tbg_summary['scope']['hostnames'] = ($scope instanceof TBGScope && \b2db\Core::isConnected()) ? implode(', ', $scope->getHostnames()) : 'unknown';
+			$tbg_summary['settings'] = TBGSettings::getAll();
+			$tbg_summary['partials'] = self::getVisitedPartials();
+			if (self::$_i18n instanceof TBGI18n) {
+				foreach (self::getI18n()->getMissingStrings() as $text) {
+					TBGLogging::log('The text "' . $text . '" does not exist in list of translated strings, and was added automatically', 'i18n', TBGLogging::LEVEL_NOTICE);
+				}
+			}
+			$tbg_summary['log'] = TBGLogging::getEntries();
+			$tbg_summary['routing'] = array('name' => self::getRouting()->getCurrentRouteName(), 'module' => self::getRouting()->getCurrentRouteModule(), 'action' => self::getRouting()->getCurrentRouteAction());
+			if (isset($_SESSION))
+			{
+				if (!array_key_exists('___DEBUGINFO___', $_SESSION))
+				{
+					$_SESSION['___DEBUGINFO___'] = array();
+				}
+				$_SESSION['___DEBUGINFO___'][self::$debug_id] = $tbg_summary;
+				while (count($_SESSION['___DEBUGINFO___']) > 10)
+					array_shift($_SESSION['___DEBUGINFO___']);
+			}
+		}
+
+		public static function getDebugData($debug_id)
+		{
+			if (!array_key_exists('___DEBUGINFO___', $_SESSION)) return null;
+			if (!array_key_exists($debug_id, $_SESSION['___DEBUGINFO___'])) return null;
+			
+			return $_SESSION['___DEBUGINFO___'][$debug_id];
+		}
+
+		public static function getDebugID()
+		{
+			return self::$debug_id;
 		}
 
 		public static function getURLhost()

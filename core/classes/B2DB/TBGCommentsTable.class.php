@@ -19,11 +19,16 @@
 	 *
 	 * @package thebuggenie
 	 * @subpackage tables
+	 *
+	 * @Table(name="comments")
+	 * @Entity(class="TBGComment")
+	 * @Discriminator(column="target_type")
+	 * @Discriminators(TBGIssue=1, TBGArticle=2)
 	 */
 	class TBGCommentsTable extends TBGB2DBTable 
 	{
 
-		const B2DB_TABLE_VERSION = 1;
+		const B2DB_TABLE_VERSION = 2;
 		const B2DBNAME = 'comments';
 		const ID = 'comments.id';
 		const SCOPE = 'comments.scope';
@@ -40,37 +45,10 @@
 		const COMMENT_NUMBER = 'comments.comment_number';
 		const SYSTEM_COMMENT = 'comments.system_comment';
 
-		/**
-		 * Return an instance of TBGCommentsTable
-		 * 
-		 * @return TBGCommentsTable
-		 */
-		public static function getTable()
-		{
-			return Core::getTable('TBGCommentsTable');
-		}
-		
-		public function __construct()
-		{
-			parent::__construct(self::B2DBNAME, self::ID);
-			parent::_addInteger(self::TARGET_ID, 10);
-			parent::_addInteger(self::TARGET_TYPE, 3);
-			parent::_addText(self::CONTENT, false);
-			parent::_addInteger(self::POSTED, 10);
-			parent::_addInteger(self::UPDATED, 10);
-			parent::_addInteger(self::COMMENT_NUMBER, 10);
-			parent::_addBoolean(self::DELETED);
-			parent::_addBoolean(self::IS_PUBLIC, true);
-			parent::_addVarchar(self::MODULE, 50);
-			parent::_addBoolean(self::SYSTEM_COMMENT);
-			parent::_addForeignKeyColumn(self::SCOPE, TBGScopesTable::getTable(), TBGScopesTable::ID);
-			parent::_addForeignKeyColumn(self::UPDATED_BY, TBGUsersTable::getTable(), TBGUsersTable::ID);
-			parent::_addForeignKeyColumn(self::POSTED_BY, TBGUsersTable::getTable(), TBGUsersTable::ID);
-		}
-		
 		protected function _setupIndexes()
 		{
 			$this->_addIndex('type_target', array(self::TARGET_TYPE, self::TARGET_ID));
+			$this->_addIndex('type_target_deleted_system', array(self::TARGET_TYPE, self::TARGET_ID, self::DELETED, self::SYSTEM_COMMENT));
 		}
 
 		public function getComments($target_id, $target_type, $sort_order = Criteria::SORT_ASC)

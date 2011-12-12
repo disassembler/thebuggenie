@@ -1,31 +1,32 @@
 <?php
 
-	class TBGWikiArticle extends TBGIdentifiableClass
+	/**
+	 * @Table(name="TBGArticlesTable")
+	 */
+	class TBGWikiArticle extends TBGIdentifiableScopedClass
 	{
 
-		static protected $_b2dbtablename = 'TBGArticlesTable';
-		
 		/**
 		 * The article author
 		 *
 		 * @var TBGUser
-		 * @Class TBGUser
+		 * @Column(type="integer", length=10)
+		 * @Relates(class="TBGUser")
 		 */
 		protected $_author = null;
+
+		/**
+		 * @Column(type="string", length=200)
+		 */
+		protected $_name;
 
 		/**
 		 * When the article was posted
 		 *
 		 * @var integer
+		 * @Column(type="integer", length=10)
 		 */
 		protected $_date = null;
-
-		/**
-		 * The article name
-		 *
-		 * @var string
-		 */
-		protected $_name = null;
 
 		/**
 		 * The old article content, used for history when saving
@@ -38,12 +39,15 @@
 		 * The article content
 		 *
 		 * @var string
+		 * @Column(type="text")
 		 */
 		protected $_content = null;
 
 		/**
 		 * Whether the article is published or not
+		 * 
 		 * @var boolean
+		 * @Column(type="boolean")
 		 */
 		protected $_is_published = false;
 
@@ -108,6 +112,7 @@
 		
 		protected function _preSave($is_new)
 		{
+			parent::_preSave($is_new);
 			$this->_date = NOW;
 			$this->_author = TBGContext::getUser();
 		}
@@ -689,6 +694,26 @@
 			}
 			
 			return $this->canRead();
+		}
+
+		/**
+		 * Return the items name
+		 *
+		 * @return string
+		 */
+		public function getName()
+		{
+			return $this->_name;
+		}
+
+		/**
+		 * Set the edition name
+		 *
+		 * @param string $name
+		 */
+		public function setName($name)
+		{
+			$this->_name = $name;
 		}
 
 	}

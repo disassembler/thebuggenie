@@ -1,4 +1,10 @@
-<td class="saved_searches side_bar">
+<td class="saved_searches side_bar<?php if ($hide): ?> collapsed<?php endif; ?>" id="search_sidebar">
+	<div class="collapser_link" onclick="$('search_sidebar').toggleClassName('collapsed');">
+		<a href="javascript:void(0);">
+			<?php echo image_tag('sidebar_collapse.png', array('class' => 'collapser')); ?>
+			<?php echo image_tag('sidebar_expand.png', array('class' => 'expander')); ?>
+		</a>
+	</div>
 	<div class="container_div">
 		<div class="header"><?php echo __('Predefined searches'); ?></div>
 		<ul class="simple_list content" style="font-size: 1em;">
@@ -18,6 +24,14 @@
 				<li style="clear: both; margin-bottom: 20px;">
 					<?php echo link_tag(make_url('project_most_voted_issues', array('project_key' => TBGContext::getCurrentProject()->getKey(), 'format' => 'rss')), image_tag('icon_rss.png'), array('title' => __('Download feed'), 'style' => 'float: left; margin-right: 5px;', 'class' => 'image')); ?>
 					<?php echo link_tag(make_url('project_most_voted_issues', array('project_key' => TBGContext::getCurrentProject()->getKey())), __('Most voted for issues')); ?>
+				</li>
+				<li style="clear: both;">
+					<?php echo link_tag(make_url('project_month_issues', array('project_key' => TBGContext::getCurrentProject()->getKey(), 'format' => 'rss')), image_tag('icon_rss.png'), array('title' => __('Download feed'), 'style' => 'float: left; margin-right: 5px;', 'class' => 'image')); ?>
+					<?php echo link_tag(make_url('project_month_issues', array('project_key' => TBGContext::getCurrentProject()->getKey())), __('Issues reported this month')); ?>
+				</li>
+				<li style="clear: both; margin-bottom: 20px;">
+					<?php echo link_tag(make_url('project_last_issues', array('project_key' => TBGContext::getCurrentProject()->getKey(), 'format' => 'rss', 'days' => 30)), image_tag('icon_rss.png'), array('title' => __('Download feed'), 'style' => 'float: left; margin-right: 5px;', 'class' => 'image')); ?>
+					<?php echo link_tag(make_url('project_last_issues', array('project_key' => TBGContext::getCurrentProject()->getKey(), 'days' => 30)), __('Issues reported last 30 days')); ?>
 				</li>
 				<li style="clear: both;">
 					<?php echo link_tag(make_url('project_my_reported_issues', array('project_key' => TBGContext::getCurrentProject()->getKey(), 'format' => 'rss')), image_tag('icon_rss.png'), array('title' => __('Download feed'), 'style' => 'float: left; margin-right: 5px;', 'class' => 'image')); ?>

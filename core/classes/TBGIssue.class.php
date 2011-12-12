@@ -15,6 +15,8 @@
 	 *
 	 * @package thebuggenie
 	 * @subpackage main
+	 *
+	 * @Table(name="TBGIssuesTable")
 	 */
 	class TBGIssue extends TBGChangeableItem
 	{
@@ -32,9 +34,12 @@
 		 * @static integer
 		 */
 		const STATE_CLOSED = 1;
-	
-		static protected $_b2dbtablename = 'TBGIssuesTable';
-		
+
+		/**
+		 * @Column(type="string", name="name", length=255)
+		 */
+		protected $_title;
+
 		/**
 		 * Array of links attached to this issue
 		 *
@@ -57,16 +62,10 @@
 		protected $_num_files = null;
 		
 		/**
-		 * The issue title
-		 *
-		 * @var string
-		 */
-		protected $_title;
-		
-		/**
 		 * The issue number
 		 *
 		 * @var integer
+		 * @Column(type="integer", length=10)
 		 */
 		protected $_issue_no;
 		
@@ -74,7 +73,8 @@
 		 * The issue type
 		 *
 		 * @var TBGIssuetype
-		 * @Class TBGIssuetype
+		 * @Column(type="integer", length=10)
+		 * @Relates(class="TBGIssuetype")
 		 */
 		protected $_issuetype;
 		
@@ -83,7 +83,8 @@
 		 *
 		 * @var TBGProject
 		 * @access protected
-		 * @Class TBGProject
+		 * @Column(type="integer", length=10)
+		 * @Relates(class="TBGProject")
 		 */
 		protected $_project_id;
 		
@@ -112,6 +113,7 @@
 		 * This issues long description
 		 * 
 		 * @var string
+		 * @Column(type="text")
 		 */
 		protected $_description;
 		
@@ -119,6 +121,7 @@
 		 * This issues reproduction steps
 		 * 
 		 * @var string
+		 * @Column(type="text")
 		 */
 		protected $_reproduction_steps;
 		
@@ -126,6 +129,7 @@
 		 * When the issue was posted
 		 * 
 		 * @var integer
+		 * @Column(type="integer", length=10)
 		 */
 		protected $_posted;
 		
@@ -133,6 +137,7 @@
 		 * When the issue was last updated
 		 * 
 		 * @var integer
+		 * @Column(type="integer", length=10)
 		 */
 		protected $_last_updated;
 		
@@ -140,14 +145,34 @@
 		 * Who posted the issue
 		 * 
 		 * @var TBGUser
-		 * @Class TBGUser
+		 * @Column(type="integer", length=10)
+		 * @Relates(class="TBGUser")
 		 */
 		protected $_posted_by;
 		
 		/**
+		 * The project assignee if team
+		 *
+		 * @var TBGTeam
+		 * @Column(type="integer", length=10)
+		 * @Relates(class="TBGTeam")
+		 */
+		protected $_assignee_team;
+
+		/**
+		 * The project assignee if user
+		 *
+		 * @var TBGUser
+		 * @Column(type="integer", length=10)
+		 * @Relates(class="TBGUser")
+		 */
+		protected $_assignee_user;
+
+		/**
 		 * What kind of bug this is
 		 * 
 		 * @var integer
+		 * @Column(type="integer", length=3)
 		 */
 		protected $_pain_bug_type;
 
@@ -155,6 +180,7 @@
 		 * What effect this bug has on users
 		 *
 		 * @var integer
+		 * @Column(type="integer", length=3)
 		 */
 		protected $_pain_effect;
 
@@ -162,6 +188,7 @@
 		 * How likely users are to experience this bug
 		 *
 		 * @var integer
+		 * @Column(type="integer", length=3)
 		 */
 		protected $_pain_likelihood;
 
@@ -169,28 +196,16 @@
 		 * Calculated user pain score
 		 * 
 		 * @var float
+		 * @Column(type="float")
 		 */
 		protected $_user_pain = 0.00;
-		
-		/**
-		 * Whos assigned the issue
-		 * 
-		 * @var TBGIdentifiable
-		 */
-		protected $_assigned_to;
-		
-		/**
-		 * Assignee type
-		 * 
-		 * @var TBGIdentifiable
-		 */
-		protected $_assigned_type;
 		
 		/**
 		 * The resolution
 		 * 
 		 * @var TBGResolution
-		 * @Class TBGResolution
+		 * @Column(type="integer", length=10)
+		 * @Relates(class="TBGResolution")
 		 */
 		protected $_resolution;
 		
@@ -198,6 +213,7 @@
 		 * The issues' state (open or closed)
 		 * 
 		 * @var integer
+		 * @Column(type="integer", length=2)
 		 */
 		protected $_state = self::STATE_OPEN;
 		
@@ -205,7 +221,8 @@
 		 * The category
 		 * 
 		 * @var TBGCategory
-		 * @Class TBGCategory
+		 * @Column(type="integer", length=10)
+		 * @Relates(class="TBGCategory")
 		 */
 		protected $_category;
 		
@@ -213,7 +230,8 @@
 		 * The status
 		 * 
 		 * @var TBGStatus
-		 * @Class TBGStatus
+		 * @Column(type="integer", length=10)
+		 * @Relates(class="TBGStatus")
 		 */
 		protected $_status;
 		
@@ -221,7 +239,8 @@
 		 * The prioroty
 		 * 
 		 * @var TBGPriority
-		 * @Class TBGPriority
+		 * @Column(type="integer", length=10)
+		 * @Relates(class="TBGPriority")
 		 */
 		protected $_priority;
 		
@@ -229,7 +248,8 @@
 		 * The reproducability
 		 * 
 		 * @var TBGReproducability
-		 * @Class TBGReproducability
+		 * @Column(type="integer", length=10)
+		 * @Relates(class="TBGReproducability")
 		 */
 		protected $_reproducability;
 		
@@ -237,7 +257,8 @@
 		 * The severity
 		 * 
 		 * @var TBGSeverity
-		 * @Class TBGSeverity
+		 * @Column(type="integer", length=10)
+		 * @Relates(class="TBGSeverity")
 		 */
 		protected $_severity;
 
@@ -245,6 +266,7 @@
 		 * The scrum color
 		 *
 		 * @var string
+		 * @Column(type="string", length=7, default_value="#FFFFFF")
 		 */
 		protected $_scrumcolor;
 
@@ -252,6 +274,7 @@
 		 * The estimated time (months) to fix this issue
 		 * 
 		 * @var integer
+		 * @Column(type="integer", length=10)
 		 */
 		protected $_estimated_months;
 
@@ -259,6 +282,7 @@
 		 * The estimated time (weeks) to fix this issue
 		 * 
 		 * @var integer
+		 * @Column(type="integer", length=10)
 		 */
 		protected $_estimated_weeks;
 
@@ -266,6 +290,7 @@
 		 * The estimated time (days) to fix this issue
 		 * 
 		 * @var integer
+		 * @Column(type="integer", length=10)
 		 */
 		protected $_estimated_days;
 
@@ -273,6 +298,7 @@
 		 * The estimated time (hours) to fix this issue
 		 * 
 		 * @var integer
+		 * @Column(type="integer", length=10)
 		 */
 		protected $_estimated_hours;
 
@@ -280,6 +306,7 @@
 		 * The estimated time (points) to fix this issue
 		 * 
 		 * @var integer
+		 * @Column(type="integer", length=10)
 		 */
 		protected $_estimated_points;
 
@@ -287,6 +314,7 @@
 		 * The time spent (months) to fix this issue
 		 * 
 		 * @var integer
+		 * @Column(type="integer", length=10)
 		 */
 		protected $_spent_months;
 
@@ -294,6 +322,7 @@
 		 * The time spent (weeks) to fix this issue
 		 * 
 		 * @var integer
+		 * @Column(type="integer", length=10)
 		 */
 		protected $_spent_weeks;
 
@@ -301,6 +330,7 @@
 		 * The time spent (days) to fix this issue
 		 * 
 		 * @var integer
+		 * @Column(type="integer", length=10)
 		 */
 		protected $_spent_days;
 
@@ -308,6 +338,7 @@
 		 * The time spent (hours) to fix this issue
 		 * 
 		 * @var integer
+		 * @Column(type="integer", length=10)
 		 */
 		protected $_spent_hours;
 
@@ -315,6 +346,7 @@
 		 * The time spent (points) to fix this issue
 		 * 
 		 * @var integer
+		 * @Column(type="integer", length=10)
 		 */
 		protected $_spent_points;
 		
@@ -322,6 +354,7 @@
 		 * How far along the issus is
 		 * 
 		 * @var integer
+		 * @Column(type="integer", length=2)
 		 */
 		protected $_percent_complete;
 		
@@ -329,7 +362,8 @@
 		 * Which user is currently working on this issue
 		 * 
 		 * @var TBGUser
-		 * @Class TBGUser
+		 * @Column(type="integer", length=10)
+		 * @Relates(class="TBGUser")
 		 */
 		protected $_being_worked_on_by_user;
 		
@@ -337,6 +371,8 @@
 		 * When the last user started working on the issue
 		 * 
 		 * @var integer
+		 * @Column(type="integer", length=10)
+		 * @Relates(class="TBGUser")
 		 */
 		protected $_being_worked_on_by_user_since;
 		
@@ -358,6 +394,7 @@
 		 * Whether the issue is deleted
 		 * 
 		 * @var boolean
+		 * @Column(type="boolean")
 		 */
 		protected $_deleted = false;
 		
@@ -365,6 +402,7 @@
 		 * Whether the issue is blocking the next release
 		 * 
 		 * @var boolean
+		 * @Column(type="boolean")
 		 */
 		protected $_blocking = false;
 
@@ -379,6 +417,7 @@
 		 * Sum of votes for this issue
 		 *
 		 * @var integer
+		 * @Column(type="integer", length=10)
 		 */
 		protected $_votes_total = null;
 		
@@ -386,7 +425,8 @@
 		 * The issue this issue is a duplicate of
 		 * 
 		 * @var TBGIssue
-		 * @Class TBGIssue
+		 * @Column(type="integer", length=10)
+		 * @Relates(class="TBGIssue")
 		 */
 		protected $_duplicate_of;
 		
@@ -394,7 +434,8 @@
 		 * The milestone this issue is assigned to
 		 * 
 		 * @var TBGMilestone
-		 * @Class TBGMilestone
+		 * @Column(type="integer", length=10)
+		 * @Relates(class="TBGMilestone")
 		 */
 		protected $_milestone;
 		
@@ -430,6 +471,7 @@
 		 * Whether the issue is locked for changes
 		 *
 		 * @var boolean
+		 * @Column(type="boolean")
 		 */
 		protected $_locked;
 
@@ -437,14 +479,16 @@
 		 * The issues current step in the associated workflow
 		 *
 		 * @var TBGWorkflowStep
-		 * @Class TBGWorkflowStep
+		 * @Column(type="integer", length=10)
+		 * @Relates(class="TBGWorkflowStep")
 		 */
 		protected $_workflow_step_id;
 
 		/**
-		 * An array of TBGComment s
+		 * An array of TBGComments
 		 * 
 		 * @var array
+		 * @Relates(class="TBGComment", collection=true, foreign_column="target_id")
 		 */
 		protected $_comments;
 
@@ -550,20 +594,6 @@
 		}
 		
 		/**
-		 * Creates a new issue and returns it
-		 *
-		 * @param string $title The title
-		 * @param integer $issuetype The issue type
-		 * @param integer $p_id The Project ID for the issue
-		 * @param integer $issue_id[optional] specific issue_id
-		 * 
-		 * @return TBGIssue
-		 */
-		public static function createNew($title, $issuetype, $p_id, $issue_id = null, $notify = true)
-		{
-		}
-
-		/**
 		 * Returns a TBGIssue from an issue no
 		 *
 		 * @param string $issue_no An integer or issue number
@@ -586,14 +616,14 @@
 				{
 					if (!$project instanceof TBGProject) return null;
 					if ($project->usePrefix()) return null;
-					if ($row = TBGIssuesTable::getTable()->getByProjectIDAndIssueNo($project->getID(), (integer) $issue_no))
-					{
-						$theIssue = TBGContext::factory()->TBGIssue($row->get(TBGIssuesTable::ID), $row);
-					}
+					$theIssue = TBGIssuesTable::getTable()->getByProjectIDAndIssueNo($project->getID(), (integer) $issue_no);
+//					{
+//						$theIssue = TBGContext::factory()->TBGIssue($row->get(TBGIssuesTable::ID), $row);
+//					}
 				}
 				catch (Exception $e)
 				{
-					return null;
+					throw $e;
 				}
 			}
 			else
@@ -703,18 +733,18 @@
 				TBGLogging::log('done checking, allowed since this user posted it');
 				return true;
 			}
-			if ($this->getOwnerType() == TBGIdentifiableClass::TYPE_USER && $this->getOwnerID() == TBGContext::getUser()->getID())
+			if ($this->getOwner() instanceof TBGUser && $this->getOwner()->getID() == TBGContext::getUser()->getID())
 			{
 				TBGLogging::log('done checking, allowed since this user owns it');
 				return true;
 			}
-			if ($this->getAssigneeType() == TBGIdentifiableClass::TYPE_USER && $this->getAssigneeID() == TBGContext::getUser()->getID())
+			if ($this->getAssignee() instanceof TBGUser && $this->getAssignee()->getID() == TBGContext::getUser()->getID())
 			{
 				TBGLogging::log('done checking, allowed since this user is assigned to it');
 				return true;
 			}
 			if (TBGContext::getUser()->hasPermission('canseegroupissues', 0, 'core', true, true) &&
-				$this->getPostedByType() == TBGIdentifiableClass::TYPE_USER && 
+				$this->getPostedBy() instanceof TBGUser &&
 				$this->getPostedBy()->getGroupID() == TBGContext::getUser()->getGroupID())
 			{
 				TBGLogging::log('done checking, allowed since this user is in same group as user that posted it');
@@ -746,7 +776,7 @@
 		 */
 		public function getProject()
 		{
-			return $this->_getPopulatedObjectFromProperty('_project_id');
+			return $this->_b2dbLazyload('_project_id');
 		}
 		
 		/**
@@ -767,11 +797,12 @@
 		 */
 		public function getWorkflowStep()
 		{
-			if (is_numeric($this->_workflow_step_id))
-			{
-				$this->_workflow_step_id = TBGContext::factory()->TBGWorkflowStep($this->_workflow_step_id);
-			}
-			return $this->_workflow_step_id;
+			return $this->_b2dbLazyload('_workflow_step_id');
+		}
+
+		public function getWorkflow()
+		{
+			return $this->getProject()->getWorkflowScheme()->getWorkflowForIssuetype($this->getIssueType());
 		}
 		
 		public function setWorkflowStep(TBGWorkflowStep $step)
@@ -781,7 +812,7 @@
 		
 		public function getAvailableWorkflowTransitions()
 		{
-			return $this->getWorkflowStep()->getAvailableTransitionsForIssue($this);
+			return ($this->getWorkflowStep() instanceof TBGWorkflowStep) ? $this->getWorkflowStep()->getAvailableTransitionsForIssue($this) : array();
 		}
 
 		/**
@@ -957,7 +988,7 @@
 				}
 			}
 			return $this->_duplicate_of;*/
-			return $this->_getPopulatedObjectFromProperty('_duplicate_of');
+			return $this->_b2dbLazyload('_duplicate_of');
 		}
 		
 		/**
@@ -972,53 +1003,38 @@
 		}
 		
 		/**
-		 * Return or set whether the issue is locked
-		 * 
-		 * @param boolean $val[optional]
-		 * 
+		 * Returns whether or not this item is locked
+		 *
 		 * @return boolean
+		 * @access public
 		 */
-		public function isLocked($val = null)
+		public function isLocked()
 		{
-			if ($val !== null)
-			{
-				$this->setLocked($val);
-			}
-			return (bool) $this->_locked;
+			return $this->_locked;
 		}
-		
+
+		/**
+		 * Specify whether or not this item is locked
+		 *
+		 * @param boolean $locked[optional]
+		 */
+		public function setLocked($locked = true)
+		{
+			$this->_locked = (bool) $locked;
+		}
+
 		public function isEditable()
 		{
 			if ($this->getProject()->isArchived()): return false; endif;
-			return ($this->isOpen() && ($this->getProject()->canChangeIssuesWithoutWorkingOnThem() || $this->getWorkflowStep()->isEditable()));
+			return ($this->isOpen() && ($this->getProject()->canChangeIssuesWithoutWorkingOnThem() || ($this->getWorkflowStep() instanceof TBGWorkflowStep && $this->getWorkflowStep()->isEditable())));
 		}
 		
 		public function isUpdateable()
 		{
 			if ($this->getProject()->isArchived()): return false; endif;
-			return ($this->isOpen() && ($this->getProject()->canChangeIssuesWithoutWorkingOnThem() || !$this->getWorkflowStep()->isClosed()));
+			return ($this->isOpen() && ($this->getProject()->canChangeIssuesWithoutWorkingOnThem() || !($this->getWorkflowStep() instanceof TBGWorkflowStep) || !$this->getWorkflowStep()->isClosed()));
 		}
 		
-		/**
-		 * Set whether the issue is locked
-		 * 
-		 * @param boolean $val[optional]
-		 */
-		public function setLocked($val = true)
-		{
-			$this->_locked = $val;
-		}
-		
-		/**
-		 * Set whether the issue is unlocked
-		 * 
-		 * @param boolean $val[optional]
-		 */
-		public function setUnlocked($val = true)
-		{
-			$this->_locked = !$val;
-		}
-
 		/**
 		 * Perform a permission check based on a key, and whether or not to
 		 * check for the equivalent "*own" permission if the issue is posted
@@ -1073,7 +1089,7 @@
 		public function isInvolved()
 		{
 			$user_id = TBGContext::getUser()->getID();
-			return (bool) ($this->getPostedByID() == $user_id || ($this->isAssigned() && $this->getAssignee()->getID() == $user_id && $this->getAssignee()->getType() == TBGIdentifiableClass::TYPE_USER) || ($this->isOwned() && $this->getOwner()->getID() == $user_id && $this->getOwner()->getType() == TBGIdentifiableClass::TYPE_USER));
+			return (bool) ($this->getPostedByID() == $user_id || ($this->isAssigned() && $this->getAssignee()->getID() == $user_id && $this->getAssignee() instanceof TBGUser) || ($this->isOwned() && $this->getOwner()->getID() == $user_id && $this->getOwner() instanceof TBGUser));
 		}
 		
 		/**
@@ -1141,7 +1157,7 @@
 		 *
 		 * @return boolean
 		 */
-		public function canEditAssignedTo()
+		public function canEditAssignee()
 		{
 			return (bool) ($this->_permissionCheck('caneditissueassigned_to') || $this->_permissionCheck('caneditissue', true));
 		}
@@ -1151,7 +1167,7 @@
 		 *
 		 * @return boolean
 		 */
-		public function canEditOwnedBy()
+		public function canEditOwner()
 		{
 			return (bool) ($this->_permissionCheck('caneditissueowned_by') || $this->_permissionCheck('caneditissue', true));
 		}
@@ -1396,7 +1412,14 @@
 		 */
 		public function getFormattedIssueNo($link_formatted = false, $include_issuetype = false)
 		{
-			$issuetype_description = ($this->getIssueType() instanceof TBGIssuetype && $include_issuetype) ? $this->getIssueType()->getName().' ' : '';
+			try
+			{
+				$issuetype_description = ($this->getIssueType() instanceof TBGIssuetype && $include_issuetype) ? $this->getIssueType()->getName().' ' : '';
+			}
+			catch (Exception $e)
+			{
+				$issuetype_description = TBGContext::getI18n()->__('Unknown issuetype') . ' ';
+			}
 
 			if ($this->getProject()->usePrefix())
 			{
@@ -1416,19 +1439,19 @@
 		 */
 		public function getIssueType()
 		{
-			/*if (is_numeric($this->_issuetype))
+			return $this->_b2dbLazyload('_issuetype');
+		}
+
+		public function hasIssueType()
+		{
+			try
 			{
-				try
-				{
-					$this->_issuetype = TBGContext::factory()->TBGIssuetype($this->_issuetype);
-				}
-				catch (Exception $e) 
-				{
-					$this->_issuetype = null;
-				}
+				return ($this->getIssueType() instanceof TBGIssuetype);
 			}
-			return $this->_issuetype;*/
-			return $this->_getPopulatedObjectFromProperty('_issuetype');
+			catch (Exception $e)
+			{
+				return false;
+			}
 		}
 		
 		/**
@@ -1469,7 +1492,7 @@
 		 */
 		public function getStatus()
 		{
-			return $this->_getPopulatedObjectFromProperty('_status');
+			return $this->_b2dbLazyload('_status');
 		}
 	
 		/**
@@ -1721,7 +1744,12 @@
 		{
 			$this->_populateRelatedIssues();
 			return $this->_parent_issues;
-		} 
+		}
+
+		public function isChildIssue()
+		{
+			return (bool) count($this->getParentIssues());
+		}
 
 		/**
 		 * Return related issues
@@ -1962,7 +1990,7 @@
 		 */
 		public function getCategory()
 		{
-			return $this->_getPopulatedObjectFromProperty('_category');
+			return $this->_b2dbLazyload('_category');
 		}
 		
 		/**
@@ -2143,7 +2171,7 @@
 				}
 			}
 			return $this->_milestone;*/
-			return $this->_getPopulatedObjectFromProperty('_milestone');
+			return $this->_b2dbLazyload('_milestone');
 		}
 		
 		/**
@@ -2280,179 +2308,6 @@
 		}
 
 		/**
-		 * Return the assignee
-		 *
-		 * @return TBGIdentifiableClass
-		 */
-		public function getAssignee()
-		{
-			if (is_numeric($this->_assigned_to))
-			{
-				try
-				{
-					if ($this->_assigned_type == TBGIdentifiableClass::TYPE_USER)
-					{
-						$this->_assigned_to = TBGContext::factory()->TBGUser($this->_assigned_to);
-					}
-					elseif ($this->_assigned_type == TBGIdentifiableClass::TYPE_TEAM)
-					{
-						$this->_assigned_to = TBGContext::factory()->TBGTeam($this->_assigned_to);
-					}
-				}
-				catch (Exception $e)
-				{
-					$this->_assigned_to = null;
-					$this->_assigned_type = null;
-				}
-			}
-	
-			return $this->_assigned_to;
-		}
-		
-		/**
-		 * Whether or not the issue is assigned to someone
-		 *
-		 * @return boolean
-		 */
-		public function isAssigned()
-		{
-			return (bool) ($this->getAssignee() instanceof TBGIdentifiableClass);
-		}
-		
-		/**
-		 * Returns the assignee type
-		 *
-		 * @return integer
-		 */
-		public function getAssigneeType()
-		{
-			$assignee = $this->getAssignee();
-			return ($assignee instanceof TBGIdentifiableClass) ? $assignee->getType() : null;
-		}
-		
-		/**
-		 * Return the assignee id
-		 *
-		 * @return integer
-		 */
-		public function getAssigneeID()
-		{
-			$assignee = $this->getAssignee();
-			return ($assignee instanceof TBGIdentifiableClass) ? $assignee->getID() : null;
-		}
-		
-		/**
-		 * Assign the issue
-		 * 
-		 * @param TBGIdentifiableClass $assignee The user/team you want to assign it to
-		 */
-		public function setAssignee(TBGIdentifiableClass $assignee)
-		{
-			$this->_addChangedProperty('_assigned_to', $assignee->getID());
-			$this->_addChangedProperty('_assigned_type', $assignee->getType());
-			if ($assignee->getType() == TBGIdentifiableClass::TYPE_USER)
-			{
-				$this->startWorkingOnIssue($assignee);
-			}
-		}
-		
-		/**
-		 * Set issue assignee to noone
-		 */
-		public function unsetAssignee()
-		{
-			if ($this->isBeingWorkedOn() && $this->getAssigneeType() == TBGIdentifiableClass::TYPE_USER && $this->getUserWorkingOnIssue()->getID() == $this->getAssignee()->getID())
-			{
-				$this->stopWorkingOnIssue();
-			}
-			
-			$this->_addChangedProperty('_assigned_to', 0);
-			$this->_addChangedProperty('_assigned_type', 0);
-		}
-		
-		/**
-		 * Return the owner
-		 *
-		 * @return TBGIdentifiableClass
-		 */
-		public function getOwner()
-		{
-			if (is_numeric($this->_owner))
-			{
-				try
-				{
-					if ($this->_owner_type == TBGIdentifiableClass::TYPE_USER)
-					{
-						$this->_owner = TBGContext::factory()->TBGUser($this->_owner);
-					}
-					elseif ($this->_owner_type == TBGIdentifiableClass::TYPE_TEAM)
-					{
-						$this->_owner = TBGContext::factory()->TBGTeam($this->_owner);
-					}
-				}
-				catch (Exception $e)
-				{
-					$this->_owner = null;
-					$this->_owner_type = null;
-				}
-			}
-	
-			return $this->_owner;
-		}
-		
-		/**
-		 * Whether or not the issue is owned by someone
-		 *
-		 * @return boolean
-		 */
-		public function isOwned()
-		{
-			return (bool) ($this->getOwner() instanceof TBGIdentifiableClass);
-		}
-		
-		/**
-		 * Returns the owner type
-		 *
-		 * @return integer
-		 */
-		public function getOwnerType()
-		{
-			$owner = $this->getOwner();
-			return ($owner instanceof TBGIdentifiableClass) ? $owner->getType() : null;
-		}
-		
-		/**
-		 * Return the owner id
-		 *
-		 * @return integer
-		 */
-		public function getOwnerID()
-		{
-			$owner = $this->getOwner();
-			return ($owner instanceof TBGIdentifiableClass) ? $owner->getID() : null;
-		}
-		
-		/**
-		 * Set issue owner
-		 * 
-		 * @param TBGIdentifiableClass $owner The user/team you want to own the issue
-		 */
-		public function setOwner(TBGIdentifiableClass $owner)
-		{
-			$this->_addChangedProperty('_owner', $owner->getID());
-			$this->_addChangedProperty('_owner_type', $owner->getType());
-		}
-		
-		/**
-		 * Set issue owner to noone
-		 */
-		public function unsetOwner()
-		{
-			$this->_addChangedProperty('_owner', 0);
-			$this->_addChangedProperty('_owner_type', 0);
-		}
-		
-		/**
 		 * Return the poster
 		 *
 		 * @return TBGUser
@@ -2492,7 +2347,7 @@
                 public function getPostedByType()
                 {
                         $poster = $this->getPostedBy();
-                        return ($poster instanceof TBGIdentifiableClass) ? $poster->getType() : null;
+                        return ($poster instanceof TBGIdentifiableTypeClass) ? $poster->getType() : null;
                 }
 		
 		/**
@@ -2543,7 +2398,7 @@
 		 */
 		public function getResolution()
 		{
-			return $this->_getPopulatedObjectFromProperty('_resolution');
+			return $this->_b2dbLazyload('_resolution');
 		}
 		
 		/**
@@ -2563,7 +2418,7 @@
 		 */
 		public function getSeverity()
 		{
-			return $this->_getPopulatedObjectFromProperty('_severity');
+			return $this->_b2dbLazyload('_severity');
 		}
 
 		/**
@@ -2820,9 +2675,9 @@
 		 * 
 		 * @return boolean
 		 */
-		public function isOwnedByChanged()
+		public function isOwnerUserChanged()
 		{
-			return (bool) ($this->isOwnedTypeChanged() || $this->_isPropertyChanged('_owner'));
+			return $this->_isPropertyChanged('_owner_user');
 		}
 
 		/**
@@ -2830,18 +2685,63 @@
 		 * 
 		 * @return boolean
 		 */
-		public function isOwnedByMerged()
+		public function isOwnerUserMerged()
 		{
-			return (bool) ($this->isOwnedTypeMerged() || $this->_isPropertyMerged('_owner'));
+			return $this->_isPropertyMerged('_owner_user');
 		}
 		
 		/**
 		 * Reverts estimated time
 		 */
-		public function revertOwnedBy()
+		public function revertOwnerUser()
 		{
-			$this->revertOwnedType();
-			$this->_revertPropertyChange('_owner');
+			$this->_revertPropertyChange('_owner_user');
+		}
+
+		/**
+		 * Check to see whether the owner is changed
+		 *
+		 * @return boolean
+		 */
+		public function isOwnerTeamChanged()
+		{
+			return $this->_isPropertyChanged('_owner_team');
+		}
+
+		/**
+		 * Check to see whether the owner is merged
+		 *
+		 * @return boolean
+		 */
+		public function isOwnerTeamMerged()
+		{
+			return $this->_isPropertyMerged('_owner_team');
+		}
+
+		/**
+		 * Reverts estimated time
+		 */
+		public function revertOwnerTeam()
+		{
+			$this->_revertPropertyChange('_owner_team');
+		}
+
+		public function isOwnerChanged()
+		{
+			return (bool) $this->isOwnerTeamChanged() || $this->isOwnerUserChanged();
+		}
+
+		public function isOwned()
+		{
+			return (bool) ($this->getOwner() instanceof TBGIdentifiable);
+		}
+
+		public function revertOwner()
+		{
+			if ($this->isOwnerTeamChanged())
+				$this->revertOwnerTeam();
+			else
+				$this->revertOwnerUser();
 		}
 
 		/**
@@ -2849,9 +2749,9 @@
 		 * 
 		 * @return boolean
 		 */
-		public function isAssignedToChanged()
+		public function isAssigneeUserChanged()
 		{
-			return (bool) ($this->isAssignedTypeChanged() || $this->_isPropertyChanged('_assigned_to'));
+			return $this->_isPropertyChanged('_assignee_user');
 		}
 
 		/**
@@ -2859,18 +2759,63 @@
 		 * 
 		 * @return boolean
 		 */
-		public function isAssignedToMerged()
+		public function isAssigneeUserMerged()
 		{
-			return (bool) ($this->isAssignedTypeMerged() || $this->_isPropertyMerged('_assigned_to'));
+			return $this->_isPropertyMerged('_assignee_user');
 		}
 		
 		/**
 		 * Reverts estimated time
 		 */
-		public function revertAssignedTo()
+		public function revertAssigneeUser()
 		{
-			$this->revertAssignedType();
-			$this->_revertPropertyChange('_assigned_to');
+			$this->_revertPropertyChange('_assignee_user');
+		}
+
+		/**
+		 * Check to see whether the assignee is changed
+		 *
+		 * @return boolean
+		 */
+		public function isAssigneeTeamChanged()
+		{
+			return $this->_isPropertyChanged('_assignee_team');
+		}
+
+		/**
+		 * Check to see whether the owner is merged
+		 *
+		 * @return boolean
+		 */
+		public function isAssigneeTeamMerged()
+		{
+			return $this->_isPropertyMerged('_assignee_team');
+		}
+
+		public function isAssigneeChanged()
+		{
+			return (bool) $this->isAssigneeTeamChanged() || $this->isAssigneeUserChanged();
+		}
+
+		public function isAssigned()
+		{
+			return (bool) ($this->getAssignee() instanceof TBGIdentifiable);
+		}
+
+		/**
+		 * Reverts estimated time
+		 */
+		public function revertAssigneeTeam()
+		{
+			$this->_revertPropertyChange('_assignee_team');
+		}
+
+		public function revertAssignee()
+		{
+			if ($this->isAssigneeTeamChanged())
+				$this->revertAssigneeTeam();
+			else
+				$this->revertAssigneeUser();
 		}
 
 		/**
@@ -3573,7 +3518,7 @@
 			{
 				$comment->save();
 			}
-			TBGEvent::createNew('core', 'TBGComment::createNew', $this, array('comment' => $comment))->trigger();
+			TBGEvent::createNew('core', 'TBGIssue::addSystemComment', $this, array('comment' => $comment))->trigger();
 			return $comment;
 		}
 	
@@ -3751,15 +3696,16 @@
 		{
 			if ($this->_comments === null)
 			{
-				$this->_comments = TBGComment::getComments($this->getID(), TBGComment::TYPE_ISSUE);
-				$this->_num_comments = count($this->_comments);
-				$sc = 0;
-				foreach ($this->_comments as $comment)
-				{
-					if ($comment->isSystemComment())
-						$sc++;
-				}
-				$this->_num_user_comments = $sc;
+//				$this->_comments = TBGComment::getComments($this->getID(), TBGComment::TYPE_ISSUE);
+//				$this->_num_comments = count($this->_comments);
+//				$sc = 0;
+//				foreach ($this->_comments as $comment)
+//				{
+//					if ($comment->isSystemComment())
+//						$sc++;
+//				}
+//				$this->_num_user_comments = $sc;
+				$this->_b2dbLazyload('_comments');
 			}
 		}
 		
@@ -3773,13 +3719,9 @@
 			if ($this->_num_comments === null)
 			{
 				if ($this->_comments !== null)
-				{
-					$this->_num_comments = count($this->getComments());
-				}
+					$this->_num_comments = count($this->_comments);
 				else
-				{
-					$this->_num_comments = TBGComment::countComments($this->getID(), TBGComment::TYPE_ISSUE);
-				}
+					$this->_num_comments = $this->_b2dbLazycount('_comments');
 			}
 
 			return $this->_num_comments;
@@ -3814,8 +3756,16 @@
 		 */
 		public function isFieldVisible($fieldname)
 		{
-			$fields_array = $this->getProject()->getVisibleFieldsArray($this->getIssueType()->getID());
-			return array_key_exists($fieldname, $fields_array);
+			if (!$this->hasIssueType()) return false;
+			try
+			{
+				$fields_array = $this->getProject()->getVisibleFieldsArray($this->getIssueType()->getID());
+				return array_key_exists($fieldname, $fields_array);
+			}
+			catch (Exception $e)
+			{
+				return false;
+			}
 		}
 
 		/**
@@ -4079,8 +4029,9 @@
 		 * 
 		 * @return boolean
 		 */
-		public function _preSave($is_new)
+		protected function _preSave($is_new)
 		{
+			parent::_preSave($is_new);
 			if ($is_new)
 			{
 				if (!$this->_issue_no)
@@ -4235,20 +4186,20 @@
 								if ($value['original_value'] != 0)
 								{
 									$old_identifiable = null;
-									if ($this->getChangedPropertyOriginal('_assigned_type') == TBGIdentifiableClass::TYPE_USER)
+									if ($this->getChangedPropertyOriginal('_assigned_type') == TBGIdentifiableTypeClass::TYPE_USER)
 										$old_identifiable = TBGContext::factory()->TBGUser($value['original_value']);
-									elseif ($this->getChangedPropertyOriginal('_assigned_type') == TBGIdentifiableClass::TYPE_TEAM)
+									elseif ($this->getChangedPropertyOriginal('_assigned_type') == TBGIdentifiableTypeClass::TYPE_TEAM)
 										$old_identifiable = TBGContext::factory()->TBGTeam($value['original_value']);
-									$old_name = ($old_identifiable instanceof TBGIdentifiableClass) ? $old_identifiable->getName() : TBGContext::getI18n()->__('Unknown');
+									$old_name = ($old_identifiable instanceof TBGIdentifiableTypeClass) ? $old_identifiable->getName() : TBGContext::getI18n()->__('Unknown');
 								}
 								else
 								{
 									$old_name = TBGContext::getI18n()->__('Not assigned');
 								}
-								$new_name = ($this->getAssignee() instanceof TBGIdentifiableClass) ? $this->getAssignee()->getName() : TBGContext::getI18n()->__('Not assigned');
+								$new_name = ($this->getAssignee() instanceof TBGIdentifiableTypeClass) ? $this->getAssignee()->getName() : TBGContext::getI18n()->__('Not assigned');
 								
 								
-								if ($this->getAssigneeType() == TBGIdentifiableClass::TYPE_USER)
+								if ($this->getAssignee() instanceof TBGUser)
 								{
 									$this->startWorkingOnIssue($this->getAssignee());
 								}
@@ -4260,7 +4211,7 @@
 							break;
 						case '_posted_by':
 							$old_identifiable = ($value['original_value']) ? TBGContext::factory()->TBGUser($value['original_value']) : TBGContext::getI18n()->__('Unknown');
-							$old_name = ($old_identifiable instanceof TBGIdentifiableClass) ? $old_identifiable->getName() : TBGContext::getI18n()->__('Unknown');
+							$old_name = ($old_identifiable instanceof TBGIdentifiableTypeClass) ? $old_identifiable->getName() : TBGContext::getI18n()->__('Unknown');
 							$new_name = $this->getPostedBy()->getName();
 							
 							$this->addLogEntry(TBGLogTable::LOG_ISSUE_POSTED, $old_name . ' &rArr; ' . $new_name);
@@ -4270,13 +4221,13 @@
 							if ($value['original_value'] != 0)
 							{
 								$old_identifiable = TBGContext::factory()->TBGUser($value['original_value']);
-								$old_name = ($old_identifiable instanceof TBGIdentifiableClass) ? $old_identifiable->getName() : TBGContext::getI18n()->__('Unknown');
+								$old_name = ($old_identifiable instanceof TBGIdentifiableTypeClass) ? $old_identifiable->getName() : TBGContext::getI18n()->__('Unknown');
 							}
 							else
 							{
 								$old_name = TBGContext::getI18n()->__('Not being worked on');
 							}
-							$new_name = ($this->getUserWorkingOnIssue() instanceof TBGIdentifiableClass) ? $this->getUserWorkingOnIssue()->getName() : TBGContext::getI18n()->__('Not being worked on');
+							$new_name = ($this->getUserWorkingOnIssue() instanceof TBGIdentifiableTypeClass) ? $this->getUserWorkingOnIssue()->getName() : TBGContext::getI18n()->__('Not being worked on');
 
 							$this->addLogEntry(TBGLogTable::LOG_ISSUE_USERS, $old_name . ' &rArr; ' . $new_name);
 							$comment_lines[] = TBGContext::getI18n()->__("Information about the user working on this issue has been changed, from '''%previous_name%''' to '''%new_name%'''.", array('%previous_name%' => $old_name, '%new_name%' => $new_name));
@@ -4288,17 +4239,17 @@
 								if ($value['original_value'] != 0)
 								{
 									$old_identifiable = null;
-									if ($this->getChangedPropertyOriginal('_owner_type') == TBGIdentifiableClass::TYPE_USER)
+									if ($this->getChangedPropertyOriginal('_owner_type') == TBGIdentifiableTypeClass::TYPE_USER)
 										$old_identifiable = TBGContext::factory()->TBGUser($value['original_value']);
-									elseif ($this->getChangedPropertyOriginal('_owner_type') == TBGIdentifiableClass::TYPE_TEAM)
+									elseif ($this->getChangedPropertyOriginal('_owner_type') == TBGIdentifiableTypeClass::TYPE_TEAM)
 										$old_identifiable = TBGContext::factory()->TBGTeam($value['original_value']);
-									$old_name = ($old_identifiable instanceof TBGIdentifiableClass) ? $old_identifiable->getName() : TBGContext::getI18n()->__('Unknown');
+									$old_name = ($old_identifiable instanceof TBGIdentifiableTypeClass) ? $old_identifiable->getName() : TBGContext::getI18n()->__('Unknown');
 								}
 								else
 								{
 									$old_name = TBGContext::getI18n()->__('Not owned by anyone');
 								}
-								$new_name = ($this->getOwner() instanceof TBGIdentifiableClass) ? $this->getOwner()->getName() : TBGContext::getI18n()->__('Not owned by anyone');
+								$new_name = ($this->getOwner() instanceof TBGIdentifiableTypeClass) ? $this->getOwner()->getName() : TBGContext::getI18n()->__('Not owned by anyone');
 								
 								$this->addLogEntry(TBGLogTable::LOG_ISSUE_OWNED, $old_name . ' &rArr; ' . $new_name);
 								$comment_lines[] = TBGContext::getI18n()->__("The owner has been changed, from '''%previous_name%''' to '''%new_name%'''.", array('%previous_name%' => $old_name, '%new_name%' => $new_name));
@@ -4549,12 +4500,12 @@
 
 			if ($is_saved_estimated)
 			{
-				\b2db\Core::getTable('TBGIssueEstimates')->saveEstimate($this->getID(), $this->_estimated_months, $this->_estimated_weeks, $this->_estimated_days, $this->_estimated_hours, $this->_estimated_points);
+				TBGIssueEstimates::getTable()->saveEstimate($this->getID(), $this->_estimated_months, $this->_estimated_weeks, $this->_estimated_days, $this->_estimated_hours, $this->_estimated_points);
 			}
 
 			if ($is_saved_spent)
 			{
-				\b2db\Core::getTable('TBGIssueSpentTimes')->saveSpentTime($this->getID(), $this->_spent_months, $this->_spent_weeks, $this->_spent_days, $this->_spent_hours, $this->_spent_points);
+				TBGIssueSpentTimes::getTable()->saveSpentTime($this->getID(), $this->_spent_months, $this->_spent_weeks, $this->_spent_days, $this->_spent_hours, $this->_spent_points);
 			}
 
 			$this->related_issues_to_save = $related_issues_to_save;
@@ -4625,7 +4576,7 @@
 		 */
 		public function getUserWorkingOnIssue()
 		{
-			return $this->_getPopulatedObjectFromProperty('_being_worked_on_by_user');
+			return $this->_b2dbLazyload('_being_worked_on_by_user');
 		}
 		
 		/**
@@ -4905,7 +4856,7 @@
 						break;
 				}
 				if ($identifiable)
-					$return_values[$field] = ($value instanceof TBGIdentifiableClass) ? $value->toJSON() : null;
+					$return_values[$field] = ($value instanceof TBGIdentifiableTypeClass) ? $value->toJSON() : null;
 				else
 					$return_values[$field] = $this->$method();
 
@@ -4921,6 +4872,78 @@
 			$return_values['visible_fields'] = $fields;
 
 			return $return_values;
+		}
+
+		public function getAssignee()
+		{
+			$this->_b2dbLazyload('_assignee_team');
+			$this->_b2dbLazyload('_assignee_user');
+
+			if ($this->_assignee_team instanceof TBGTeam) {
+				return $this->_assignee_team;
+			} elseif ($this->_assignee_user instanceof TBGUser) {
+				return $this->_assignee_user;
+			} else {
+				return null;
+			}
+		}
+
+		public function hasAssignee()
+		{
+			return (bool) ($this->getAssignee() instanceof TBGIdentifiable);
+		}
+
+		public function setAssignee(TBGIdentifiable $assignee)
+		{
+			if ($assignee instanceof TBGTeam) {
+				$this->_addChangedProperty('_assignee_user', null);
+				$this->_addChangedProperty('_assignee_team', $assignee->getID());
+			} else {
+				$this->_addChangedProperty('_assignee_user', $assignee->getID());
+				$this->_addChangedProperty('_assignee_team', null);
+			}
+		}
+
+		public function clearAssignee()
+		{
+			$this->_assignee_team = null;
+			$this->_assignee_user = null;
+		}
+
+		public function getOwner()
+		{
+			$this->_b2dbLazyload('_owner_team');
+			$this->_b2dbLazyload('_owner_user');
+
+			if ($this->_owner_team instanceof TBGTeam) {
+				return $this->_owner_team;
+			} elseif ($this->_owner_user instanceof TBGUser) {
+				return $this->_owner_user;
+			} else {
+				return null;
+			}
+		}
+
+		public function hasOwner()
+		{
+			return (bool) ($this->getOwner() instanceof TBGIdentifiable);
+		}
+
+		public function setOwner(TBGIdentifiable $owner)
+		{
+			if ($owner instanceof TBGTeam) {
+				$this->_addChangedProperty('_owner_user', null);
+				$this->_addChangedProperty('_owner_team', $owner);
+			} else {
+				$this->_addChangedProperty('_owner_user', $owner);
+				$this->_addChangedProperty('_owner_team', null);
+			}
+		}
+
+		public function clearOwner()
+		{
+			$this->_owner_team = null;
+			$this->_owner_user = null;
 		}
 
 	}

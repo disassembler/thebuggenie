@@ -19,6 +19,8 @@
 	 *
 	 * @package thebuggenie
 	 * @subpackage tables
+	 *
+	 * @Table(name="issuetype_scheme_link")
 	 */
 	class TBGIssuetypeSchemeLinkTable extends TBGB2DBTable
 	{
@@ -32,14 +34,19 @@
 		const REPORTABLE = 'issuetype_scheme_link.reportable';
 		const REDIRECT_AFTER_REPORTING = 'issuetype_scheme_link.redirect_after_reporting';
 
-		public function __construct()
+		public function _initialize()
 		{
-			parent::__construct(self::B2DBNAME, self::ID);
+			parent::_setup(self::B2DBNAME, self::ID);
 			parent::_addForeignKeyColumn(self::ISSUETYPE_SCHEME_ID, TBGIssuetypeSchemesTable::getTable(), TBGIssuetypeSchemesTable::ID);
 			parent::_addForeignKeyColumn(self::ISSUETYPE_ID, TBGIssueTypesTable::getTable(), TBGIssueTypesTable::ID);
 			parent::_addBoolean(self::REPORTABLE, true);
 			parent::_addBoolean(self::REDIRECT_AFTER_REPORTING, true);
 			parent::_addForeignKeyColumn(self::SCOPE, TBGScopesTable::getTable(), TBGScopesTable::ID);
+		}
+
+		public function _setupIndexes()
+		{
+			$this->_addIndex('issuetypescheme_scope', array(self::ISSUETYPE_SCHEME_ID, self::SCOPE));
 		}
 
 		public function getByIssuetypeSchemeID($issuetype_scheme_id)
@@ -121,6 +128,13 @@
 			$crit->addWhere(self::SCOPE, TBGContext::getScope()->getID());
 			$crit->addUpdate(self::REPORTABLE, $reportable);
 			$this->doUpdate($crit);
+		}
+
+		public function countByIssuetypeID($issuetype_id)
+		{
+			$crit = $this->getCriteria();
+			$crit->addWhere(self::ISSUETYPE_ID, $issuetype_id);
+			return $this->count($crit);
 		}
 
 	}

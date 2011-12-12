@@ -15,29 +15,54 @@
 	 *
 	 * @package thebuggenie
 	 * @subpackage core
+	 *
+	 * @Table(name="TBGModulesTable")
 	 */
-	abstract class TBGModule extends TBGIdentifiableClass 
+	abstract class TBGModule extends TBGIdentifiableScopedClass
 	{
 
-		static protected $_b2dbtablename = 'TBGModulesTable';
+		/**
+		 * The name of the object
+		 *
+		 * @var string
+		 * @Column(type="string", length=200)
+		 */
+		protected $_name;
+
+		/**
+		 * @var string
+		 * @Column(type="string", length=100)
+		 */
 		protected $_classname = '';
-		protected $_description = '';
+
+		/**
+		 * @var boolean
+		 * @Column(type="boolean")
+		 */
 		protected $_enabled = false;
+
+		/**
+		 * @var string
+		 * @Column(type="string", length=10)
+		 */
+		protected $_version = '';
+
 		protected $_longname = '';
-		protected $_showinconfig = false;
 		protected $_shortname = '';
+		protected $_showinconfig = false;
 		protected $_module_config_title = '';
 		protected $_module_config_description = '';
-		protected $_version = '';
+		protected $_description = '';
 		protected $_availablepermissions = array();
 		protected $_settings = array();
 		protected $_routes = array();
+
 		protected $_has_account_settings = false;
 		protected $_account_settings_name = null;
 		protected $_account_settings_logo = null;
 		protected $_has_config_settings = false;
 		
-		static protected $_permissions = array();
+		protected static $_permissions = array();
 		
 		const MODULE_NORMAL = 1;
 		const MODULE_AUTH = 2;
@@ -146,6 +171,8 @@
 
 		protected function _uninstall() { }
 
+		protected function _upgrade() { }
+
 		/**
 		 * Class constructor
 		 */
@@ -220,6 +247,14 @@
 			$this->_enabled = true;
 		}
 		
+		final public function upgrade()
+		{
+			TBGCache::delete(TBGCache::KEY_PREMODULES_ROUTES_CACHE);
+			TBGCache::delete(TBGCache::KEY_POSTMODULES_ROUTES_CACHE);
+			TBGCache::delete(TBGCache::KEY_PERMISSIONS_CACHE);
+			$this->_upgrade();
+		}
+
 		final public function uninstall($scope = null)
 		{
 			if ($this->isCore())
@@ -248,16 +283,6 @@
 			throw new Exception('Trying to call function ' . $func . '() in module ' . $this->_shortname . ', but the function does not exist');
 		}
 		
-		public function getID()
-		{
-			return $this->_id;
-		}
-		
-		public function getName()
-		{
-			return $this->_name;
-		}
-
 		public function setLongName($name)
 		{
 			$this->_longname = $name;
@@ -533,6 +558,26 @@
 		public function postAccountSettings(TBGRequest $request)
 		{
 
+		}
+
+		/**
+		 * Return the items name
+		 *
+		 * @return string
+		 */
+		public function getName()
+		{
+			return $this->_name;
+		}
+
+		/**
+		 * Set the edition name
+		 *
+		 * @param string $name
+		 */
+		public function setName($name)
+		{
+			$this->_name = $name;
 		}
 
 	}

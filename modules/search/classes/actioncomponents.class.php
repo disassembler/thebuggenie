@@ -48,8 +48,18 @@
 			$pkey = (TBGContext::isProjectContext()) ? TBGContext::getCurrentProject()->getID() : null;
 
 			$i18n = TBGContext::getI18n();
-			$this->selected_value = (isset($this->selected_value)) ? $this->selected_value : 0;
 			$this->selected_operator = (isset($this->selected_operator)) ? $this->selected_operator : '=';
+			$this->key = (isset($this->key)) ? $this->key : null;
+			$this->filter = (isset($this->filter)) ? $this->filter : null;
+			if (in_array($this->filter, array('posted', 'last_updated')))
+			{
+				$this->selected_value = ($this->selected_value) ? $this->selected_value : time();
+			}
+			else
+			{
+				$this->selected_value = (isset($this->selected_value)) ? $this->selected_value : 0;
+			}
+			$this->filter_info = (isset($this->filter_info)) ? $this->filter_info : null;
 
 			$filters = array();
 			$filters['status'] = array('description' => $i18n->__('Status'), 'options' => TBGStatus::getAll());
@@ -59,11 +69,20 @@
 			$filters['reproducability'] = array('description' => $i18n->__('Reproducability'), 'options' => TBGReproducability::getAll());
 			$filters['resolution'] = array('description' => $i18n->__('Resolution'), 'options' => TBGResolution::getAll());
 			$filters['issuetype'] = array('description' => $i18n->__('Issue type'), 'options' => TBGIssuetype::getAll());
-			$filters['component'] = array('description' => $i18n->__('Component'), 'options' => TBGComponent::getAllByProjectID($pkey));
-			$filters['build'] = array('description' => $i18n->__('Build'), 'options' => TBGBuild::getByProjectID($pkey));
-			$filters['edition'] = array('description' => $i18n->__('Edition'), 'options' => TBGEdition::getAllByProjectID($pkey));
+			if (TBGContext::isProjectContext())
+			{
+				$filters['component'] = array('description' => $i18n->__('Component'), 'options' => TBGContext::getCurrentProject()->getComponents());
+				$filters['build'] = array('description' => $i18n->__('Build'), 'options' => TBGContext::getCurrentProject()->getBuilds());
+				$filters['edition'] = array('description' => $i18n->__('Edition'), 'options' => TBGContext::getCurrentProject()->getEditions());
+			}
+			$filters['posted_by'] = array('description' => $i18n->__('Posted by'));
+			$filters['assignee_user'] = array('description' => $i18n->__('Assigned to user'));
+			$filters['assignee_team'] = array('description' => $i18n->__('Assigned to team'));
+			$filters['owner_user'] = array('description' => $i18n->__('Owned by user'));
+			$filters['owner_team'] = array('description' => $i18n->__('Owned by team'));
+			$filters['posted'] = array('description' => $i18n->__('Date reported'));
+			$filters['last_updated'] = array('description' => $i18n->__('Date last updated'));
 			$this->filters = $filters;
-
 		}
 
 		public function componentResults_normal()

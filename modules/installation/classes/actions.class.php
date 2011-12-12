@@ -257,6 +257,7 @@
 					if (($tablename = mb_substr($table_class_file, 0, mb_strpos($table_class_file, '.'))) != '') 
 					{
 						\b2db\Core::getTable($tablename)->create();
+						\b2db\Core::getTable($tablename)->createIndexes();
 						$tables_created[] = $tablename;
 					}
 				}
@@ -268,7 +269,7 @@
 			}
 			catch (Exception $e)
 			{
-				//throw $e;
+				throw $e;
 				$this->error = $e->getMessage();
 			}
 		}
@@ -371,7 +372,7 @@
 		 */
 		public function runInstallStep6(TBGRequest $request)
 		{
-			if (file_put_contents(THEBUGGENIE_PATH . 'installed', '3.0, installed ' . date('d.m.Y H:i')) === false)
+			if (file_put_contents(THEBUGGENIE_PATH . 'installed', TBGSettings::getMajorVer() . '.' . TBGSettings::getMinorVer() . ', installed ' . date('d.m.Y H:i')) === false)
 			{
 				$this->error = "Couldn't write to the main directory. Please create the file " . THEBUGGENIE_PATH . "installed manually, with the following content: \n3.0, installed " . date('d.m.Y H:i');
 			}
@@ -446,22 +447,56 @@
 		{
 			// Add classpath for existing old tables used for upgrade
 			TBGContext::addAutoloaderClassPath(THEBUGGENIE_MODULES_PATH . 'installation' . DS . 'classes' . DS . 'upgrade_3.1');
+			TBGContext::addAutoloaderClassPath(THEBUGGENIE_MODULES_PATH . 'mailing' . DS . 'classes' . DS . 'B2DB');
+			TBGContext::addAutoloaderClassPath(THEBUGGENIE_MODULES_PATH . 'mailing' . DS . 'classes');
+			TBGContext::addAutoloaderClassPath(THEBUGGENIE_MODULES_PATH . 'publish' . DS . 'classes' . DS . 'B2DB');
+			TBGContext::addAutoloaderClassPath(THEBUGGENIE_MODULES_PATH . 'publish' . DS . 'classes');
 
 			// Upgrade existing tables
 			TBGProjectsTable::getTable()->upgrade(TBGProjectsTable3dot1::getTable());
-			TBGBuildsTable::getTable()->upgrade(TBGBuildsTable3dot1::getTable());
 			TBGUsersTable::getTable()->upgrade(TBGUsersTable3dot1::getTable());
+			TBGIssuesTable::getTable()->upgrade(TBGIssuesTable3dot1::getTable());
+			TBGIssueTypesTable::getTable()->upgrade(TBGIssueTypesTable3dot1::getTable());
+			TBGListTypesTable::getTable()->upgrade(TBGListTypesTable3dot1::getTable());
+			TBGEditionsTable::getTable()->upgrade(TBGEditionsTable3dot1::getTable());
+			TBGBuildsTable::getTable()->upgrade(TBGBuildsTable3dot1::getTable());
+			TBGCommentsTable::getTable()->upgrade(TBGCommentsTable3dot1::getTable());
+			TBGComponentsTable::getTable()->upgrade(TBGComponentsTable3dot1::getTable());
+			TBGCustomFieldsTable::getTable()->upgrade(TBGCustomFieldsTable3dot1::getTable());
 			
 			// Create new tables
 			TBGDashboardViewsTable::getTable()->create();
 			TBGOpenIdAccountsTable::getTable()->create();
+			TBGProjectAssignedUsersTable::getTable()->create();
+			TBGProjectAssignedTeamsTable::getTable()->create();
+			TBGEditionAssignedUsersTable::getTable()->create();
+			TBGEditionAssignedTeamsTable::getTable()->create();
+			TBGComponentAssignedUsersTable::getTable()->create();
+			TBGComponentAssignedTeamsTable::getTable()->create();
+			TBGRolePermissionsTable::getTable()->create();
+
+			// Create new module tables
 			TBGIncomingEmailAccountTable::getTable()->create();
 			
 			// Add new indexes
+			TBGArticlesTable::getTable()->createIndexes();
 			TBGCommentsTable::getTable()->createIndexes();
+			TBGIssueAffectsBuildTable::getTable()->createIndexes();
+			TBGIssueAffectsComponentTable::getTable()->createIndexes();
+			TBGIssueAffectsEditionTable::getTable()->createIndexes();
+			TBGIssueFieldsTable::getTable()->createIndexes();
+			TBGIssueFilesTable::getTable()->createIndexes();
+			TBGIssuesTable::getTable()->createIndexes();
+			TBGIssuetypeSchemesTable::getTable()->createIndexes();
 			TBGPermissionsTable::getTable()->createIndexes();
+			TBGProjectsTable::getTable()->createIndexes();
+			TBGSettingsTable::getTable()->createIndexes();
+			TBGTeamMembersTable::getTable()->createIndexes();
+			TBGUserIssuesTable::getTable()->createIndexes();
+			TBGUsersTable::getTable()->createIndexes();
 
 			TBGSettings::saveSetting(TBGSettings::SETTING_ICONSET, TBGSettings::get(TBGSettings::SETTING_THEME_NAME));
+			TBGContext::setPermission('readarticle', 0, 'core', 0, 0, 0, true);
 			
 			foreach (TBGProject::getAll() as $project)
 			{

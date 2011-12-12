@@ -22,9 +22,9 @@
 <?php endif; ?>
 <?php if ($tbg_user->hasProjectPageAccess('project_planning', $selected_project->getID())): ?>
 	<?php echo link_tag(make_url('project_planning', array('project_key' => TBGContext::getCurrentProject()->getKey())), __('Planning'), ((in_array($tbg_response->getPage(), array('project_planning', 'project_milestone_details'))) ? array('class' => 'selected') : array())); ?>
-	<?php if (!$submenu && (count($selected_project->getAllMilestones()) > 0) && in_array($tbg_response->getPage(), array('project_planning', 'project_milestone_details'))): ?>
+	<?php if (!$submenu && (count($selected_project->getMilestones()) > 0) && in_array($tbg_response->getPage(), array('project_planning', 'project_milestone_details'))): ?>
 		<ul class="simple_list">
-			<?php foreach ($selected_project->getAllMilestones() as $milestone): ?>
+			<?php foreach ($selected_project->getMilestones() as $milestone): ?>
 				<li><?php echo link_tag(make_url('project_milestone_details', array('project_key' => $selected_project->getKey(), 'milestone_id' => $milestone->getID())), $milestone->getName()); ?></li>
 			<?php endforeach; ?>
 		</ul>
@@ -71,7 +71,7 @@
 			<li id="tab_settings"<?php if ($selected_tab == 'settings'): ?> class="selected"<?php endif; ?>><?php echo javascript_link_tag(__('Advanced settings'), array('onclick' => "TBG.Main.Helpers.tabSwitcher('tab_settings', 'project_config_menu');")); ?></li>
 			<li id="tab_hierarchy"<?php if ($selected_tab == 'hierarchy'): ?> class="selected"<?php endif; ?>><?php echo javascript_link_tag(__('Editions and components'), array('onclick' => "TBG.Main.Helpers.tabSwitcher('tab_hierarchy', 'project_config_menu');")); ?></li>
 			<li id="tab_developers"<?php if ($selected_tab == 'developers'): ?> class="selected"<?php endif; ?>><?php echo javascript_link_tag(__('Team'), array('onclick' => "TBG.Main.Helpers.tabSwitcher('tab_developers', 'project_config_menu');")); ?></li>
-			<li id="tab_permissions"<?php if ($selected_tab == 'permissions'): ?> class="selected"<?php endif; ?>><?php echo javascript_link_tag(__('permissions'), array('onclick' => "TBG.Main.Helpers.tabSwitcher('tab_permissions', 'project_config_menu');")); ?></li>
+			<li id="tab_permissions"<?php if ($selected_tab == 'permissions'): ?> class="selected"<?php endif; ?>><?php echo javascript_link_tag(__('Roles and permissions'), array('onclick' => "TBG.Main.Helpers.tabSwitcher('tab_permissions', 'project_config_menu');")); ?></li>
 			<?php TBGEvent::createNew('core', 'config_project_tabs')->trigger(array('selected_tab' => $selected_tab)); ?>
 		</ul>
 	<?php endif; ?>

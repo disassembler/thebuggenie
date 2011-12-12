@@ -10,12 +10,11 @@
 	<?php if (TBGSettings::isUploadsEnabled() && $issue->canAttachFiles()): ?>
 		<?php include_component('main/uploader', array('issue' => $issue, 'mode' => 'issue')); ?>
 	<?php endif; ?>
-	<div id="issuetype_indicator_fullpage" style="background-color: transparent; width: 100%; height: 100%; position: absolute; top: 0; left: 0; margin: 0; padding: 0; text-align: center; display: none;">
+	<div id="issuetype_indicator_fullpage" style="display: none;" class="fullpage_backdrop">
 		<div style="position: absolute; top: 45%; left: 40%; z-index: 100001; color: #FFF; font-size: 15px; font-weight: bold;">
 			<?php echo image_tag('spinning_32.gif'); ?><br>
 			<?php echo __('Please wait while updating issue type'); ?>...
 		</div>
-		<div style="background-color: #000; width: 100%; height: 100%; position: absolute; top: 0; left: 0; margin: 0; padding: 0; z-index: 100000;" class="semi_transparent"> </div>
 	</div>
 	<div style="width: auto; text-align: left; padding: 5px; margin: 0 auto 0 auto;">
 		<div id="viewissue_header_container">
@@ -37,7 +36,7 @@
 						<?php endif; ?>
 					</td>
 					<td class="title_left_images">
-						<?php echo image_tag($issue->getIssueType()->getIcon() . '_small.png', array('id' => 'issuetype_image')); ?>
+						<?php echo image_tag((($issue->hasIssueType()) ? $issue->getIssueType()->getIcon() : 'icon_unknown') . '_small.png', array('id' => 'issuetype_image')); ?>
 					</td>
 					<td style="font-size: 17px; width: auto; padding: 5px 0 10px 7px;" id="title_field">
 						<div class="viewissue_title hoverable">
@@ -47,7 +46,7 @@
 									<a class="undo" href="javascript:void(0);" onclick="TBG.Issues.Field.revert('<?php echo make_url('issue_revertfield', array('project_key' => $issue->getProject()->getKey(), 'issue_id' => $issue->getID(), 'field' => 'title')); ?>', 'title');" title="<?php echo __('Undo this change'); ?>"><?php echo image_tag('undo.png', array('class' => 'undo')); ?></a>
 									<?php echo image_tag('spinning_16.gif', array('style' => 'display: none; float: left; margin-right: 5px;', 'id' => 'title_undo_spinning')); ?>
 								<?php endif; ?>
-								<?php echo $issue->isClosed() ? mb_strtoupper(__('Closed')) : mb_strtoupper(__('Open')); ?>&nbsp;&nbsp;<b><?php echo link_tag(make_url('viewissue', array('project_key' => $issue->getProject()->getKey(), 'issue_no' => $issue->getFormattedIssueNo())), __('%issuetype% %issue_no%', array('%issuetype%' => $issue->getIssueType()->getName(), '%issue_no%' => $issue->getFormattedIssueNo(true)))); ?>&nbsp;&nbsp;-&nbsp;</b>
+								<?php echo $issue->isClosed() ? mb_strtoupper(__('Closed')) : mb_strtoupper(__('Open')); ?>&nbsp;&nbsp;<b><?php echo link_tag(make_url('viewissue', array('project_key' => $issue->getProject()->getKey(), 'issue_no' => $issue->getFormattedIssueNo())), __('%issuetype% %issue_no%', array('%issuetype%' => (($issue->hasIssueType()) ? $issue->getIssueType()->getName() : __('Unknown issuetype')), '%issue_no%' => $issue->getFormattedIssueNo(true)))); ?>&nbsp;&nbsp;-&nbsp;</b>
 							</span>
 							<span id="issue_title">
 								<span id="title_content" class="<?php if ($issue->isTitleChanged()): ?>issue_detail_changed<?php endif; ?><?php if (!$issue->isTitleMerged()): ?> issue_detail_unmerged<?php endif; ?>">
@@ -60,7 +59,7 @@
 							<?php if ($issue->isEditable() && $issue->canEditTitle()): ?>
 							<span id="title_change" style="display: none;">
 								<form id="title_form" action="<?php echo make_url('issue_setfield', array('project_key' => $issue->getProject()->getKey(), 'issue_id' => $issue->getID(), 'field' => 'title')); ?>" method="post" onSubmit="TBG.Issues.Field.set('<?php echo make_url('issue_setfield', array('project_key' => $issue->getProject()->getKey(), 'issue_id' => $issue->getID(), 'field' => 'title')) ?>', 'title'); return false;">
-									<input type="text" name="value" value="<?php echo $issue->getTitle(); ?>" /><?php echo __('%save% or %cancel%', array('%save%' => '<input type="submit" value="'.__('Save').'">', '%cancel%' => '<a href="#" onClick="$(\'title_change\').hide(); $(\'title_name\').show(); return false;">'.__('cancel').'</a>')); ?>
+									<input type="text" name="value" value="<?php echo $issue->getTitle(); ?>" /><?php echo __('%save% or %cancel%', array('%save%' => '<input type="submit" style="font-size: 1em; margin: -3px 5px 2px 0; padding: 2px 10px !important;" value="'.__('Save').'">', '%cancel%' => '<a href="#" onClick="$(\'title_change\').hide(); $(\'title_name\').show(); return false;">'.__('cancel').'</a>')); ?>
 								</form>
 								<?php echo image_tag('spinning_16.gif', array('style' => 'display: none; float: left; margin-right: 5px;', 'id' => 'title_spinning')); ?>
 								<span id="title_change_error" class="error_message" style="display: none;"></span>
@@ -222,11 +221,9 @@
 						</div>
 					</div>
 				<?php endif; ?>
-				<?php if ($issue->isBlocking()): ?>
-					<div class="issue_info error" id="blocking_div">
-						<?php echo __('This issue is blocking the next release'); ?>
-					</div>
-				<?php endif; ?>
+				<div class="issue_info error" id="blocking_div"<?php if (!$issue->isBlocking()): ?> style="display: none;"<?php endif; ?>>
+					<?php echo __('This issue is blocking the next release'); ?>
+				</div>
 				<?php if ($issue->isDuplicate()): ?>
 					<div class="issue_info information" id="viewissue_duplicate">
 						<?php echo image_tag('icon_info.png', array('style' => 'float: left; margin: 0 5px 0 5px;')); ?>
@@ -265,45 +262,11 @@
 						<?php $cc++; ?>
 					<?php endforeach; ?>
 					<li class="more_actions">
-						<input class="button button-silver first last" id="more_actions_button" type="button" value="<?php echo __('More actions'); ?>" onclick="$(this).toggleClassName('button-pressed');$('more_actions').toggle();">
+						<input class="button button-silver first last" id="more_actions_button" type="button" value="<?php echo __('More actions'); ?>" onclick="$(this).toggleClassName('button-pressed');$('more_actions_<?php echo $issue->getID(); ?>').toggle();">
 					</li>
-				</ul>
-				<?php if (!$issue->getProject()->isArchived() && (TBGContext::getUser()->hasPermission('caneditissue') || TBGContext::getUser()->hasPermission('caneditissuebasic'))): ?>
-					<ul id="more_actions" style="display: none; position: absolute; width: 300px; top: 19px; right: 0; z-index: 1000;" class="simple_list rounded_box white shadowed" onclick="$('more_actions_button').toggleClassName('button-pressed');$('more_actions').toggle();">
-						<li class="header"><?php echo __('Additional actions available'); ?></li>
-						<?php if ($issue->isOpen()): ?>
-							<?php if ($issue->isBlocking()): ?>
-								<li><?php echo link_tag(make_url('unblock', array('project_key' => $issue->getProject()->getKey(), 'issue_id' => $issue->getId())), image_tag('icon_unblock.png').__("Mark as not blocking the next release")); ?></li>
-							<?php else: ?>
-								<li><?php echo link_tag(make_url('block', array('project_key' => $issue->getProject()->getKey(), 'issue_id' => $issue->getId())), image_tag('icon_block.png').__("Mark as blocking the next release")); ?></li>
-							<?php endif; ?>
-						<?php endif; ?>
-						<?php if ($issue->isUpdateable() && ($issue->canAttachLinks() || (TBGSettings::isUploadsEnabled() && $issue->canAttachFiles()))): ?>
-							<?php if ($issue->canAttachLinks()): ?>
-								<li><a href="javascript:void(0);" id="attach_link_button" onclick="$('attach_link').toggle();"><?php echo image_tag('action_add_link.png').__('Attach a link'); ?></a></li>
-							<?php endif; ?>
-							<?php if (TBGSettings::isUploadsEnabled() && $issue->canAttachFiles()): ?>
-								<li><a href="javascript:void(0);" id="attach_file_button" onclick="$('attach_file').toggle();"><?php echo image_tag('action_add_file.png').__('Attach a file'); ?></a></li>
-							<?php else: ?>
-								<li class="disabled"><a href="javascript:void(0);" id="attach_file_button" onclick="TBG.Main.Helpers.Message.error('<?php echo __('File uploads are not enabled'); ?>', '<?php echo __('Before you can upload attachments, file uploads needs to be activated'); ?>');"><?php echo image_tag('action_add_file.png').__('Attach a file'); ?></a></li>
-							<?php endif; ?>
-						<?php endif; ?>
-						<?php if ($issue->isEditable()): ?>
-							<?php if ($issue->canEditAffectedComponents() || $issue->canEditAffectedBuilds() || $issue->canEditAffectedEditions()): ?>
-								<li><a id="affected_add_button" href="javascript:void(0);" onclick="TBG.Main.Helpers.Backdrop.show('<?php echo make_url('get_partial_for_backdrop', array('key' => 'issue_add_item', 'issue_id' => $issue->getID())); ?>');"><?php echo image_tag('action_add_affected.png').__('Add affected item'); ?></a></li>
-							<?php else: ?>
-								<li class="disabled"><a id="affected_add_button" href="javascript:void(0);" onclick="TBG.Main.Helpers.Message.error('<?php echo __('You are not allowed to add an item to this list'); ?>');"><?php echo image_tag('action_add_affected.png').__('Add affected item'); ?></a></li>
-							<?php endif; ?>
-						<?php endif; ?>
-						<li><a href="javascript:void(0)" id="add_task_button" onclick="$('viewissue_add_task_div').toggle();"><?php echo image_tag('action_add_task.png').__('Add a task to this issue'); ?></a></li>
-						<li><a href="javascript:void(0)" id="relate_to_existing_issue_button" onclick="TBG.Main.Helpers.Backdrop.show('<?php echo make_url('get_partial_for_backdrop', array('key' => 'relate_issue', 'issue_id' => $issue->getID())); ?>');"><?php echo image_tag('action_add_related.png').__('Relate to an existing issue'); ?></a></li>
-						<li><a href="javascript:void(0)" onclick="TBG.Main.Helpers.Backdrop.show('<?php echo make_url('get_partial_for_backdrop', array('key' => 'move_issue', 'issue_id' => $issue->getID())); ?>');"><?php echo image_tag('icon_move.png').__("Move issue to another project"); ?></a></li>
-						<?php if (TBGContext::getUser()->hasPermission('candeleteissues') || TBGContext::getUser()->hasPermission('caneditissue')): ?>
-							<li><a href="javascript:void(0)" onClick="TBG.Main.Helpers.Dialog.show('<?php echo __('Permanently delete this issue?'); ?>', '<?php echo __('Are you sure you wish to delete this issue? It will remain in the database for your records, but will not be accessible via The Bug Genie.'); ?>', {yes: {href: '<?php echo make_url('deleteissue', array('project_key' => $issue->getProject()->getKey(), 'issue_id' => $issue->getId())); ?>' }, no: {click: TBG.Main.Helpers.Dialog.dismiss}});"><?php echo image_tag('icon_delete.png').__("Permanently delete this issue"); ?></a></li>
-						<?php endif; ?>
-					</ul>
 				<?php endif; ?>
-			<?php endif; ?>
+			</ul>
+			<?php include_template('main/issuemoreactions', array('issue' => $issue)); ?>
 		</div>
 		<div id="viewissue_left_box_top">
 			<div id="issue_view">
@@ -405,7 +368,7 @@
 					
 					$count = count($editions) + count($components) + count($builds);				
 				?>
-				<li id="tab_affected"><?php echo javascript_link_tag(image_tag('cfg_icon_projecteditionsbuilds.png', array('style' => 'float: left; margin-right: 5px;')) . __('Affected items (%count%)', array('%count%' => '<span id="viewissue_affects_count">'.$count.'</span>')), array('onclick' => "TBG.Main.Helpers.tabSwitcher('tab_affected', 'viewissue_menu');")); ?></li>
+				<li id="tab_affected"><?php echo javascript_link_tag(image_tag('icon_affected_items.png', array('style' => 'float: left; margin-right: 5px;')) . __('Affected items (%count%)', array('%count%' => '<span id="viewissue_affects_count">'.$count.'</span>')), array('onclick' => "TBG.Main.Helpers.tabSwitcher('tab_affected', 'viewissue_menu');")); ?></li>
 				<li id="tab_related_issues_and_tasks"><?php echo javascript_link_tag(image_tag('icon_related_issues.png', array('style' => 'float: left; margin-right: 5px;')) . __('Related issues and tasks (%count%)', array('%count%' => '<span id="viewissue_duplicate_issues_count">'.(count($issue->getParentIssues())+count($issue->getChildIssues())).'</span>')), array('onclick' => "TBG.Main.Helpers.tabSwitcher('tab_related_issues_and_tasks', 'viewissue_menu');")); ?></li>
 				<li id="tab_duplicate_issues"><?php echo javascript_link_tag(image_tag('icon_duplicate_issues.png', array('style' => 'float: left; margin-right: 5px;')) . __('Duplicate issues (%count%)', array('%count%' => '<span id="viewissue_duplicate_issues_count">'.(count($issue->getDuplicateIssues())).'</span>')), array('onclick' => "TBG.Main.Helpers.tabSwitcher('tab_duplicate_issues', 'viewissue_menu');")); ?></li>
 				<?php TBGEvent::createNew('core', 'viewissue_tabs', $issue)->trigger(); ?>
@@ -454,19 +417,6 @@
 			</div>
 			<div id="tab_related_issues_and_tasks_pane" style="padding-top: 5px; margin: 0 5px 0 5px; display: none;">
 				<div id="viewissue_related">
-					<?php if ($issue->isUpdateable()): ?>
-						<div class="rounded_box mediumgrey shadowed" id="viewissue_add_task_div" style="margin: 5px 0 5px 0; display: none; position: absolute; font-size: 12px; width: 400px;">
-							<form id="viewissue_add_task_form" action="<?php echo make_url('project_scrum_story_addtask', array('project_key' => $issue->getProject()->getKey(), 'story_id' => $issue->getID(), 'mode' => 'issue')); ?>" method="post" accept-charset="<?php echo TBGSettings::getCharset(); ?>" onsubmit="TBG.Issues.addUserStoryTask('<?php echo make_url('project_scrum_story_addtask', array('project_key' => $issue->getProject()->getKey(), 'story_id' => $issue->getID(), 'mode' => 'issue')); ?>', <?php echo $issue->getID(); ?>, 'issue');return false;">
-								<div>
-									<label for="viewissue_task_name_input"><?php echo __('Add task'); ?>&nbsp;</label>
-									<input type="text" name="task_name" id="viewissue_task_name_input">
-									<input type="submit" value="<?php echo __('Add task'); ?>">
-									<a class="close_micro_popup_link" href="javascript:void(0);" onclick="$('viewissue_add_task_div').toggle();"><?php echo __('Done'); ?></a>
-									<?php echo image_tag('spinning_20.gif', array('id' => 'add_task_indicator', 'style' => 'display: none;')); ?><br>
-								</div>
-							</form>
-						</div>
-					<?php endif; ?>
 					<table border="0" cellpadding="0" cellspacing="0" style="width: 100%;">
 						<tr>
 							<td id="related_parent_issues_inline" style="width: 360px;">
@@ -479,8 +429,8 @@
 								<?php endforeach; ?>
 								<div class="no_items" id="no_parent_issues"<?php if ($p_issues > 0): ?> style="display: none;"<?php endif; ?>><?php echo __('No other issues depends on this issue'); ?></div>
 							</td>
-							<td style="width: 40px; text-align: center; padding: 0;"><?php echo image_tag('left.png'); ?></td>
-							<td style="width: auto;">
+							<td style="width: 40px; text-align: center; padding: 0;"><?php echo image_tag('right.png'); ?></td>
+							<td style="width: 200px;">
 								<div class="rounded_box mediumgrey borderless" id="related_issues_this_issue" style="margin: 5px auto 5px auto;">
 									<?php echo __('This issue'); ?>
 								</div>
