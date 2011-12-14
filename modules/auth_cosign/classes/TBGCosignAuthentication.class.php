@@ -194,7 +194,7 @@
 			TBGContext::getResponse()->setCookie('tbg3_username', $username);
 			TBGContext::getResponse()->setCookie('tbg3_password', TBGUser::hashPassword($user->getJoinedDate().$username));
 
-			return TBGUsersTable::getTable()->getByUsername($username);
+			return $user;
 		}
 
 		public function verifyLogin($username)
