@@ -453,7 +453,7 @@
 
 						$user = $mod->doAutoLogin();
 						
-						if (!$user instanceof TBGUser)
+						if ($user == false)
 						{
 							// Invalid
 							TBGContext::logout();
@@ -499,13 +499,14 @@
 						}
 					}
 				}
-				elseif (TBGContext::isCLI())
+
+				if (!$user instanceof TBGUser && TBGContext::isCLI())
 				{
 					$user = TBGUsersTable::getTable()->getByUsername(TBGContext::getCurrentCLIusername());
 				
 				}
 				// guest user
-				elseif (!TBGSettings::isLoginRequired())
+				elseif (!$user instanceof TBGUser && !TBGSettings::isLoginRequired())
 				{
 					$user = TBGUsersTable::getTable()->getByUserID(TBGSettings::getDefaultUserID());
 				}
@@ -1743,7 +1744,12 @@
 		 */
 		public function hasProjectPageAccess($page, $project_id)
 		{
-			return (bool) ($this->hasPageAccess($page, $project_id) || $this->hasPageAccess('project_allpages', $project_id)); 
+			$retval = $this->hasPageAccess($page, $project_id);
+			if ($retval === null)
+			{
+				return (bool) $this->hasPageAccess('project_allpages', $project_id);
+			}
+			return $retval;
 		}
 
 		/**
@@ -1755,7 +1761,7 @@
 		{
 			if ($this->_timezone == null)
 			{
-				$this->_timezone = TBGSettings::get('timezone', 'core', null, $this->getID());
+				$this->_timezone = TBGSettings::get('timezone', 'core', TBGContext::getScope(), $this->getID());
 			}
 			return $this->_timezone;
 		}
@@ -2092,6 +2098,13 @@
 		{
 			$this->_populateOpenIDAccounts();
 			return array_key_exists($identity, $this->_openid_accounts);
+		}
+
+		public function toJSON()
+		{
+			return array('id' => $this->getID(),
+						'name' => $this->getName(),
+						'username' => $this->getUsername());
 		}
 
 	}

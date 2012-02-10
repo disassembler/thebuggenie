@@ -37,7 +37,7 @@
 		const ALLOWED = 'permissions.allowed';
 		const MODULE = 'permissions.module';
 
-		public function _initialize()
+		protected function _initialize()
 		{
 			parent::_setup(self::B2DBNAME, self::ID);
 			parent::_addVarchar(self::PERMISSION_TYPE, 100);
@@ -195,6 +195,49 @@
 				$crit->addInsert(self::MODULE, $permission['module']);
 				$res = $this->doInsert($crit);
 			}
+		}
+
+		public function getByPermissionTargetIDAndModule($permission, $target_id, $module = 'core')
+		{
+			$crit = $this->getCriteria();
+			$crit->addWhere(self::PERMISSION_TYPE, $permission);
+			$crit->addWhere(self::TARGET_ID, $target_id);
+			$crit->addWhere(self::MODULE, $module);
+
+			$permissions = array();
+			if ($res = $this->doSelect($crit))
+			{
+				while ($row = $res->getNextRow())
+				{
+					$target = null;
+					if ($uid = $row->get(self::UID))
+					{
+						$target = TBGContext::factory()->TBGUser($uid);
+					}
+					if ($tid = $row->get(self::TID))
+					{
+						$target = TBGContext::factory()->TBGTeam($tid);
+					}
+					if ($gid = $row->get(self::GID))
+					{
+						$target = TBGContext::factory()->TBGGroup($gid);
+					}
+					if ($target instanceof TBGIdentifiable)
+					{
+						$permissions[] = array('target' => $target, 'allowed' => (boolean) $row->get(self::ALLOWED), 'user_id' => $row->get(self::UID), 'team_id' => $row->get(self::TID), 'group_id' => $row->get(self::GID));
+					}
+				}
+			}
+			return $permissions;
+		}
+		
+		public function deleteByPermissionTargetIDAndModule($permission, $target_id, $module = 'core')
+		{
+			$crit = $this->getCriteria();
+			$crit->addWhere(self::PERMISSION_TYPE, $permission);
+			$crit->addWhere(self::TARGET_ID, $target_id);
+			$crit->addWhere(self::MODULE, $module);
+			$this->doDelete($crit);
 		}
 		
 	}

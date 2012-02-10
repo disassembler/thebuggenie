@@ -25,7 +25,12 @@
 	class TBGVCSIntegrationTable extends TBGB2DBTable 
 	{
 
-		const B2DB_TABLE_VERSION = 1;
+		/*
+		 * Please don't convert this to the new B2DB table type or mess with this without testing
+		 * to check that it doesn't break importing data from this 3.1-era VCS Integration table.
+		 */
+
+		const B2DB_TABLE_VERSION = 2;
 		const B2DBNAME = 'vcsintegration';
 		const ID = 'vcsintegration.id';
 		const SCOPE = 'vcsintegration.scope';
@@ -38,7 +43,7 @@
 		const DATE = 'vcsintegration.date';
 		const ACTION = 'vcsintegration.action';
 					
-		public function _initialize()
+		protected function _initialize()
 		{
 			parent::_setup(self::B2DBNAME, self::ID);
 			parent::_addText(self::FILE_NAME, false);

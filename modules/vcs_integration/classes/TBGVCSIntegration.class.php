@@ -22,6 +22,9 @@
 		const MODE_DISABLED = 0;
 		const MODE_ISSUECOMMITS = 1;
 		
+		const WORKFLOW_DISABLED = 0;
+		const WORKFLOW_ENABLED = 1;
+		
 		const ACCESS_DIRECT = 0;
 		const ACCESS_HTTP = 1;
 		
@@ -53,6 +56,13 @@
 		
 		protected function _install($scope)
 		{
+		}
+		
+		protected function _loadFixtures($scope)
+		{
+			TBGVCSIntegrationCommitsTable::getTable()->createIndexes();
+			TBGVCSIntegrationFilesTable::getTable()->createIndexes();
+			TBGVCSIntegrationIssueLinksTable::getTable()->createIndexes();
 		}
 		
 		protected function _addListeners()
@@ -102,23 +112,27 @@
 					\b2db\Core::getTable('TBGVCSIntegrationFilesTable')->create();
 					\b2db\Core::getTable('TBGVCSIntegrationIssueLinksTable')->create();
 					
+					TBGVCSIntegrationCommitsTable::getTable()->createIndexes();
+					TBGVCSIntegrationFilesTable::getTable()->createIndexes();
+					TBGVCSIntegrationIssueLinksTable::getTable()->createIndexes();
+					
 					// Migrate data from old table to new tables
 					$crit = new \b2db\Criteria();
 					$crit->addOrderBy(TBGVCSIntegrationTable::DATE, \b2db\Criteria::SORT_DESC);
 					$results = TBGVCSIntegrationTable::getTable()->doSelect($crit);
 					
-					if (is_object($results) && count($results) > 0)
+					if ($results instanceof \b2db\Resultset && $results->count() > 0)
 					{
 						$commits = array();
-
-						while ($results->next())
+													
+						while ($row = $results->getNextRow())
 						{
-							$rev = $results->get(TBGVCSIntegrationTable::NEW_REV);
+							$rev = $row->get(TBGVCSIntegrationTable::NEW_REV);
 							if (array_key_exists($rev, $commits))
 							{
 								// Add a new file or issue to the commit data
-								$commits[$rev]['files'][$results->get(TBGVCSIntegrationTable::FILE_NAME)] = array('file_name' => $results->get(TBGVCSIntegrationTable::FILE_NAME), 'action' => $results->get(TBGVCSIntegrationTable::ACTION));
-								$commits[$rev]['issues'][$results->get(TBGVCSIntegrationTable::ISSUE_NO)] = $results->get(TBGVCSIntegrationTable::ISSUE_NO);
+								$commits[$rev]['files'][$row->get(TBGVCSIntegrationTable::FILE_NAME)] = array('file_name' => $row->get(TBGVCSIntegrationTable::FILE_NAME), 'action' => $row->get(TBGVCSIntegrationTable::ACTION));
+								$commits[$rev]['issues'][$row->get(TBGVCSIntegrationTable::ISSUE_NO)] = $row->get(TBGVCSIntegrationTable::ISSUE_NO);
 							}
 							else
 							{
@@ -127,9 +141,9 @@
 								// Add details of a new commit
 								$commits[$rev] = array('commit' => array(), 'files' => array(), 'issues' => array());
 								
-								$commits[$rev]['commit'] = array('new_rev' => $rev, 'old_rev' => $results->get(TBGVCSIntegrationTable::OLD_REV), 'author' => $results->get(TBGVCSIntegrationTable::AUTHOR), 'date' => $results->get(TBGVCSIntegrationTable::DATE), 'log' => $results->get(TBGVCSIntegrationTable::LOG), 'scope' => $results->get(TBGVCSIntegrationTable::SCOPE), 'project' => $issue->getProject());
-								$commits[$rev]['files'][$results->get(TBGVCSIntegrationTable::FILE_NAME)] = array('file_name' => $results->get(TBGVCSIntegrationTable::FILE_NAME), 'action' => $results->get(TBGVCSIntegrationTable::ACTION));
-								$commits[$rev]['issues'][$results->get(TBGVCSIntegrationTable::ISSUE_NO)] = $results->get(TBGVCSIntegrationTable::ISSUE_NO);
+								$commits[$rev]['commit'] = array('new_rev' => $rev, 'old_rev' => $row->get(TBGVCSIntegrationTable::OLD_REV), 'author' => $row->get(TBGVCSIntegrationTable::AUTHOR), 'date' => $row->get(TBGVCSIntegrationTable::DATE), 'log' => $row->get(TBGVCSIntegrationTable::LOG), 'scope' => $row->get(TBGVCSIntegrationTable::SCOPE), 'project' => $issue->getProject());
+								$commits[$rev]['files'][$row->get(TBGVCSIntegrationTable::FILE_NAME)] = array('file_name' => $row->get(TBGVCSIntegrationTable::FILE_NAME), 'action' => $row->get(TBGVCSIntegrationTable::ACTION));
+								$commits[$rev]['issues'][$row->get(TBGVCSIntegrationTable::ISSUE_NO)] = $row->get(TBGVCSIntegrationTable::ISSUE_NO);
 							}
 						}
 						
@@ -145,6 +159,11 @@
 								$author = TBGContext::factory()->TBGUser($commit['commit']['author']);
 							}
 							catch (Exception $e)
+							{
+								$author = TBGContext::factory()->TBGUser(TBGSettings::getDefaultUserID());
+							}
+							
+							if (!($author instanceof TBGUser))
 							{
 								$author = TBGContext::factory()->TBGUser(TBGSettings::getDefaultUserID());
 							}
@@ -189,10 +208,6 @@
 							}
 						}
 					}
-					
-					// Drop old table
-					TBGVCSIntegrationTable::getTable()->drop();
-					
 					// Migrate settings to new format
 					$access_method = $this->getSetting('use_web_interface');
 					$passkey = $this->getSetting('vcs_passkey');
@@ -374,7 +389,7 @@
 				
 				/* Now produce each box */
 				foreach ($links as $link)
-				{	
+				{
 					include_template('vcs_integration/commitbox', array("projectId" => $event->getSubject()->getProject()->getID(), "commit" => $link->getCommit()));
 				}
 				
@@ -407,14 +422,34 @@
 			
 			$fixes_grep = TBGTextParser::getIssueRegex();
 
-			// Build list of affected issues
-			$temp = array();
-			$issues = array();
+			// Build list of affected issues and their transitions
+			$temp = array(); // All data from regexp
+			$temp2 = array(); // Issue numbers
+			$issues = array(); // Issue objects
+			$transitions = array(); // Transition strings
 			
 			if (preg_match_all($fixes_grep, $commit_msg, $temp))
-			{	
-				$temp = array_unique($temp[2]);
-				foreach ($temp as $issue_no)
+			{
+				foreach ($temp[0] as $key => $item)
+				{
+					// Preserve workflow step data
+					if (!array_key_exists($temp[4][$key], $transitions))
+					{
+						$transitions[$temp[4][$key]] = array();
+					}
+					
+					$count = preg_match('/ \((.*)\)/i', $temp[6][$key], $stuff);
+					
+					if ($count == 1)
+					{
+						$transitions[$temp[4][$key]][] = $stuff[0];
+					}
+					
+					$temp2[] = $temp[4][$key];
+				}
+				
+				$temp2 = array_unique($temp2);
+				foreach ($temp2 as $issue_no)
 				{
 					$issue = TBGIssue::getIssueFromLink($issue_no);
 					if ($issue instanceof TBGIssue): $issues[] = $issue; endif;
@@ -534,8 +569,16 @@
 				$uid = TBGSettings::getDefaultUserID();
 			}
 			
-			$user = TBGContext::factory()->TBGUser($uid);
-			
+			try
+			{
+				$user = TBGContext::factory()->TBGUser($uid);
+			}
+			catch (Exception $e)
+			{
+				$user = TBGContext::factory()->TBGUser(TBGSettings::getDefaultUserID());
+				$uid = TBGSettings::getDefaultUserID();
+			}
+								
 			$output .= '[VCS '.$project->getKey().'] Commit to be logged by user ' . $user->getName() . "\n";
 
 			if ($date == null):
@@ -564,10 +607,70 @@
 			// Create issue links
 			foreach ($issues as $issue)
 			{
-				$inst = new TBGVCSIntegrationIssueLink();
-				$inst->setIssue($issue);
-				$inst->setCommit($commit);
-				$inst->save();
+				foreach ($transitions[$issue->getIssueNo()] as $issue_transition_block)
+				{
+					preg_match('/(?<=\()(.*)(?=\))/', $issue_transition_block, $issue_transitions, null);
+					$inst = new TBGVCSIntegrationIssueLink();
+					$inst->setIssue($issue);
+					$inst->setCommit($commit);
+					$inst->save();
+					
+					if (TBGSettings::get('vcs_workflow_'.$project->getID(), 'vcs_integration') == TBGVCSIntegration::WORKFLOW_ENABLED)
+					{
+						TBGContext::setUser($user);
+						TBGSettings::forceSettingsReload();
+						TBGContext::cacheAllPermissions();
+						
+						if ($issue->isWorkflowTransitionsAvailable())
+						{
+							foreach (explode('; ', $issue_transitions[0]) as $workflow_individual_data)
+							{
+								$data = explode(": ", $workflow_individual_data);
+								if (count($data) == 2)
+								{
+									$command = $data[0];
+									$parameters = $data[1];
+								}
+								else
+								{
+									$command = $data[0];
+									$parameters = null;
+								}
+								foreach ($issue->getAvailableWorkflowTransitions() as $transition)
+								{
+									if (mb_strtolower($transition->getName()) == mb_strtolower($command))
+									{
+										$output .= '[VCS '.$project->getKey().'] Running transition '.$command.' on issue '.$issue->getFormattedIssueNo()."\n";
+										foreach (explode(" ", $parameters) as $single_command)
+										{
+											if (mb_strpos($single_command, '='))
+											{
+												list($key, $val) = explode('=', $single_command);
+												switch ($key)
+												{
+													case 'resolution':
+														if (($resolution = TBGResolution::getResolutionByKeyish($val)) instanceof TBGResolution)
+														{
+															TBGContext::getRequest()->setParameter('resolution_id', $resolution->getID());
+														}
+														break;
+													case 'status':
+														if (($status = TBGStatus::getStatusByKeyish($val)) instanceof TBGStatus)
+														{
+															TBGContext::getRequest()->setParameter('status_id', $status->getID());
+														}
+														break;
+												}
+											}
+										}
+										$transition->transitionIssueToOutgoingStepFromRequest($issue, TBGContext::getRequest());
+										$output .= '[VCS '.$project->getKey().'] Ran transition '.$transition->getName().' with parameters \''.$parameters.'\' on issue '.$issue->getFormattedIssueNo()."\n";
+									}
+								}
+							}
+						}
+					}
+				}
 				
 				$issue->addSystemComment(TBGContext::getI18n()->__('Issue updated from code repository'), TBGContext::getI18n()->__('This issue has been updated with the latest changes from the code repository.<source>%commit_msg%</source>', array('%commit_msg%' => $commit_msg)), $uid);
 				$output .= '[VCS '.$project->getKey().'] Updated issue ' . $issue->getFormattedIssueNo() . "\n";

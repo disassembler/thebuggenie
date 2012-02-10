@@ -58,6 +58,8 @@
 					break;
 				case TBGContext::PREDEFINED_SEARCH_PROJECT_MILESTONE_TODO:
 					$filters['project_id'] = array('operator' => '=', 'value' => TBGContext::getCurrentProject()->getID());
+					$filters['state'] = array('operator' => '=', 'value' => TBGIssue::STATE_OPEN);
+					$filters['milestone'] = array('operator' => '!=', 'value' => null);
 					$groupby = 'milestone';
 					break;
 				case TBGContext::PREDEFINED_SEARCH_PROJECT_MOST_VOTED:
@@ -89,7 +91,7 @@
 			return array($filters, $groupby, $grouporder);
 		}
 
-		public function _initialize()
+		protected function _initialize()
 		{
 			parent::_setup(self::B2DBNAME, self::ID);
 			parent::_addVarchar(self::NAME, 200);

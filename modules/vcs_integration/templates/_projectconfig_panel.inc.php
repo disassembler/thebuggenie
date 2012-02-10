@@ -20,6 +20,18 @@
 					</td>
 				</tr>
 				<tr>
+					<td style="width: 200px;"><label for="vcs_workflow"><?php echo __('Enable workflow?'); ?></label></td>
+					<td style="width: 580px;">
+						<select name="vcs_workflow" id="vcs_workflow" style="width: 100%">
+							<option value="0"<?php if (TBGSettings::get('vcs_workflow_'.$project->getID(), 'vcs_integration') == 0): ?> selected="selected"<?php endif;?>>Disable for this project</option>
+							<option value="1"<?php if (TBGSettings::get('vcs_workflow_'.$project->getID(), 'vcs_integration') == 1): ?> selected="selected"<?php endif;?>>Enable for this project</option>
+						</select>
+					</td>
+				</tr>
+				<tr>
+					<td class="config_explanation" colspan="2"><?php echo __('This will allow specially-crafted commit messages to cause a workflow transition, in the same way as incoming emails. See the documentation for details.'); ?></td>
+				</tr>
+				<tr>
 					<td style="width: 200px;"><label for="access_method"><?php echo __('Access method'); ?></label></td>
 					<td style="width: 580px;">
 						<select name="access_method" id="access_method" style="width: 100%" onchange="if ($('access_method').getValue() == '1') { $('http_passkey').show(); } else { $('http_passkey').hide(); }">
@@ -125,8 +137,8 @@
 				<tr>
 					<td colspan="2" style="padding: 10px 0 10px 10px; text-align: right;">
 						<div style="float: left; font-size: 13px; padding-top: 2px; font-style: italic;" class="config_explanation"><?php echo __('When you are done, click "%save%" to save your changes on all tabs', array('%save%' => __('Save'))); ?></div>
-						<div class="button button-green" id="vcs_button" style="float: right; font-size: 14px; font-weight: bold;">
-							<input type="submit" value="<?php echo __('Save'); ?>">
+						<div id="vcs_button" style="float: right; font-size: 14px; font-weight: bold;">
+							<input type="submit" class="button button-green" value="<?php echo __('Save'); ?>">
 						</div>
 						<span id="vcs_indicator" style="display: none; float: right;"><?php echo image_tag('spinning_20.gif'); ?></span>
 					</td>

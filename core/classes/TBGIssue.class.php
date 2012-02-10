@@ -530,21 +530,19 @@
 			$bugtypes[2] = $i18n->__('Localization');
 			$bugtypes[1] = $i18n->__('Documentation: A documentation issue');
 
-
+			$effects = array();
+			$effects[5] = $i18n->__('Blocking further progress on the daily build');
+			$effects[4] = $i18n->__('A User would return the product / cannot RTM / the team would hold the release for this bug');
+			$effects[3] = $i18n->__('A User would likely not purchase the product / will show up in review / clearly a noticeable issue');
+			$effects[2] = $i18n->__("A Pain – users won't like this once they notice it / a moderate number of users won't buy");
+			$effects[1] = $i18n->__('Nuisance – not a big deal but noticeable / extremely unlikely to affect sales');
 
 			$likelihoods = array();
-			$likelihoods[5] = $i18n->__('Blocking further progress on the daily build');
-			$likelihoods[4] = $i18n->__('A User would return the product / cannot RTM / the team would hold the release for this bug');
-			$likelihoods[3] = $i18n->__('A User would likely not purchase the product / will show up in review / clearly a noticeable issue');
-			$likelihoods[2] = $i18n->__("A Pain – users won't like this once they notice it / a moderate number of users won't buy");
-			$likelihoods[1] = $i18n->__('Nuisance – not a big deal but noticeable / extremely unlikely to affect sales');
-
-			$effects = array();
-			$effects[5] = $i18n->__('Will affect all users');
-			$effects[4] = $i18n->__('Will affect most users');
-			$effects[3] = $i18n->__('Will affect average number of users');
-			$effects[2] = $i18n->__('Will only affect a few users');
-			$effects[1] = $i18n->__('Will affect almost no one');
+			$likelihoods[5] = $i18n->__('Will affect all users');
+			$likelihoods[4] = $i18n->__('Will affect most users');
+			$likelihoods[3] = $i18n->__('Will affect average number of users');
+			$likelihoods[2] = $i18n->__('Will only affect a few users');
+			$likelihoods[1] = $i18n->__('Will affect almost no one');
 
 			if ($id === 0) return null;
 
@@ -712,6 +710,12 @@
 		{
 			return $this->getFormattedIssueNo($link_formatted, $include_issuetype) . ' - ' . $this->getTitle();
 		}
+
+		public function getAccessList()
+		{
+			$permissions = TBGPermissionsTable::getTable()->getByPermissionTargetIDAndModule('canviewissue', $this->getID());
+			return $permissions;
+		}
 		
 		/**
 		 * Whether or not the current user can access the issue
@@ -750,7 +754,7 @@
 				TBGLogging::log('done checking, allowed since this user is in same group as user that posted it');
 				return true;
 			}
-			if (!TBGContext::getUser()->hasPermission('canseeallissues', 0, 'core', true, true))
+			if (TBGContext::getUser()->hasPermission('canseeallissues', 0, 'core', true, true) === false)
 			{
 				TBGLogging::log('done checking, not allowed to access issues not posted by themselves');
 				return false;
@@ -1014,6 +1018,17 @@
 		}
 
 		/**
+		 * Returns whether or not this item is locked
+		 *
+		 * @return boolean
+		 * @access public
+		 */
+		public function isUnlocked()
+		{
+			return !$this->isLocked();
+		}
+
+		/**
 		 * Specify whether or not this item is locked
 		 *
 		 * @param boolean $locked[optional]
@@ -1063,10 +1078,6 @@
 		 */
 		public function canEditIssueDetails()
 		{
-			if ($this->isLocked())
-			{
-				return $this->_permissionCheck('canlockandeditlockedissues');
-			}
 			if (!$this->getProject()->canChangeIssuesWithoutWorkingOnThem())
 			{
 				if (!$this->isBeingWorkedOn())
@@ -1092,6 +1103,16 @@
 			return (bool) ($this->getPostedByID() == $user_id || ($this->isAssigned() && $this->getAssignee()->getID() == $user_id && $this->getAssignee() instanceof TBGUser) || ($this->isOwned() && $this->getOwner()->getID() == $user_id && $this->getOwner() instanceof TBGUser));
 		}
 		
+		/**
+		 * Return if the user can edit title
+		 *
+		 * @return boolean
+		 */
+		public function canEditAccessPolicy()
+		{
+			return $this->_permissionCheck('canlockandeditlockedissues');
+		}
+
 		/**
 		 * Return if the user can edit title
 		 *
@@ -1340,6 +1361,16 @@
 		public function canAddRelatedIssues()
 		{
 			return (bool) ($this->_permissionCheck('canaddrelatedissues') || $this->_permissionCheck('canaddextrainformationtoissues'));
+		}
+
+		/**
+		 * Return if the user can add/modify extra data for an issue
+		 *
+		 * @return boolean
+		 */
+		public function canAddExtraInformation()
+		{
+			return (bool) ($this->_permissionCheck('canaddextrainformationtoissues'));
 		}
 
 		/**
@@ -1810,6 +1841,12 @@
 		{
 			$user_id = (is_object($user_id)) ? $user_id->getID() : $user_id;
 			$this->_setupVotes();
+			
+			if (($user_id == TBGSettings::getDefaultUserID() && TBGSettings::isDefaultUserGuest()) || !$this->getProject()->canVoteOnIssues())
+			{
+				return true;
+			}
+			
 			if (array_key_exists($user_id, $this->_votes))
 			{
 				return ($up) ? ((int) $this->_votes[$user_id] > 0) : ((int) $this->_votes[$user_id] < 0);

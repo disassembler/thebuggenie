@@ -36,7 +36,7 @@
 		const OUTGOING_STEP_ID = 'workflow_transitions.outgoing_step_id';
 		const TEMPLATE = 'workflow_transitions.template';
 
-//		public function _initialize()
+//		protected function _initialize()
 //		{
 //			parent::_setup(self::B2DBNAME, self::ID);
 //			parent::_addForeignKeyColumn(self::SCOPE, TBGScopesTable::getTable(), TBGScopesTable::ID);
@@ -109,6 +109,30 @@
 				$crit->addUpdate(self::OUTGOING_STEP_ID, $new_step_id);
 				$crit->addWhere(self::OUTGOING_STEP_ID, $old_step_id);
 				$crit->addWhere(self::WORKFLOW_ID, $workflow_id);
+				$this->doUpdate($crit);
+			}
+		}
+
+		public function upgradeFrom3dot1()
+		{
+			$wcrit = TBGSettingsTable::getTable()->getCriteria();
+			$wcrit->addWhere(TBGSettingsTable::NAME, TBGSettings::SETTING_DEFAULT_WORKFLOW);
+
+			$workflows = array();
+			if ($res = TBGSettingsTable::getTable()->doSelect($wcrit))
+			{
+				while ($row = $res->getNextRow())
+				{
+					$workflow_id = (int) $row->get(TBGSettingsTable::VALUE);
+					$workflows[$workflow_id] = $workflow_id;
+				}
+			}
+			if (count($workflows))
+			{
+				$crit = $this->getCriteria();
+				$crit->addWhere(self::NAME, '%reject%', \b2db\Criteria::DB_LIKE);
+				$crit->addWhere(self::WORKFLOW_ID, $workflow_ids, \b2db\Criteria::DB_IN);
+				$crit->addUpdate(self::TEMPLATE, 'main/updateissueproperties');
 				$this->doUpdate($crit);
 			}
 		}

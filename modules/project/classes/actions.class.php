@@ -1066,42 +1066,53 @@
 
 		public function runMilestone(TBGRequest $request)
 		{
-			if ($request->isPost()) {
-				$milestone = new TBGMilestone($request['milestone_id']);
-				$milestone->setName($request['name']);
-				$milestone->setProject($this->selected_project);
-				$milestone->setStarting((bool) $request['is_starting']);
-				$milestone->setScheduled((bool) $request['is_scheduled']);
-				$milestone->setDescription($request['description']);
-				$milestone->setType($request->getParameter('milestone_type', TBGMilestone::TYPE_REGULAR));
-				if ($request->hasParameter('sch_month') && $request->hasParameter('sch_day') && $request->hasParameter('sch_year'))
+			if ($request->isPost()) 
+			{
+				try
 				{
-					$scheduled_date = mktime(23, 59, 59, TBGContext::getRequest()->getParameter('sch_month'), TBGContext::getRequest()->getParameter('sch_day'), TBGContext::getRequest()->getParameter('sch_year'));
-					$milestone->setScheduledDate($scheduled_date);
-				}
-				else
-					$milestone->setScheduledDate(0);
+					if (!$request['name']) throw new Exception($this->getI18n()->__('You must provide a valid milestone name'));
 
-				if ($request->hasParameter('starting_month') && $request->hasParameter('starting_day') && $request->hasParameter('starting_year'))
-				{
-					$starting_date = mktime(0, 0, 1, TBGContext::getRequest()->getParameter('starting_month'), TBGContext::getRequest()->getParameter('starting_day'), TBGContext::getRequest()->getParameter('starting_year'));
-					$milestone->setStartingDate($starting_date);
-				}
-				else
-					$milestone->setStartingDate(0);
+					$milestone = new TBGMilestone($request['milestone_id']);
+					$milestone->setName($request['name']);
+					$milestone->setProject($this->selected_project);
+					$milestone->setStarting((bool) $request['is_starting']);
+					$milestone->setScheduled((bool) $request['is_scheduled']);
+					$milestone->setDescription($request['description']);
+					$milestone->setType($request->getParameter('milestone_type', TBGMilestone::TYPE_REGULAR));
+					if ($request->hasParameter('sch_month') && $request->hasParameter('sch_day') && $request->hasParameter('sch_year'))
+					{
+						$scheduled_date = mktime(23, 59, 59, TBGContext::getRequest()->getParameter('sch_month'), TBGContext::getRequest()->getParameter('sch_day'), TBGContext::getRequest()->getParameter('sch_year'));
+						$milestone->setScheduledDate($scheduled_date);
+					}
+					else
+						$milestone->setScheduledDate(0);
 
-				$milestone->save();
-				if ($request['milestone_id'])
-				{
-					$message = TBGContext::getI18n()->__('Milestone updated');
-					$template = 'milestoneboxheader';
+					if ($request->hasParameter('starting_month') && $request->hasParameter('starting_day') && $request->hasParameter('starting_year'))
+					{
+						$starting_date = mktime(0, 0, 1, TBGContext::getRequest()->getParameter('starting_month'), TBGContext::getRequest()->getParameter('starting_day'), TBGContext::getRequest()->getParameter('starting_year'));
+						$milestone->setStartingDate($starting_date);
+					}
+					else
+						$milestone->setStartingDate(0);
+
+					$milestone->save();
+					if ($request['milestone_id'])
+					{
+						$message = TBGContext::getI18n()->__('Milestone updated');
+						$template = 'milestoneboxheader';
+					}
+					else
+					{
+						$message = TBGContext::getI18n()->__('Milestone created');
+						$template = 'milestonebox';
+					}
+					return $this->renderJSON(array('content' => $this->getTemplateHTML($template, array('milestone' => $milestone)), 'milestone_id' => $milestone->getID(), 'milestone_name' => $milestone->getName(), 'milestone_order' => array_keys($this->selected_project->getMilestones())));
 				}
-				else
+				catch (Exception $e)
 				{
-					$message = TBGContext::getI18n()->__('Milestone created');
-					$template = 'milestonebox';
+					$this->getResponse()->setHttpStatus(400);
+					return $this->renderJSON(array('error' => $e->getMessage()));
 				}
-				return $this->renderJSON(array('content' => $this->getTemplateHTML($template, array('milestone' => $milestone)), 'milestone_id' => $milestone->getID(), 'milestone_name' => $milestone->getName(), 'milestone_order' => array_keys($this->selected_project->getMilestones())));
 			}
 		}
 
@@ -1432,7 +1443,7 @@
 								$identified = TBGContext::factory()->TBGTeam($request['value']);
 								break;
 						}
-						if ($identified instanceof TBGIdentifiableTypeClass)
+						if ($identified instanceof TBGIdentifiable)
 						{
 							if ($request['field'] == 'owned_by') $item->setOwner($identified);
 							elseif ($request['field'] == 'qa_by') $item->setQaResponsible($identified);
@@ -1451,9 +1462,9 @@
 				if ($request['field'] == 'owned_by')
 					return $this->renderJSON(array('field' => (($item->hasOwner()) ? array('id' => $item->getOwner()->getID(), 'name' => (($item->getOwner() instanceof TBGUser) ? $this->getComponentHTML('main/userdropdown', array('user' => $item->getOwner())) : $this->getComponentHTML('main/teamdropdown', array('team' => $item->getOwner())))) : array('id' => 0))));
 				elseif ($request['field'] == 'lead_by')
-					return $this->renderJSON(array('field' => (($item->hasLeader()) ? array('id' => $item->getLeaderID(), 'name' => (($item->getLeader() instanceof TBGUser) ? $this->getComponentHTML('main/userdropdown', array('user' => $item->getLeader())) : $this->getComponentHTML('main/teamdropdown', array('team' => $item->getLeader())))) : array('id' => 0))));
+					return $this->renderJSON(array('field' => (($item->hasLeader()) ? array('id' => $item->getLeader()->getID(), 'name' => (($item->getLeader() instanceof TBGUser) ? $this->getComponentHTML('main/userdropdown', array('user' => $item->getLeader())) : $this->getComponentHTML('main/teamdropdown', array('team' => $item->getLeader())))) : array('id' => 0))));
 				elseif ($request['field'] == 'qa_by')
-					return $this->renderJSON(array('field' => (($item->hasQaResponsible()) ? array('id' => $item->getQaResponsibleID(), 'name' => (($item->getQaResponsible() instanceof TBGUser) ? $this->getComponentHTML('main/userdropdown', array('user' => $item->getQaResponsible())) : $this->getComponentHTML('main/teamdropdown', array('team' => $item->getQaResponsible())))) : array('id' => 0))));
+					return $this->renderJSON(array('field' => (($item->hasQaResponsible()) ? array('id' => $item->getQaResponsible()->getID(), 'name' => (($item->getQaResponsible() instanceof TBGUser) ? $this->getComponentHTML('main/userdropdown', array('user' => $item->getQaResponsible())) : $this->getComponentHTML('main/teamdropdown', array('team' => $item->getQaResponsible())))) : array('id' => 0))));
 			}
 		}
 
@@ -1585,8 +1596,7 @@
 					$this->selected_project->setAutoassign((bool) $request['allow_autoassignment']);
 
 				$this->selected_project->save();
-				TBGContext::setMessage('project_settings_saved', true);
-				$this->forward(TBGContext::getRouting()->generate('project_settings', array('project_key' => $this->selected_project->getKey())));
+				return $this->renderJSON(array('message' => $this->getI18n()->__('Settings saved')));
 			}
 		}
 

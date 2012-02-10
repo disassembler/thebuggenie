@@ -73,6 +73,7 @@ var TBG = {
 		Field: {
 			Updaters: {}
 		},
+		ACL: {},
 		Affected: {}
 	}, // The "Issues" namespace contains functions used in direct relation to issues
 	Search: {
@@ -610,6 +611,7 @@ TBG.Main.Helpers.Backdrop.show = function(url) {
 TBG.Main.Helpers.Backdrop.reset = function() {
 	$$('body')[0].setStyle({'overflow': 'auto'});
 	$('fullpage_backdrop').fade({duration: 0.2});
+	TBG.Core._resizeWatcher();
 };
 
 TBG.Main.Helpers.tabSwitcher = function(visibletab, menu) {
@@ -695,6 +697,7 @@ TBG.Main.submitIssue = function(url) {
 
 TBG.Main.Link.add = function(url, target_type, target_id) {
 	TBG.Main.Helpers.ajax(url, {
+		form: 'attach_link_' + target_type + '_' + target_id + '_form',
 		loading: {
 			indicator: 'attach_link_' + target_type + '_' + target_id + '_indicator',
 			hide: 'attach_link_' + target_type + '_' + target_id + '_submit'
@@ -1751,8 +1754,12 @@ TBG.Project.Component.remove = function(url, cid) {
 	});
 }
 
-TBG.Project.submitSettings = function(url) {
+TBG.Project.submitAdvancedSettings = function(url) {
 	TBG.Project._submitDetails(url, 'project_settings');
+}
+
+TBG.Project.submitDisplaySettings = function(url) {
+	TBG.Project._submitDetails(url, 'project_other');
 }
 
 TBG.Project.submitInfo = function(url, pid) {
@@ -1900,6 +1907,19 @@ TBG.Config.Import.importCSV = function(url) {
 		failure: {
 			update: {element: 'csv_import_error_detail', from: 'errordetail'},
 			show: 'csv_import_error'
+		}
+	});
+}
+
+TBG.Config.Import.getImportCsvIds = function(url) {
+	TBG.Main.Helpers.ajax(url, {
+		loading: {
+			indicator: 'id_zone_indicator',
+			hide: 'id_zone_content'
+		},
+		success: {
+			update: 'id_zone_content',
+			show: 'id_zone_content'
 		}
 	});
 }
@@ -2063,8 +2083,8 @@ TBG.Config.Issuefields.Options.update = function(url, type, id) {
 		form: 'edit_' + type + '_' + id + '_form',
 		loading: {indicator: 'edit_' + type + '_' + id + '_indicator'},
 		success: {
-			show: 'item_' + type + '_' + id,
-			hide: 'edit_item_' + id,
+			show: 'item_option_' + type + '_' + id,
+			hide: 'edit_item_option_' + id,
 			callback: function(json) {
 				$(type + '_' + id + '_name').update($(type + '_' + id + '_name_input').getValue());
 				if ($(type + '_' + id + '_itemdata_input') && $(type + '_' + id + '_itemdata')) $(type + '_' + id + '_itemdata').style.backgroundColor = $(type + '_' + id + '_itemdata_input').getValue();
@@ -2078,7 +2098,7 @@ TBG.Config.Issuefields.Options.remove = function(url, type, id) {
 	TBG.Main.Helpers.ajax(url, {
 		loading: {indicator: 'delete_' + type + '_' + id + '_indicator'},
 		success: {
-			remove: ['delete_item_' + id, 'item_' + type + '_' + id]
+			remove: ['delete_item_option_' + id, 'item_option_' + type + '_' + id]
 		}
 	});
 }
@@ -3089,6 +3109,42 @@ TBG.Issues.markAsUnchanged = function(field)
 	}
 }
 
+TBG.Issues.ACL.toggle_checkboxes = function(element, issue_id) {
+	var val = element.getValue();
+	var opp_val = (val == 'restricted') ? 'public' : 'restricted';
+	if ($(element).checked) {
+		$('acl_'+issue_id+'_'+val).show();
+		$('acl_'+issue_id+'_'+opp_val).hide();
+	} else {
+		$('acl_'+issue_id+'_'+val).hide();
+		$('acl_'+issue_id+'_'+opp_val).show();
+	}
+};
+
+TBG.Issues.ACL.addTarget = function(url, issue_id) {
+	TBG.Main.Helpers.ajax(url, {
+		loading: {
+			indicator: 'acl_indicator_'+issue_id
+		},
+		success: {
+			update: {element: 'issue_'+issue_id+'_access_list', insertion: true},
+			hide: ['popup_find_acl_'+issue_id, 'issue_'+issue_id+'_access_list_none']
+		}
+	});
+};
+
+TBG.Issues.ACL.set = function(url, issue_id, mode) {
+	TBG.Main.Helpers.ajax(url, {
+		form: 'acl_'+issue_id+'_'+mode+'form',
+		loading: {
+			indicator: 'acl_indicator_'+issue_id
+		},
+		success: {
+			callback: TBG.Main.Helpers.Backdrop.reset
+		}
+	});
+};
+
 TBG.Issues.Affected.toggleConfirmed = function(url, affected)
 {
 	TBG.Main.Helpers.ajax(url, {
@@ -3635,12 +3691,12 @@ var openid = {
 		if (this.no_sprite) {
 			var image_ext = box_size == 'small' ? '.ico.png' : '.png';
 			return '<a title="' + this.image_title.replace('%openid_provider_name%', provider["name"]) + '" href="javascript:openid.signin(\'' + box_id + '\');"'
-					+ 'class="' + box_id + ' openid_' + box_size + '_btn button button-silver"><img src="../../iconsets/oxygen/openid_providers.' + box_size + '/' + box_id + image_ext + '"></a>';
+					+ 'class="' + box_id + ' openid_' + box_size + '_btn button button-silver"><img src="iconsets/oxygen/openid_providers.' + box_size + '/' + box_id + image_ext + '"></a>';
 		}
 		var x = box_size == 'small' ? -index * 24 : -index * 100;
 		var y = box_size == 'small' ? -60 : 0;
 		return '<a title="' + this.image_title.replace('%openid_provider_name%', provider["name"]) + '" href="javascript:openid.signin(\'' + box_id + '\');"'
-				+ ' style="background: #FFF url(' + this.img_path + '../../iconsets/oxygen/openid-providers-' + this.sprite + '.png); background-position: ' + x + 'px ' + y + 'px" '
+				+ ' style="background: #FFF url(' + this.img_path + 'iconsets/oxygen/openid-providers-' + this.sprite + '.png); background-position: ' + x + 'px ' + y + 'px" '
 				+ 'class="' + box_id + ' openid_' + box_size + '_btn button button-silver"></a>';
 	},
 

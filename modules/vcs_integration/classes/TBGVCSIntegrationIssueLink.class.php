@@ -23,16 +23,18 @@
 		/**
 		 * Affected issue
 		 * @var TBGIssue
+		 * @Column(type="integer", name="issue_no")
 		 * @Relates(class="TBGIssue")
 		 */
-		protected $_issue_no = null;
+		protected $_issue = null;
 		
 		/**
 		 * Associated commit
 		 * @var TBGVCSIntegrationCommit
+		 * @Column(type="integer", name="commit_id")
 		 * @Relates(class="TBGVCSIntegrationCommit")
 		 */
-		protected $_commit_id = null;
+		protected $_commit = null;
 		
 		/**
 		 * Get the issue for this link
@@ -40,7 +42,7 @@
 		 */
 		public function getIssue()
 		{
-			return $this->_issue_no;
+			return $this->_b2dbLazyload('_issue');
 		}
 		
 		/**
@@ -49,7 +51,7 @@
 		 */
 		public function getCommit()
 		{
-			return $this->_commit_id;
+			return $this->_b2dbLazyload('_commit');
 		}
 		
 		/**
@@ -58,7 +60,7 @@
 		 */
 		public function setIssue(TBGIssue $issue)
 		{
-			$this->_issue_no = $issue;
+			$this->_issue = $issue;
 		}
 		
 		/**
@@ -67,7 +69,7 @@
 		 */
 		public function setCommit(TBGVCSIntegrationCommit $commit)
 		{
-			$this->_commit_id = $commit;
+			$this->_commit = $commit;
 		}
 		
 		/**

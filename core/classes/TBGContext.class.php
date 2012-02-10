@@ -31,7 +31,7 @@
 		
 		protected static $_environment = 2;
 
-		protected static $debug_mode = true;
+		protected static $_debug_mode = true;
 
 		protected static $debug_id = null;
 		
@@ -196,11 +196,11 @@
 		protected static $_redirect_login = null;
 		
 		/**
-		 * Do you want to disable minifcation of javascript and css?
+		 * Do you want to enable minifcation of javascript and css?
 		 * 
 		 * @var boolean
 		 */
-		protected static $_minifyoff = true;
+		protected static $_minify_enabled = false;
 
 		/**
 		 * Returns whether or not we're in install mode
@@ -213,13 +213,18 @@
 		}
 		
 		/**
-		 * Returns whether or minify is disabled
+		 * Returns whether or minify is enabled
 		 * 
 		 * @return boolean
 		 */
-		public static function isMinifyDisabled()
+		public static function isMinifyEnabled()
 		{
-			return self::$_minifyoff;
+			return self::$_minify_enabled;
+		}
+
+		public static function setMinifyEnabled($value = true)
+		{
+			self::$_minify_enabled = $value;
 		}
 
 		/**
@@ -599,7 +604,7 @@
 		 */
 		public static function initialize()
 		{
-			if (self::$debug_mode) self::$debug_id = uniqid();
+			if (self::$_debug_mode) self::$debug_id = uniqid();
 			try
 			{
 				// The time the script was loaded
@@ -745,7 +750,7 @@
 				else
 					self::$_user = self::factory()->TBGUser(TBGSettings::getDefaultUserID());
 
-				throw $e;
+				//throw $e;
 			}
 			TBGLogging::log('...done');
 		}
@@ -947,6 +952,7 @@
 			}
 			catch (Exception $e)
 			{
+				self::$_user = new TBGUser();
 				throw $e;
 			}
 			return self::$_user;
@@ -1424,6 +1430,7 @@
 		{
 			$uid = (int) $uid;
 			$gid = (int) $gid;
+			$retval = null;
 			if (array_key_exists($module_name, self::$_permissions) &&
 				array_key_exists($permission_type, self::$_permissions[$module_name]) &&
 				(array_key_exists($target_id, self::$_permissions[$module_name][$permission_type]) || $target_id === null))
@@ -1445,7 +1452,7 @@
 				if ($retval !== null) return $retval;
 			}
 
-			if ($explicit) return $permissive;
+			if ($explicit) return $retval;
 			
 			return TBGSettings::isPermissive();
 		}
@@ -1506,7 +1513,8 @@
 				self::$_available_permissions['pages']['page_dashboard_access'] = array('description' => $i18n->__('Can access the user dashboard'));
 				self::$_available_permissions['pages']['page_search_access'] = array('description' => $i18n->__('Can access the search page'));
 				self::$_available_permissions['pages']['page_about_access'] = array('description' => $i18n->__('Can access the "About" page'));
-				self::$_available_permissions['pages']['page_account_access'] = array('description' => $i18n->__('Can access the "My account" page'));
+				self::$_available_permissions['pages']['page_account_access'] = array('description' => $i18n->__('Can access the "My account" page'), 'details' => array());
+				self::$_available_permissions['pages']['page_account_access']['details']['canchangepassword'] = array('description' => $i18n->__('Can change own password'), 'mode' => 'permissive');
 				self::$_available_permissions['pages']['page_teamlist_access'] = array('description' => $i18n->__('Can see list of teams in header menu'));
 				self::$_available_permissions['pages']['page_clientlist_access'] = array('description' => $i18n->__('Can access all clients'));
 				self::$_available_permissions['project_pages']['page_project_allpages_access'] = array('description' => $i18n->__('Can access all project pages'), 'details' => array());
@@ -1537,7 +1545,7 @@
 				self::$_available_permissions['build']['canseebuild'] = array('description' => $i18n->__('Can see this release'));
 				self::$_available_permissions['milestone']['canseemilestone'] = array('description' => $i18n->__('Can see this milestone'));
 				self::$_available_permissions['issues']['canvoteforissues'] = array('description' => $i18n->__('Can vote for issues'));
-				self::$_available_permissions['issues']['canlockandeditlockedissues'] = array('description' => $i18n->__('Can lock and edit locked issues'));
+				self::$_available_permissions['issues']['canlockandeditlockedissues'] = array('description' => $i18n->__('Can toggle issue access between restricted and public'));
 				self::$_available_permissions['issues']['cancreateandeditissues'] = array('description' => $i18n->__('Can create issues, edit basic information on issues reported by the user and close/re-open them'), 'details' => array());
 				self::$_available_permissions['issues']['cancreateandeditissues']['details']['cancreateissues'] = array('description' => $i18n->__('Can create new issues'), 'details' => array());
 				self::$_available_permissions['issues']['cancreateandeditissues']['details']['caneditissuebasicown'] = array('description' => $i18n->__('Can edit title and description on issues reported by the user'), 'details' => array());
@@ -1599,7 +1607,6 @@
 				self::$_available_permissions['issues']['canpostseeandeditallcomments']['details']['canseenonpubliccomments'] = array('description' => $i18n->__('Can see all comments including hidden'));
 				self::$_available_permissions['issues']['canpostseeandeditallcomments']['details']['caneditcomments'] = array('description' => $i18n->__('Can edit all comments'));
 				self::$_available_permissions['issues']['canpostseeandeditallcomments']['details']['candeletecomments'] = array('description' => $i18n->__('Can delete any comments'));
-				self::$_available_permissions['pages']['page_account_access']['details']['canchangepassword'] = array('description' => $i18n->__('Can change own password'), 'mode' => 'permissive');
 				//self::trigger('core', 'cachepermissions', array('permissions' => &self::$_available_permissions));
 			}
 		}
@@ -2068,7 +2075,7 @@
 		
 		public static function visitPartial($template_name, $time)
 		{
-			if (!self::$debug_mode) return;
+			if (!self::$_debug_mode) return;
 			if (!array_key_exists($template_name, self::$_partials_visited))
 			{
 				self::$_partials_visited[$template_name] = array('time' => $time, 'count' => 1);
@@ -2129,7 +2136,7 @@
 					}
 				}
 
-				if (self::$debug_mode)
+				if (self::$_debug_mode)
 				{
 					$time = explode(' ', microtime());
 					$pretime = $time[1] + $time[0];
@@ -2143,7 +2150,7 @@
 					{
 						$content = ob_get_clean();
 						TBGLogging::log('preexecute method returned something, skipping further action');
-						if (self::$debug_mode) $visited_templatename = "{$actionClassName}::preExecute()";
+						if (self::$_debug_mode) $visited_templatename = "{$actionClassName}::preExecute()";
 					}
 				}
 
@@ -2162,13 +2169,13 @@
 
 						// Running main route action
 						TBGLogging::log('Running route action '.$actionToRunName.'()');
-						if (self::$debug_mode)
+						if (self::$_debug_mode)
 						{
 							$time = explode(' ', microtime());
 							$action_pretime = $time[1] + $time[0];
 						}
 						$action_retval = $actionObject->$actionToRunName(self::getRequest());
-						if (self::$debug_mode)
+						if (self::$_debug_mode)
 						{
 							$time = explode(' ', microtime());
 							$action_posttime = $time[1] + $time[0];
@@ -2219,7 +2226,7 @@
 						TBGLogging::log('...completed');
 					}
 				}
-				elseif (self::$debug_mode)
+				elseif (self::$_debug_mode)
 				{
 					$time = explode(' ', microtime());
 					$posttime = $time[1] + $time[0];
@@ -2488,7 +2495,13 @@
 
 		public static function isDebugMode()
 		{
-			return self::$debug_mode;
+			return self::$_debug_mode;
 		}
+
+		public static function setDebugMode($value = true)
+		{
+			self::$_debug_mode = $value;
+		}
+
 	}
 	

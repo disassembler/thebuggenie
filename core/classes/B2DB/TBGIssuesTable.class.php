@@ -161,7 +161,7 @@
 
 		public static function getValidSearchFilters()
 		{
-			return array('project_id', 'text', 'state', 'issuetype', 'status', 'resolution', 'reproducability', 'category', 'severity', 'priority', 'posted_by', 'assignee_user', 'assignee_team', 'owner_user', 'owner_team', 'component', 'build', 'edition', 'posted', 'last_updated');
+			return array('project_id', 'text', 'state', 'issuetype', 'status', 'resolution', 'reproducability', 'category', 'severity', 'priority', 'posted_by', 'assignee_user', 'assignee_team', 'owner_user', 'owner_team', 'component', 'build', 'edition', 'posted', 'last_updated', 'milestone');
 		}
 
 		public function getCountsByProjectID($project_id)
@@ -261,14 +261,8 @@
 				$crit->addWhere(self::MILESTONE, $milestone_id);
 			}
 			$crit->addWhere(self::DELETED, 0);
-			if ($exclude_tasks)
-			{
-				$crit->addJoin(TBGIssueTypesTable::getTable(), TBGIssueTypesTable::ID, self::ISSUE_TYPE);
-				$crit->addWhere(TBGIssueTypesTable::TASK, false);
-			}
 			
 			$crit2 = clone $crit;
-			
 			$crit->addWhere(self::STATE, TBGIssue::STATE_CLOSED);
 			$crit2->addWhere(self::STATE, TBGIssue::STATE_OPEN);
 			return array($this->doCount($crit), $this->doCount($crit2));

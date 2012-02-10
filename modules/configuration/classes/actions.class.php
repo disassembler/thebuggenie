@@ -2,7 +2,65 @@
 
 	class configurationActions extends TBGAction
 	{
+
+		const CSV_TYPE_ISSUES = 'issues';
+		const CSV_TYPE_CLIENTS = 'clients';
+		const CSV_TYPE_PROJECTS = 'projects';
+
+		const CSV_PROJECT_NAME             = 'name';
+		const CSV_PROJECT_PREFIX           = 'prefix';
+		const CSV_PROJECT_SCRUM            = 'scrum';
+		const CSV_PROJECT_OWNER            = 'owner';
+		const CSV_PROJECT_OWNER_TYPE       = 'owner_type';
+		const CSV_PROJECT_LEAD             = 'lead';
+		const CSV_PROJECT_LEAD_TYPE        = 'lead_type';
+		const CSV_PROJECT_QA               = 'qa';
+		const CSV_PROJECT_QA_TYPE          = 'qa_type';
+		const CSV_PROJECT_DESCR            = 'descr';
+		const CSV_PROJECT_DOC_URL          = 'doc_url';
+		const CSV_PROJECT_FREELANCE        = 'freelance';
+		const CSV_PROJECT_EN_BUILDS        = 'en_builds';
+		const CSV_PROJECT_EN_COMPS         = 'en_comps';
+		const CSV_PROJECT_EN_EDITIONS      = 'en_editions';
+		const CSV_PROJECT_WORKFLOW_ID      = 'workflow_id';
+		const CSV_PROJECT_CLIENT           = 'client';
+		const CSV_PROJECT_SHOW_SUMMARY     = 'show_summary';
+		const CSV_PROJECT_SUMMARY_TYPE     = 'summary_type';
+		const CSV_PROJECT_ISSUETYPE_SCHEME = 'issuetype_scheme';
+		const CSV_PROJECT_ALLOW_REPORTING  = 'allow_reporting';
+		const CSV_PROJECT_AUTOASSIGN       = 'autoassign';
+
+		const CSV_CLIENT_NAME      = 'name';
+		const CSV_CLIENT_EMAIL     = 'email';
+		const CSV_CLIENT_TELEPHONE = 'telephone';
+		const CSV_CLIENT_FAX       = 'fax';
+		const CSV_CLIENT_WEBSITE   = 'website';
+
+		const CSV_ISSUE_TITLE           = 'title';
+		const CSV_ISSUE_PROJECT         = 'project';
+		const CSV_ISSUE_DESCR           = 'descr';
+		const CSV_ISSUE_REPRO           = 'repro';
+		const CSV_ISSUE_STATE           = 'state';
+		const CSV_ISSUE_STATUS          = 'status';
+		const CSV_ISSUE_POSTED_BY       = 'posted_by';
+		const CSV_ISSUE_OWNER           = 'owner';
+		const CSV_ISSUE_OWNER_TYPE      = 'owner_type';
+		const CSV_ISSUE_ASSIGNED        = 'assigned';
+		const CSV_ISSUE_ASSIGNED_TYPE   = 'assigned_type';
+		const CSV_ISSUE_RESOLUTION      = 'resolution';
+		const CSV_ISSUE_ISSUE_TYPE      = 'issue_type';
+		const CSV_ISSUE_PRIORITY        = 'priority';
+		const CSV_ISSUE_CATEGORY        = 'category';
+		const CSV_ISSUE_SEVERITY        = 'severity';
+		const CSV_ISSUE_REPRODUCIBILITY = 'reproducability';
+		const CSV_ISSUE_VOTES           = 'votes';
+		const CSV_ISSUE_PERCENTAGE      = 'percentage';
+		const CSV_ISSUE_BLOCKING        = 'blocking';
+		const CSV_ISSUE_MILESTONE       = 'milestone';
 		
+		const CSV_IDENTIFIER_TYPE_USER  = 1;
+		const CSV_IDENTIFIER_TYPE_TEAM  = 2;
+
 		/**
 		 * Pre-execute function
 		 * 
@@ -361,7 +419,7 @@
 				$this->forward403unless($this->access_level == TBGSettings::ACCESS_FULL);
 				$settings = array(TBGSettings::SETTING_THEME_NAME, TBGSettings::SETTING_ALLOW_USER_THEMES, TBGSettings::SETTING_ONLINESTATE, TBGSettings::SETTING_ENABLE_GRAVATARS,
 								TBGSettings::SETTING_OFFLINESTATE, TBGSettings::SETTING_AWAYSTATE, TBGSettings::SETTING_AWAYSTATE, TBGSettings::SETTING_IS_SINGLE_PROJECT_TRACKER,
-								TBGSettings::SETTING_REQUIRE_LOGIN, TBGSettings::SETTING_ALLOW_REGISTRATION, TBGSettings::SETTING_USER_GROUP,
+								TBGSettings::SETTING_REQUIRE_LOGIN, TBGSettings::SETTING_ALLOW_REGISTRATION, TBGSettings::SETTING_ALLOW_OPENID, TBGSettings::SETTING_USER_GROUP,
 								TBGSettings::SETTING_RETURN_FROM_LOGIN, TBGSettings::SETTING_RETURN_FROM_LOGOUT, TBGSettings::SETTING_IS_PERMISSIVE_MODE,
 								TBGSettings::SETTING_REGISTRATION_DOMAIN_WHITELIST, TBGSettings::SETTING_SHOW_PROJECTS_OVERVIEW, TBGSettings::SETTING_KEEP_COMMENT_TRAIL_CLEAN,
 								TBGSettings::SETTING_TBG_NAME, TBGSettings::SETTING_TBG_TAGLINE, TBGSettings::SETTING_DEFAULT_CHARSET, TBGSettings::SETTING_DEFAULT_LANGUAGE,
@@ -706,6 +764,7 @@
 							$customtype = new TBGCustomDatatype();
 							$customtype->setName($request['name']);
 							$customtype->setItemdata($request['label']);
+							$customtype->setDescription($request['label']);
 							$customtype->setType($request['field_type']);
 							$customtype->save();
 							return $this->renderJSON(array('title' => TBGContext::getI18n()->__('The custom field was added'), 'content' => $this->getComponentHTML('issuefields_customtype', array('type_key' => $customtype->getKey(), 'type' => $customtype))));
@@ -812,7 +871,7 @@
 		 */
 		public function runGetUserEditForm(TBGRequest $request)
 		{
-			return $this->renderJSON(array("content" => get_template_html('finduser_row_editable', array('user' => TBGContext::factory()->TBGUser($request['user_id'])))));
+			return $this->renderJSON(array("content" => $this->getTemplateHtml('finduser_row_editable', array('user' => TBGContext::factory()->TBGUser($request['user_id'])))));
 		}	
 			
 		/**
@@ -2119,7 +2178,7 @@
 					throw new Exception(TBGContext::getI18n()->__("You cannot edit this client"));
 				}
 				
-				if (TBGClient::doesClientNameExist(trim($request['client_name'])) && $request['client_name'] != $client->getName())
+				if (TBGClient::doesClientNameExist(trim($request['client_name'])) && strtolower($request['client_name']) != strtolower($client->getName()))
 				{
 					throw new Exception(TBGContext::getI18n()->__("Please enter a client name that doesn't already exist"));
 				}
@@ -2145,6 +2204,12 @@
 			return $this->renderJSON(array('content' => $content));
 		}
 		
+		public function runGetIDsForImportCSV(TBGRequest $request)
+		{
+			$content = $this->getTemplateHTML('configuration/import_ids');
+			return $this->renderJSON(array('content' => $content));
+		}
+		
 		public function runDoImportCSV(TBGRequest $request)
 		{
 			try
@@ -2153,280 +2218,85 @@
 				{
 					throw new Exception(TBGContext::getI18n()->__('No data supplied to import'));
 				}
-				
-				// Split data into individual lines
-				$data = str_replace("\r\n", "\n", $request['csv_data']);
-				$data = explode("\n", $data);
-				if (count($data) <= 1)
+
+				$csv = str_replace("\r\n", "\n", $request['csv_data']);
+				$csv = html_entity_decode($csv);
+
+				$headerrow = null;
+				$data = array();
+				$errors = array();
+
+				// Parse CSV
+				$handle = fopen("php://memory", 'r+');
+				fputs($handle, $csv);
+				rewind($handle);
+				$i = 0;
+				while (($row = fgetcsv($handle, 1000)) !== false)
+				{
+					if (!$headerrow) {
+						$headerrow = $row;
+					} else {
+						if (count($headerrow) == count($row)) {
+							$data[] = array_combine($headerrow, $row);
+						} else {
+							$errors[] = TBGContext::getI18n()->__('Row %row% does not have the same number of elements as the header row', array('%row%' => $i));
+						}
+					}
+					$i++;
+				}
+				fclose($handle);
+
+				if (empty($data))
 				{
 					throw new Exception(TBGContext::getI18n()->__('Insufficient data to import'));
 				}
-				$headerrow = $data[0];
-				$headerrow = html_entity_decode($headerrow, ENT_QUOTES);
-				$headerrow = explode(',', $headerrow);
-				$headerrow2 = array();
-				for ($i = 0; $i != count($headerrow); $i++)
+
+				// Verify required columns are present based on type
+				$requiredcols = array(
+					self::CSV_TYPE_CLIENTS  => array(self::CSV_CLIENT_NAME),
+					self::CSV_TYPE_PROJECTS => array(self::CSV_PROJECT_NAME),
+					self::CSV_TYPE_ISSUES   => array(self::CSV_ISSUE_TITLE, self::CSV_ISSUE_PROJECT, self::CSV_ISSUE_ISSUE_TYPE),
+				);
+
+				if (!isset($requiredcols[$request['type']]))
 				{
-					$headerrow2[$i] = trim($headerrow[$i], '" ');
+					throw new Exception('Sorry, this type is unimplemented');
 				}
-				
-				$errors = array();
-				
-				// inspect for correct rows
-				switch ($request['type'])
-				{
-					case 'clients':
-						$namecol = null;
-						$emailcol = null;
-						$telephonecol = null;
-						$faxcol = null;
-						$websitecol = null;
-						
-						for ($i = 0; $i != count($headerrow2); $i++)
-						{
-							if ($headerrow2[$i] == 'name'):
-								$namecol = $i;
-							elseif ($headerrow2[$i] == 'email'):
-								$emailcol = $i;
-							elseif ($headerrow2[$i] == 'telephone'):
-								$telephonecol = $i;
-							elseif ($headerrow2[$i] == 'fax'):
-								$faxcol = $i;
-							elseif ($headerrow2[$i] == 'website'):
-								$websitecol = $i;
-							endif;
-						}
-						
-						$rowlength = count($headerrow2);
-						
-						if ($namecol === null)
-						{
-							$errors[] = TBGContext::getI18n()->__('Required column \'%col%\' not found in header row', array('%col%' => 'name'));
-						}
-						
-						break;
-					case 'projects':
-						$namecol = null;
-						$prefix = null;
-						$scrum = null;
-						$owner = null;
-						$owner_type = null;
-						$lead = null;
-						$lead_type = null;
-						$qa = null;
-						$qa_type = null;
-						$descr = null;
-						$doc_url = null;
-						$freelance = null;
-						$en_builds = null;
-						$en_comps = null;
-						$en_editions = null;
-						$workflow_id = null;
-						$client = null;
-						$show_summary = null;
-						$summary_type = null;
-						$issuetype_scheme = null;
-						$allow_reporting = null;
-						$autoassign = null;
-						
-						for ($i = 0; $i != count($headerrow2); $i++)
-						{
-							if ($headerrow2[$i] == 'name'):
-								$namecol = $i;
-							elseif ($headerrow2[$i] == 'prefix'):
-								$prefix = $i;
-							elseif ($headerrow2[$i] == 'scrum'):
-								$scrum = $i;
-							elseif ($headerrow2[$i] == 'owner'):
-								$owner = $i;
-							elseif ($headerrow2[$i] == 'owner_type'):
-								$owner_type = $i;
-							elseif ($headerrow2[$i] == 'lead'):
-								$lead = $i;
-							elseif ($headerrow2[$i] == 'lead_type'):
-								$lead_type = $i;
-							elseif ($headerrow2[$i] == 'qa'):
-								$qa = $i;
-							elseif ($headerrow2[$i] == 'qa_type'):
-								$qa_type = $i;
-							elseif ($headerrow2[$i] == 'descr'):
-								$descr = $i;
-							elseif ($headerrow2[$i] == 'doc_url'):
-								$doc_url = $i;
-							elseif ($headerrow2[$i] == 'freelance'):
-								$freelance = $i;
-							elseif ($headerrow2[$i] == 'en_builds'):
-								$en_builds = $i;
-							elseif ($headerrow2[$i] == 'en_comps'):
-								$en_comps = $i;
-							elseif ($headerrow2[$i] == 'en_editions'):
-								$en_editions = $i;
-							elseif ($headerrow2[$i] == 'workflow_id'):
-								$workflow_id = $i;
-							elseif ($headerrow2[$i] == 'client'):
-								$client = $i;
-							elseif ($headerrow2[$i] == 'show_summary'):
-								$show_summary = $i;
-							elseif ($headerrow2[$i] == 'summary_type'):
-								$summary_type = $i;
-							elseif ($headerrow2[$i] == 'issuetype_scheme'):
-								$issuetype_scheme = $i;
-							elseif ($headerrow2[$i] == 'allow_reporting'):
-								$allow_reporting = $i;
-							elseif ($headerrow2[$i] == 'autoassign'):
-								$autoassign = $i;
-							endif;
-						}
-						
-						$rowlength = count($headerrow2);
-						
-						if ($namecol === null)
-						{
-							$errors[] = TBGContext::getI18n()->__('Required column \'%col%\' not found in header row', array('%col%' => 'name'));
-						}
-						
-						break;
-					case 'issues':
-						$title = null;
-						$project = null;
-						$descr = null;
-						$repro = null;
-						$state = null;
-						$status = null;
-						$posted_by = null;
-						$owner = null;
-						$owner_type = null;
-						$assigned = null;
-						$assigned_type = null;
-						$resolution = null;
-						$issue_type = null;
-						$priority = null;
-						$category = null;
-						$severity = null;
-						$reproducability = null;
-						$votes = null;
-						$percentage = null;
-						$blocking = null;
-						$milestone = null;
-						
-						for ($i = 0; $i != count($headerrow2); $i++)
-						{
-							if ($headerrow2[$i] == 'title'):
-								$title = $i;
-							elseif ($headerrow2[$i] == 'project'):
-								$project = $i;
-							elseif ($headerrow2[$i] == 'assigned'):
-								$assigned = $i;
-							elseif ($headerrow2[$i] == 'repro'):
-								$repro = $i;
-							elseif ($headerrow2[$i] == 'state'):
-								$state = $i;
-							elseif ($headerrow2[$i] == 'status'):
-								$status = $i;
-							elseif ($headerrow2[$i] == 'posted_by'):
-								$posted_by = $i;
-							elseif ($headerrow2[$i] == 'owner'):
-								$owner = $i;
-							elseif ($headerrow2[$i] == 'owner_type'):
-								$owner_type = $i;
-							elseif ($headerrow2[$i] == 'assigned'):
-								$assigned = $i;
-							elseif ($headerrow2[$i] == 'assigned_type'):
-								$assigned_type = $i;
-							elseif ($headerrow2[$i] == 'resolution'):
-								$resolution = $i;
-							elseif ($headerrow2[$i] == 'issue_type'):
-								$issue_type = $i;
-							elseif ($headerrow2[$i] == 'priority'):
-								$priority = $i;
-							elseif ($headerrow2[$i] == 'category'):
-								$category = $i;
-							elseif ($headerrow2[$i] == 'severity'):
-								$severity = $i;
-							elseif ($headerrow2[$i] == 'reproducability'):
-								$reproducability = $i;
-							elseif ($headerrow2[$i] == 'votes'):
-								$votes = $i;
-							elseif ($headerrow2[$i] == 'percentage'):
-								$percentage = $i;
-							elseif ($headerrow2[$i] == 'blocking'):
-								$blocking = $i;
-							elseif ($headerrow2[$i] == 'type'):
-								$issue_type = $i;
-							elseif ($headerrow2[$i] == 'milestone'):
-								$milestone = $i;
-							endif;
-						}
-						
-						$rowlength = count($headerrow2);
-						
-						if ($title === null)
-						{
-							$errors[] = TBGContext::getI18n()->__('Required column \'%col%\' not found in header row', array('%col%' => 'title'));
-						}
-						
-						if ($project === null)
-						{
-							$errors[] = TBGContext::getI18n()->__('Required column \'%col%\' not found in header row', array('%col%' => 'project'));
-						}
-										
-						if ($issue_type === null)
-						{
-							$errors[] = TBGContext::getI18n()->__('Required column \'%col%\' not found in header row', array('%col%' => 'issue_type'));
-						}
-						
-						break;
-					default:
-						throw new Exception('Sorry, this type is unimplemented');
-						break;
-				}
-				
-				// Check if rows are long enough
-				for ($i = 1; $i != count($data); $i++)
-				{
-					$activerow = $data[$i];
-					$activerow = html_entity_decode($activerow, ENT_QUOTES);
-					$activerow = explode(',', $activerow);
-					
-					if (count($activerow) != $rowlength)
+
+				foreach ($requiredcols[$request['type']] as $col) {
+					if (!in_array($col, $headerrow))
 					{
-						$errors[] = TBGContext::getI18n()->__('Row %row% does not have the same number of elements as the header row', array('%row%' => $i+1));
+						$errors[] = TBGContext::getI18n()->__('Required column \'%col%\' not found in header row', array('%col%' => $col));
 					}
 				}
 				
-				reset($data);
-				
-				// Check if fields are empty
-				for ($i = 1; $i != count($data); $i++)
+				// Check if rows are long enough and fields are not empty
+				for ($i = 0; $i != count($data); $i++)
 				{
 					$activerow = $data[$i];
-					$activerow = html_entity_decode($activerow, ENT_QUOTES);
-					$activerow = explode(',', $activerow);
-					
-					for ($j = 0; $j != count($activerow); $j++)
+
+					// Check if fields are empty
+					foreach ($activerow as $col => $val)
 					{
-						if ($activerow[$j] == '' || $activerow[$j] == '""')
+						if (strlen($val) == 0)
 						{
-							$errors[] = TBGContext::getI18n()->__('Row %row% column %col% has no value', array('%col%' => $j+1, '%row%' => $i+1));
+							$errors[] = TBGContext::getI18n()->__('Row %row% column %col% has no value', array('%col%' => $col, '%row%' => $i+1));
 						}
 					}
 				}
-				
+
 				if (count($errors) == 0)
 				{
 					// Check if fields are valid
 					switch ($request['type'])
 					{
-						case 'projects':
-							for ($i = 1; $i != count($data); $i++)
+						case self::CSV_TYPE_PROJECTS:
+							for ($i = 0; $i != count($data); $i++)
 							{
 								$activerow = $data[$i];
-								$activerow = html_entity_decode($activerow, ENT_QUOTES);
-								$activerow = explode(',', $activerow);
-								
+
 								// Check if project exists
-								$key = trim($activerow[$namecol], '" ');
-								$key = str_replace(' ', '', $key);
+								$key = str_replace(' ', '', $activerow[self::CSV_PROJECT_NAME]);
 								$key = mb_strtolower($key);
 								
 								$tmp = TBGProject::getByKey($key);
@@ -2437,59 +2307,65 @@
 								}
 								
 								// First off are booleans
-								$boolitems = array($scrum, $allow_reporting, $autoassign, $freelance, $en_builds, $en_comps, $en_editions, $show_summary);
+								$boolitems = array(self::CSV_PROJECT_SCRUM, self::CSV_PROJECT_ALLOW_REPORTING, self::CSV_PROJECT_AUTOASSIGN, self::CSV_PROJECT_FREELANCE,
+									self::CSV_PROJECT_EN_BUILDS, self::CSV_PROJECT_EN_COMPS, self::CSV_PROJECT_EN_EDITIONS, self::CSV_PROJECT_SHOW_SUMMARY);
 								
 								foreach ($boolitems as $boolitem)
 								{
-									if ($boolitem !== null && trim($activerow[$boolitem], '"') != 0 && trim($activerow[$boolitem], '"') != 1)
+									if (array_key_exists($boolitem, $activerow) && isset($activerow[$boolitem]) && $activerow[$boolitem] != 1 && $activerow[$boolitem] != 0)
 									{
-											$errors[] = TBGContext::getI18n()->__('Row %row% column %col%: invalid value (must be 1/0)', array('%col%' => $boolitem+1, '%row%' => $i+1));
+											$errors[] = TBGContext::getI18n()->__('Row %row% column %col%: invalid value (must be 1/0)', array('%col%' => $boolitem, '%row%' => $i+1));
 									}
 								}
 								
 								// Now identifiables
-								$identifiableitems = array(array($qa, $qa_type), array($lead, $lead_type), array($owner, $owner_type));
+								$identifiableitems = array(
+									array(self::CSV_PROJECT_QA, self::CSV_PROJECT_QA_TYPE),
+									array(self::CSV_PROJECT_LEAD, self::CSV_PROJECT_LEAD_TYPE),
+									array(self::CSV_PROJECT_OWNER, self::CSV_PROJECT_OWNER_TYPE)
+								);
 								
 								foreach ($identifiableitems as $identifiableitem)
 								{
-									if (($identifiableitem[0] === null || $identifiableitem[1] === null) && !($identifiableitem[0] === null && $identifiableitem[1] === null))
+
+									if ((!array_key_exists($identifiableitem[1], $activerow) && array_key_exists($identifiableitem[0], $activerow)) || (array_key_exists($identifiableitem[1], $activerow) && !array_key_exists($identifiableitem[0], $activerow)))
 									{
 											$errors[] = TBGContext::getI18n()->__('Row %row%: Both the type and item ID must be supplied for owner/lead/qa fields', array('%row%' => $i+1));
 											continue;
 									}
 									
-									if ($identifiableitem[1] !== null && trim($activerow[$identifiableitem[1]], '"') != 1 && trim($activerow[$identifiableitem[1]], '"') != 2)
+									if (array_key_exists($identifiableitem[1], $activerow) && isset($activerow[$identifiableitem[1]]) !== null && $activerow[$identifiableitem[1]] != self::CSV_IDENTIFIER_TYPE_USER && $activerow[$identifiableitem[1]] != self::CSV_IDENTIFIER_TYPE_TEAM)
 									{
-											$errors[] = TBGContext::getI18n()->__('Row %row% column %col%: invalid value (must be 1 for a user or 2 for a team)', array('%col%' => $identifiableitem[1]+1, '%row%' => $i+1));
+											$errors[] = TBGContext::getI18n()->__('Row %row% column %col%: invalid value (must be 1 for a user or 2 for a team)', array('%col%' => $identifiableitem[1], '%row%' => $i+1));
 									}
 									
-									if ($identifiableitem[0] !== null && !(is_numeric(trim($activerow[$identifiableitem[0]], '"'))))
+									if (array_key_exists($identifiableitem[0], $activerow) && isset($activerow[$identifiableitem[0]]) && !is_numeric($activerow[$identifiableitem[0]]))
 									{
-											$errors[] = TBGContext::getI18n()->__('Row %row% column %col%: invalid value (must be a number)', array('%col%' => $identifiableitem[0]+1, '%row%' => $i+1));
+											$errors[] = TBGContext::getI18n()->__('Row %row% column %col%: invalid value (must be a number)', array('%col%' => $identifiableitem[0], '%row%' => $i+1));
 									}
-									elseif ($identifiableitem[0] !== null && (is_numeric(trim($activerow[$identifiableitem[0]], '"'))))
+									elseif (array_key_exists($identifiableitem[0], $activerow) && isset($activerow[$identifiableitem[0]]) && is_numeric($activerow[$identifiableitem[0]]))
 									{
 										// check if they exist
-										switch (trim($activerow[$identifiableitem[1]], '"'))
+										switch ($activerow[$identifiableitem[1]])
 										{
-											case 1:
+											case self::CSV_IDENTIFIER_TYPE_USER:
 												try
 												{
-													TBGContext::factory()->TBGUser(trim($activerow[$identifiableitem[0]], '" '));
+													TBGContext::factory()->TBGUser($activerow[$identifiableitem[0]]);
 												}
 												catch (Exception $e)
 												{
-													$errors[] = TBGContext::getI18n()->__('Row %row% column %col%: user does not exist', array('%col%' => $identifiableitem[0]+1, '%row%' => $i+1));
+													$errors[] = TBGContext::getI18n()->__('Row %row% column %col%: user does not exist', array('%col%' => $identifiableitem[0], '%row%' => $i+1));
 												}
 												break;
-											case 2:
+											case self::CSV_IDENTIFIER_TYPE_TEAM:
 												try
 												{
-													TBGContext::factory()->TBGTeam(trim($activerow[$identifiableitem[0]], '" '));
+													TBGContext::factory()->TBGTeam($activerow[$identifiableitem[0]]);
 												}
 												catch (Exception $e)
 												{
-													$errors[] = TBGContext::getI18n()->__('Row %row% column %col%: team does not exist', array('%col%' => $identifiableitem[0]+1, '%row%' => $i+1));
+													$errors[] = TBGContext::getI18n()->__('Row %row% column %col%: team does not exist', array('%col%' => $identifiableitem[0], '%row%' => $i+1));
 												}
 												break;
 										}
@@ -2497,164 +2373,165 @@
 								}
 								
 								// Now check client exists
-								if ($client !== null)
+								if (array_key_exists(self::CSV_PROJECT_CLIENT, $activerow) && isset($activerow[self::CSV_PROJECT_CLIENT]))
 								{
-									if (!is_numeric(trim($activerow[$client], '"')))
+									if (!is_numeric($activerow[self::CSV_PROJECT_CLIENT]))
 									{
-										$errors[] = TBGContext::getI18n()->__('Row %row% column %col%: invalid value (must be a number)', array('%col%' => $client+1, '%row%' => $i+1));
+										$errors[] = TBGContext::getI18n()->__('Row %row% column %col%: invalid value (must be a number)', array('%col%' => self::CSV_PROJECT_CLIENT, '%row%' => $i+1));
 									}
 									else
 									{
 										try
 										{
-											TBGContext::factory()->TBGClient(trim($activerow[$client], '" '));
+											TBGContext::factory()->TBGClient($activerow[self::CSV_PROJECT_CLIENT]);
 										}
 										catch (Exception $e)
 										{
-											$errors[] = TBGContext::getI18n()->__('Row %row% column %col%: client does not exist', array('%col%' => $client+1, '%row%' => $i+1));
+											$errors[] = TBGContext::getI18n()->__('Row %row% column %col%: client does not exist', array('%col%' => self::CSV_PROJECT_CLIENT, '%row%' => $i+1));
 										}
 									}
 								}
 								
 								// Now check if workflow exists
-								if ($workflow_id !== null)
+								if (array_key_exists(self::CSV_PROJECT_WORKFLOW_ID, $activerow) && isset($activerow[self::CSV_PROJECT_WORKFLOW_ID]))
 								{
-									if (!is_numeric(trim($activerow[$workflow_id], '"')))
+									if (!is_numeric($activerow[self::CSV_PROJECT_WORKFLOW_ID]))
 									{
-										$errors[] = TBGContext::getI18n()->__('Row %row% column %col%: invalid value (must be a number)', array('%col%' => $workflow_id+1, '%row%' => $i+1));
+										$errors[] = TBGContext::getI18n()->__('Row %row% column %col%: invalid value (must be a number)', array('%col%' => self::CSV_PROJECT_WORKFLOW_ID, '%row%' => $i+1));
 									}
 									else
 									{
 										try
 										{
-											TBGContext::factory()->TBGWorkflowScheme(trim($activerow[$workflow_id], '" '));
+											TBGContext::factory()->TBGWorkflowScheme($activerow[self::CSV_PROJECT_WORKFLOW_ID]);
 										}
 										catch (Exception $e)
 										{
-											$errors[] = TBGContext::getI18n()->__('Row %row% column %col%: workflow scheme does not exist', array('%col%' => $workflow_id+1, '%row%' => $i+1));
+											$errors[] = TBGContext::getI18n()->__('Row %row% column %col%: workflow scheme does not exist', array('%col%' => self::CSV_PROJECT_WORKFLOW_ID, '%row%' => $i+1));
 										}
 									}
 								}
 								
 								// Now check if issuetype scheme
-								if ($issuetype_scheme !== null)
+								if (array_key_exists(self::CSV_PROJECT_ISSUETYPE_SCHEME, $activerow) && isset($activerow[self::CSV_PROJECT_ISSUETYPE_SCHEME]))
 								{
-									if (!is_numeric(trim($activerow[$issuetype_scheme], '"')))
+									if (!is_numeric($activerow[self::CSV_PROJECT_ISSUETYPE_SCHEME]))
 									{
-										$errors[] = TBGContext::getI18n()->__('Row %row% column %col%: invalid value (must be a number)', array('%col%' => $issuetype_scheme+1, '%row%' => $i+1));
+										$errors[] = TBGContext::getI18n()->__('Row %row% column %col%: invalid value (must be a number)', array('%col%' => self::CSV_PROJECT_ISSUETYPE_SCHEME, '%row%' => $i+1));
 									}
 									else
 									{
 										try
 										{
-											TBGContext::factory()->TBGIssuetypeScheme(trim($activerow[$issuetype_scheme], '" '));
+											TBGContext::factory()->TBGIssuetypeScheme($activerow[self::CSV_PROJECT_ISSUETYPE_SCHEME]);
 										}
 										catch (Exception $e)
 										{
-											$errors[] = TBGContext::getI18n()->__('Row %row% column %col%: issuetype scheme does not exist', array('%col%' => $issuetype_scheme+1, '%row%' => $i+1));
+											$errors[] = TBGContext::getI18n()->__('Row %row% column %col%: issuetype scheme does not exist', array('%col%' => self::CSV_PROJECT_ISSUETYPE_SCHEME, '%row%' => $i+1));
 										}
 									}
 								}
 								
 								// Finally check if the summary type is valid. At this point, your error list has probably become so big it has eaten up all your available RAM...
-								if ($summary_type !== null)
+								if (array_key_exists(self::CSV_PROJECT_SUMMARY_TYPE, $activerow) && isset($activerow[self::CSV_PROJECT_SUMMARY_TYPE]))
 								{
-									if (trim($activerow[$summary_type], '"') != 'issuetypes' && trim($activerow[$summary_type], '"') != 'milestones')
+									if ($activerow[self::CSV_PROJECT_SUMMARY_TYPE] != 'issuetypes' && $activerow[self::CSV_PROJECT_SHOW_SUMMARY] != 'milestones')
 									{
-										$errors[] = TBGContext::getI18n()->__('Row %row% column %col%: invalid value (must be \'issuetypes\' or \'milestones\')', array('%col%' => $summary_type+1, '%row%' => $i+1));
+										$errors[] = TBGContext::getI18n()->__('Row %row% column %col%: invalid value (must be \'issuetypes\' or \'milestones\')', array('%col%' => self::CSV_PROJECT_SUMMARY_TYPE, '%row%' => $i+1));
 									}
 								}
 							}
 							break;
-						case 'issues':
-							for ($i = 1; $i != count($data); $i++)
+						case self::CSV_TYPE_ISSUES:
+							for ($i = 0; $i != count($data); $i++)
 							{
 								$activerow = $data[$i];
-								$activerow = html_entity_decode($activerow, ENT_QUOTES);
-								$activerow = explode(',', $activerow);
-								
+
 								// Check if project exists
 								try
 								{
-									$prjtmp = TBGContext::factory()->TBGProject($activerow[$project]);
+									$prjtmp = TBGContext::factory()->TBGProject($activerow[self::CSV_ISSUE_PROJECT]);
 								}
 								catch (Exception $e)
 								{
-									$errors[] = TBGContext::getI18n()->__('Row %row% column %col%: Project does not exist', array('%col%' => $project+1, '%row%' => $i+1));
+									$errors[] = TBGContext::getI18n()->__('Row %row% column %col%: Project does not exist', array('%col%' => self::CSV_ISSUE_PROJECT, '%row%' => $i+1));
 									break;
 								}
 								
 								// First off are booleans
-								$boolitems = array($state, $blocking);
+								$boolitems = array(self::CSV_ISSUE_STATE, self::CSV_ISSUE_BLOCKING);
 								
 								foreach ($boolitems as $boolitem)
 								{
-									if ($boolitem !== null && trim($activerow[$boolitem], '"') != 0 && trim($activerow[$boolitem], '"') != 1)
+									if (array_key_exists($boolitem, $activerow) && isset($activerow[$boolitem]) && $activerow[$boolitem] != 1 && $activerow[$boolitem] != 0)
 									{
-											$errors[] = TBGContext::getI18n()->__('Row %row% column %col%: invalid value (must be 1/0)', array('%col%' => $boolitem+1, '%row%' => $i+1));
+											$errors[] = TBGContext::getI18n()->__('Row %row% column %col%: invalid value (must be 1/0)', array('%col%' => $boolitem, '%row%' => $i+1));
 									}
 								}
 								
 								// Now numerics
-								$numericitems = array($votes, $percentage);
+								$numericitems = array(self::CSV_ISSUE_VOTES, self::CSV_ISSUE_PERCENTAGE);
 								
 								foreach ($numericitems as $numericitem)
 								{
-									if ($numericitem !== null && !(is_numeric(trim($activerow[$numericitem], '"'))))
+									if (array_key_exists($numericitem, $activerow) && isset($activerow[$numericitem]) && !(is_numeric($activerow[$numericitem])))
 									{
-											$errors[] = TBGContext::getI18n()->__('Row %row% column %col%: invalid value (must be a number)', array('%col%' => $numericitem+1, '%row%' => $i+1));
+											$errors[] = TBGContext::getI18n()->__('Row %row% column %col%: invalid value (must be a number)', array('%col%' => $numericitem, '%row%' => $i+1));
 									}
 								}
 								
 								// Percentage must be 0-100
-								if ($numericitem !== null && ((trim($activerow[$percentage], '"') < 0) || (trim($activerow[$percentage], '"') > 100)))
+								if (array_key_exists(self::CSV_ISSUE_PERCENTAGE, $activerow) && isset($activerow[self::CSV_ISSUE_PERCENTAGE]) && (($activerow[self::CSV_ISSUE_PERCENTAGE] < 0) || ($activerow[self::CSV_ISSUE_PERCENTAGE] > 100)))
 								{
-									$errors[] = TBGContext::getI18n()->__('Row %row% column %col%: Percentage must be from 0 to 100 inclusive', array('%col%' => $percentage+1, '%row%' => $i+1));
+									$errors[] = TBGContext::getI18n()->__('Row %row% column %col%: Percentage must be from 0 to 100 inclusive', array('%col%' => self::CSV_ISSUE_PERCENTAGE, '%row%' => $i+1));
 								}
 									
 								// Now identifiables
-								$identifiableitems = array(array($owner, $owner_type), array($assigned, $assigned_type));
+								$identifiableitems = array(
+									array(self::CSV_ISSUE_OWNER, self::CSV_ISSUE_OWNER_TYPE),
+									array(self::CSV_ISSUE_ASSIGNED, self::CSV_ISSUE_ASSIGNED_TYPE)
+								);
 								
 								foreach ($identifiableitems as $identifiableitem)
 								{
-									if (($identifiableitem[0] === null || $identifiableitem[1] === null) && !($identifiableitem[0] === null && $identifiableitem[1] === null))
+									if ((!array_key_exists($identifiableitem[1], $activerow) && array_key_exists($identifiableitem[0], $activerow)) || (array_key_exists($identifiableitem[1], $activerow) && !array_key_exists($identifiableitem[0], $activerow)))
 									{
 											$errors[] = TBGContext::getI18n()->__('Row %row%: Both the type and item ID must be supplied for owner/lead/qa fields', array('%row%' => $i+1));
 											continue;
 									}
 									
-									if ($identifiableitem[1] !== null && trim($activerow[$identifiableitem[1]], '"') != 1 && trim($activerow[$identifiableitem[1]], '"') != 2)
+									if (array_key_exists($identifiableitem[1], $activerow) && isset($activerow[$identifiableitem[1]]) && $activerow[$identifiableitem[1]] != self::CSV_IDENTIFIER_TYPE_USER && $activerow[$identifiableitem[1]] != self::CSV_IDENTIFIER_TYPE_TEAM)
 									{
-											$errors[] = TBGContext::getI18n()->__('Row %row% column %col%: invalid value (must be 1 for a user or 2 for a team)', array('%col%' => $identifiableitem[1]+1, '%row%' => $i+1));
+											$errors[] = TBGContext::getI18n()->__('Row %row% column %col%: invalid value (must be 1 for a user or 2 for a team)', array('%col%' => $identifiableitem[1], '%row%' => $i+1));
 									}
 									
-									if ($identifiableitem[0] !== null && !(is_numeric(trim($activerow[$identifiableitem[0]], '"'))))
+									if (array_key_exists($identifiableitem[0], $activerow) && isset($activerow[$identifiableitem[0]]) && !is_numeric($activerow[$identifiableitem[0]]))
 									{
-											$errors[] = TBGContext::getI18n()->__('Row %row% column %col%: invalid value (must be a number)', array('%col%' => $identifiableitem[0]+1, '%row%' => $i+1));
+											$errors[] = TBGContext::getI18n()->__('Row %row% column %col%: invalid value (must be a number)', array('%col%' => $identifiableitem[0], '%row%' => $i+1));
 									}
-									elseif ($identifiableitem[0] !== null && (is_numeric(trim($activerow[$identifiableitem[0]], '"'))))
+									elseif (array_key_exists($identifiableitem[0], $activerow) && isset($activerow[$identifiableitem[0]]) && is_numeric($activerow[$identifiableitem[0]]))
 									{
 										// check if they exist
-										switch (trim($activerow[$identifiableitem[1]], '"'))
+										switch ($activerow[$identifiableitem[1]])
 										{
-											case 1:
+											case self::CSV_IDENTIFIER_TYPE_USER:
 												try
 												{
-													TBGContext::factory()->TBGUser(trim($activerow[$identifiableitem[0]], '" '));
+													TBGContext::factory()->TBGUser($activerow[$identifiableitem[0]]);
 												}
 												catch (Exception $e)
 												{
-													$errors[] = TBGContext::getI18n()->__('Row %row% column %col%: user does not exist', array('%col%' => $identifiableitem[0]+1, '%row%' => $i+1));
+													$errors[] = TBGContext::getI18n()->__('Row %row% column %col%: user does not exist', array('%col%' => $identifiableitem[0], '%row%' => $i+1));
 												}
 												break;
-											case 2:
+											case self::CSV_IDENTIFIER_TYPE_TEAM:
 												try
 												{
-													TBGContext::factory()->TBGTeam(trim($activerow[$identifiableitem[0]], '" '));
+													TBGContext::factory()->TBGTeam($activerow[$identifiableitem[0]]);
 												}
 												catch (Exception $e)
 												{
-													$errors[] = TBGContext::getI18n()->__('Row %row% column %col%: team does not exist', array('%col%' => $identifiableitem[0]+1, '%row%' => $i+1));
+													$errors[] = TBGContext::getI18n()->__('Row %row% column %col%: team does not exist', array('%col%' => $identifiableitem[0], '%row%' => $i+1));
 												}
 												break;
 										}
@@ -2662,187 +2539,187 @@
 								}
 								
 								// Now check user exists for postedby
-								if ($posted_by !== null)
+								if (array_key_exists(self::CSV_ISSUE_POSTED_BY, $activerow) && isset($activerow[self::CSV_ISSUE_POSTED_BY]))
 								{
-									if (!is_numeric(trim($activerow[$posted_by], '"')))
+									if (!is_numeric($activerow[self::CSV_ISSUE_POSTED_BY]))
 									{
-										$errors[] = TBGContext::getI18n()->__('Row %row% column %col%: invalid value (must be a number)', array('%col%' => $posted_by+1, '%row%' => $i+1));
+										$errors[] = TBGContext::getI18n()->__('Row %row% column %col%: invalid value (must be a number)', array('%col%' => self::CSV_ISSUE_POSTED_BY, '%row%' => $i+1));
 									}
 									else
 									{
 										try
 										{
-											TBGContext::factory()->TBGUser(trim($activerow[$posted_by], '" '));
+											TBGContext::factory()->TBGUser($activerow[self::CSV_ISSUE_POSTED_BY]);
 										}
 										catch (Exception $e)
 										{
-											$errors[] = TBGContext::getI18n()->__('Row %row% column %col%: user does not exist', array('%col%' => $posted_by+1, '%row%' => $i+1));
+											$errors[] = TBGContext::getI18n()->__('Row %row% column %col%: user does not exist', array('%col%' => self::CSV_ISSUE_POSTED_BY, '%row%' => $i+1));
 										}
 									}
 								}
 								
 								// Now check milestone exists and is valid
-								if ($milestone !== null)
+								if (array_key_exists(self::CSV_ISSUE_MILESTONE, $activerow) && isset($activerow[self::CSV_ISSUE_MILESTONE]))
 								{
-									if (!is_numeric(trim($activerow[$milestone], '"')))
+									if (!is_numeric($activerow[self::CSV_ISSUE_MILESTONE]))
 									{
-										$errors[] = TBGContext::getI18n()->__('Row %row% column %col%: invalid value (must be a number)', array('%col%' => $milestone+1, '%row%' => $i+1));
+										$errors[] = TBGContext::getI18n()->__('Row %row% column %col%: invalid value (must be a number)', array('%col%' => self::CSV_ISSUE_MILESTONE, '%row%' => $i+1));
 									}
 									else
 									{
 										try
 										{
-											$milestonetmp = TBGContext::factory()->TBGMilestone(trim($activerow[$milestone], '" '));
-											if ($milestonetmp->getProject()->getID() != $activerow[$project])
+											$milestonetmp = TBGContext::factory()->TBGMilestone($activerow[self::CSV_ISSUE_MILESTONE]);
+											if ($milestonetmp->getProject()->getID() != $activerow[self::CSV_ISSUE_PROJECT])
 											{
-												$errors[] = TBGContext::getI18n()->__('Row %row% column %col%: milestone does not apply to the specified project', array('%col%' => $milestone+1, '%row%' => $i+1));
+												$errors[] = TBGContext::getI18n()->__('Row %row% column %col%: milestone does not apply to the specified project', array('%col%' => self::CSV_ISSUE_MILESTONE, '%row%' => $i+1));
 											}
 										}
 										catch (Exception $e)
 										{
-											$errors[] = TBGContext::getI18n()->__('Row %row% column %col%: milestone does not exist', array('%col%' => $milestone+1, '%row%' => $i+1));
+											$errors[] = TBGContext::getI18n()->__('Row %row% column %col%: milestone does not exist', array('%col%' => self::CSV_ISSUE_MILESTONE, '%row%' => $i+1));
 										}
 									}
 								}
 								
 								// status
-								if ($status !== null)
+								if (array_key_exists(self::CSV_ISSUE_STATUS, $activerow) && isset($activerow[self::CSV_ISSUE_STATUS]))
 								{
-									if (!is_numeric(trim($activerow[$status], '"')))
+									if (!is_numeric($activerow[self::CSV_ISSUE_STATUS]))
 									{
-										$errors[] = TBGContext::getI18n()->__('Row %row% column %col%: invalid value (must be a number)', array('%col%' => $status+1, '%row%' => $i+1));
+										$errors[] = TBGContext::getI18n()->__('Row %row% column %col%: invalid value (must be a number)', array('%col%' => self::CSV_ISSUE_STATUS, '%row%' => $i+1));
 									}
 									else
 									{
 										try
 										{
-											TBGContext::factory()->TBGStatus(trim($activerow[$status], '" '));
+											TBGContext::factory()->TBGStatus($activerow[self::CSV_ISSUE_STATUS]);
 										}
 										catch (Exception $e)
 										{
-											$errors[] = TBGContext::getI18n()->__('Row %row% column %col%: status does not exist', array('%col%' => $status+1, '%row%' => $i+1));
+											$errors[] = TBGContext::getI18n()->__('Row %row% column %col%: status does not exist', array('%col%' => self::CSV_ISSUE_STATUS, '%row%' => $i+1));
 										}
 									}
 								}
 								
 								// resolution
-								if ($resolution !== null)
+								if (array_key_exists(self::CSV_ISSUE_RESOLUTION, $activerow) && isset($activerow[self::CSV_ISSUE_RESOLUTION]))
 								{
-									if (!is_numeric(trim($activerow[$resolution], '"')))
+									if (!is_numeric($activerow[self::CSV_ISSUE_RESOLUTION]))
 									{
-										$errors[] = TBGContext::getI18n()->__('Row %row% column %col%: invalid value (must be a number)', array('%col%' => $resolution+1, '%row%' => $i+1));
+										$errors[] = TBGContext::getI18n()->__('Row %row% column %col%: invalid value (must be a number)', array('%col%' => self::CSV_ISSUE_RESOLUTION, '%row%' => $i+1));
 									}
 									else
 									{
 										try
 										{
-											TBGContext::factory()->TBGResolution(trim($activerow[$resolution], '" '));
+											TBGContext::factory()->TBGResolution($activerow[self::CSV_ISSUE_RESOLUTION]);
 										}
 										catch (Exception $e)
 										{
-											$errors[] = TBGContext::getI18n()->__('Row %row% column %col%: resolution does not exist', array('%col%' => $resolution+1, '%row%' => $i+1));
+											$errors[] = TBGContext::getI18n()->__('Row %row% column %col%: resolution does not exist', array('%col%' => self::CSV_ISSUE_RESOLUTION, '%row%' => $i+1));
 										}
 									}
 								}
 								
 								// priority
-								if ($priority !== null)
+								if (array_key_exists(self::CSV_ISSUE_PRIORITY, $activerow) && isset($activerow[self::CSV_ISSUE_PRIORITY]))
 								{
-									if (!is_numeric(trim($activerow[$priority], '"')))
+									if (!is_numeric($activerow[self::CSV_ISSUE_PRIORITY]))
 									{
-										$errors[] = TBGContext::getI18n()->__('Row %row% column %col%: invalid value (must be a number)', array('%col%' => $priority+1, '%row%' => $i+1));
+										$errors[] = TBGContext::getI18n()->__('Row %row% column %col%: invalid value (must be a number)', array('%col%' => self::CSV_ISSUE_PRIORITY, '%row%' => $i+1));
 									}
 									else
 									{
 										try
 										{
-											TBGContext::factory()->TBGPriority(trim($activerow[$priority], '" '));
+											TBGContext::factory()->TBGPriority($activerow[self::CSV_ISSUE_PRIORITY]);
 										}
 										catch (Exception $e)
 										{
-											$errors[] = TBGContext::getI18n()->__('Row %row% column %col%: priority does not exist', array('%col%' => $priority+1, '%row%' => $i+1));
+											$errors[] = TBGContext::getI18n()->__('Row %row% column %col%: priority does not exist', array('%col%' => self::CSV_ISSUE_PRIORITY, '%row%' => $i+1));
 										}
 									}
 								}
 								
 								// category
-								if ($category !== null)
+								if (array_key_exists(self::CSV_ISSUE_CATEGORY, $activerow) && isset($activerow[self::CSV_ISSUE_CATEGORY]))
 								{
-									if (!is_numeric(trim($activerow[$category], '"')))
+									if (!is_numeric($activerow[self::CSV_ISSUE_CATEGORY]))
 									{
-										$errors[] = TBGContext::getI18n()->__('Row %row% column %col%: invalid value (must be a number)', array('%col%' => $category+1, '%row%' => $i+1));
+										$errors[] = TBGContext::getI18n()->__('Row %row% column %col%: invalid value (must be a number)', array('%col%' => self::CSV_ISSUE_CATEGORY, '%row%' => $i+1));
 									}
 									else
 									{
 										try
 										{
-											TBGContext::factory()->TBGCategory(trim($activerow[$category], '" '));
+											TBGContext::factory()->TBGCategory($activerow[self::CSV_ISSUE_CATEGORY]);
 										}
 										catch (Exception $e)
 										{
-											$errors[] = TBGContext::getI18n()->__('Row %row% column %col%: category does not exist', array('%col%' => $category+1, '%row%' => $i+1));
+											$errors[] = TBGContext::getI18n()->__('Row %row% column %col%: category does not exist', array('%col%' => self::CSV_ISSUE_CATEGORY, '%row%' => $i+1));
 										}
 									}
 								}
 								
 								// severity
-								if ($severity !== null)
+								if (array_key_exists(self::CSV_ISSUE_SEVERITY, $activerow) && isset($activerow[self::CSV_ISSUE_SEVERITY]))
 								{
-									if (!is_numeric(trim($activerow[$severity], '"')))
+									if (!is_numeric($activerow[self::CSV_ISSUE_SEVERITY]))
 									{
-										$errors[] = TBGContext::getI18n()->__('Row %row% column %col%: invalid value (must be a number)', array('%col%' => $severity+1, '%row%' => $i+1));
+										$errors[] = TBGContext::getI18n()->__('Row %row% column %col%: invalid value (must be a number)', array('%col%' => self::CSV_ISSUE_SEVERITY, '%row%' => $i+1));
 									}
 									else
 									{
 										try
 										{
-											TBGContext::factory()->TBGSeverity(trim($activerow[$severity], '" '));
+											TBGContext::factory()->TBGSeverity($activerow[self::CSV_ISSUE_SEVERITY]);
 										}
 										catch (Exception $e)
 										{
-											$errors[] = TBGContext::getI18n()->__('Row %row% column %col%: severity does not exist', array('%col%' => $severity+1, '%row%' => $i+1));
+											$errors[] = TBGContext::getI18n()->__('Row %row% column %col%: severity does not exist', array('%col%' => self::CSV_ISSUE_SEVERITY, '%row%' => $i+1));
 										}
 									}
 								}
 								
 								// reproducability
-								if ($reproducability !== null)
+								if (array_key_exists(self::CSV_ISSUE_REPRODUCIBILITY, $activerow) && isset($activerow[self::CSV_ISSUE_REPRODUCIBILITY]))
 								{
-									if (!is_numeric(trim($activerow[$reproducability], '"')))
+									if (!is_numeric($activerow[self::CSV_ISSUE_REPRODUCIBILITY]))
 									{
-										$errors[] = TBGContext::getI18n()->__('Row %row% column %col%: invalid value (must be a number)', array('%col%' => $reproducability+1, '%row%' => $i+1));
+										$errors[] = TBGContext::getI18n()->__('Row %row% column %col%: invalid value (must be a number)', array('%col%' => self::CSV_ISSUE_REPRODUCIBILITY, '%row%' => $i+1));
 									}
 									else
 									{
 										try
 										{
-											TBGContext::factory()->TBGReproducability(trim($activerow[$reproducability], '" '));
+											TBGContext::factory()->TBGReproducability($activerow[self::CSV_ISSUE_REPRODUCIBILITY]);
 										}
 										catch (Exception $e)
 										{
-											$errors[] = TBGContext::getI18n()->__('Row %row% column %col%: reproducability does not exist', array('%col%' => $reproducability+1, '%row%' => $i+1));
+											$errors[] = TBGContext::getI18n()->__('Row %row% column %col%: reproducability does not exist', array('%col%' => self::CSV_ISSUE_REPRODUCIBILITY, '%row%' => $i+1));
 										}
 									}
 								}
 								
 								// type
-								if ($issue_type !== null)
+								if (array_key_exists(self::CSV_ISSUE_ISSUE_TYPE, $activerow) && isset($activerow[self::CSV_ISSUE_ISSUE_TYPE]))
 								{
-									if (!is_numeric(trim($activerow[$issue_type], '"')))
+									if (!is_numeric($activerow[self::CSV_ISSUE_ISSUE_TYPE]))
 									{
-										$errors[] = TBGContext::getI18n()->__('Row %row% column %col%: invalid value (must be a number)', array('%col%' => $issue_type+1, '%row%' => $i+1));
+										$errors[] = TBGContext::getI18n()->__('Row %row% column %col%: invalid value (must be a number)', array('%col%' => self::CSV_ISSUE_ISSUE_TYPE, '%row%' => $i+1));
 									}
 									else
 									{
 										try
 										{
-											$typetmp = TBGContext::factory()->TBGIssuetype(trim($activerow[$issue_type], '" '));
+											$typetmp = TBGContext::factory()->TBGIssuetype($activerow[self::CSV_ISSUE_ISSUE_TYPE]);
 											if (!($prjtmp->getIssuetypeScheme()->isSchemeAssociatedWithIssuetype($typetmp)))
-												$errors[] = TBGContext::getI18n()->__('Row %row% column %col%: this project does not support issues of this type (%type%)', array('%type%' => $typetmp->getName(), '%col%' => $issue_type+1, '%row%' => $i+1));
+												$errors[] = TBGContext::getI18n()->__('Row %row% column %col%: this project does not support issues of this type (%type%)', array('%type%' => $typetmp->getName(), '%col%' => self::CSV_ISSUE_ISSUE_TYPE, '%row%' => $i+1));
 										}
 										catch (Exception $e)
 										{
-											$errors[] = TBGContext::getI18n()->__('Row %row% column %col%: issue type does not exist', array('%col%' => $issue_type+1, '%row%' => $i+1));
+											$errors[] = TBGContext::getI18n()->__('Row %row% column %col%: issue type does not exist', array('%col%' => self::CSV_ISSUE_ISSUE_TYPE, '%row%' => $i+1));
 										}
 									}
 								}
@@ -2878,28 +2755,27 @@
 			{
 				switch ($request['type'])
 				{
-					case 'clients':
-						for ($i = 1; $i != count($data); $i++)
+					case self::CSV_TYPE_CLIENTS:
+						for ($i = 0; $i != count($data); $i++)
 						{
 							try
 							{
 								$activerow = $data[$i];
-								$activerow = html_entity_decode($activerow, ENT_QUOTES);
-								$activerow = explode(',', $activerow);
+
 								$client = new TBGClient();
-								$client->setName(trim($activerow[$namecol], '" '));
-								
-								if ($emailcol !== null)
-									$client->setEmail(trim($activerow[$emailcol], '" '));
+								$client->setName($activerow[self::CSV_CLIENT_NAME]);
+
+								if (isset($activerow[self::CSV_CLIENT_EMAIL]))
+									$client->setEmail($activerow[self::CSV_CLIENT_EMAIL]);
 									
-								if ($websitecol !== null)
-									$client->setWebsite(trim($activerow[$websitecol], '" '));
+								if (isset($activerow[self::CSV_CLIENT_WEBSITE]))
+									$client->setWebsite($activerow[self::CSV_CLIENT_WEBSITE]);
 									
-								if ($faxcol !== null)
-									$client->setFax(trim($activerow[$faxcol], '" '));
+								if (isset($activerow[self::CSV_CLIENT_FAX]))
+									$client->setFax($activerow[self::CSV_CLIENT_FAX]);
 								
-								if ($telephonecol !== null)
-									$client->setTelephone(trim($activerow[$telephonecol], '" '));
+								if (isset($activerow[self::CSV_CLIENT_TELEPHONE]))
+									$client->setTelephone($activerow[self::CSV_CLIENT_TELEPHONE]);
 									
 								$client->save();
 							}
@@ -2909,134 +2785,129 @@
 							}
 						}
 						break;
-					case 'projects':
-						for ($i = 1; $i != count($data); $i++)
+					case self::CSV_TYPE_PROJECTS:
+						for ($i = 0; $i != count($data); $i++)
 						{
 							try
 							{
 								$activerow = $data[$i];
-								$activerow = html_entity_decode($activerow, ENT_QUOTES);
-								$activerow = explode(',', $activerow);
+
 								$project = new TBGProject();
-								$project->setName(trim($activerow[$namecol], '" '));
-								
-								if ($prefix !== null)
+								$project->setName($activerow[self::CSV_PROJECT_NAME]);
+
+								$project->save();
+
+								if (isset($activerow[self::CSV_PROJECT_PREFIX]))
 								{
-									$project->setPrefix(trim($activerow[$prefix], '" '));
+									$project->setPrefix($activerow[self::CSV_PROJECT_PREFIX]);
 									$project->setUsePrefix(true);
 								}
 									
-								if ($scrum !== null)
+								if (isset($activerow[self::CSV_PROJECT_SCRUM]))
 								{
-									if (trim($activerow[$websitecol], '"') == '1')
-										$project->setUseScrum(true);
+									if ($activerow[self::CSV_PROJECT_SCRUM] == '1')
+										$project->setUsesScrum(true);
 								}
 								
-								if ($owner !== null && $owner_type !== null)
+								if (isset($activerow[self::CSV_PROJECT_OWNER]) && isset($activerow[self::CSV_PROJECT_OWNER_TYPE]))
 								{
-									switch (trim($activerow[$owner_type], '"'))
+									switch ($activerow[self::CSV_PROJECT_OWNER_TYPE])
 									{
-										case TBGIdentifiableTypeClass::TYPE_USER:
-											$user = new TBGUser(trim($activerow[$owner], '" '));
+										case self::CSV_IDENTIFIER_TYPE_USER:
+											$user = new TBGUser($activerow[self::CSV_PROJECT_OWNER]);
 											$project->setOwner($user);
 											break;
-										case TBGIdentifiableTypeClass::TYPE_TEAM:
-											$team = new TBGTeam(trim($activerow[$owner], '" '));
+										case self::CSV_IDENTIFIER_TYPE_TEAM:
+											$team = new TBGTeam($activerow[self::CSV_PROJECT_OWNER]);
 											$project->setOwner($team);
 											break;
 									}
 								}
 								
-								if ($lead !== null && $lead_type !== null)
+								if (isset($activerow[self::CSV_PROJECT_LEAD]) && isset($activerow[self::CSV_PROJECT_LEAD_TYPE]))
 								{
-									switch (trim($activerow[$lead_type], '"'))
+									switch ($activerow[self::CSV_PROJECT_LEAD_TYPE])
 									{
-										case TBGIdentifiableTypeClass::TYPE_USER:
-											$user = new TBGUser(trim($activerow[$lead], '" '));
+										case self::CSV_IDENTIFIER_TYPE_USER:
+											$user = new TBGUser($activerow[self::CSV_PROJECT_LEAD]);
 											$project->setLeader($user);
 											break;
-										case TBGIdentifiableTypeClass::TYPE_TEAM:
-											$team = new TBGTeam(trim($activerow[$lead], '" '));
+										case self::CSV_IDENTIFIER_TYPE_TEAM:
+											$team = new TBGTeam($activerow[self::CSV_PROJECT_LEAD]);
 											$project->setLeader($team);
 											break;
 									}
 								}
 								
-								if ($qa !== null && $qa_type !== null)
+								if (isset($activerow[self::CSV_PROJECT_QA]) && isset($activerow[self::CSV_PROJECT_QA_TYPE]))
 								{
-									switch (trim($activerow[$qa_type], '"'))
+									switch ($activerow[self::CSV_PROJECT_QA_TYPE])
 									{
-										case TBGIdentifiableTypeClass::TYPE_USER:
-											$user = new TBGUser(trim($activerow[$qa], '" '));
+										case self::CSV_IDENTIFIER_TYPE_USER:
+											$user = new TBGUser($activerow[self::CSV_PROJECT_QA]);
 											$project->setQaResponsible($user);
 											break;
-										case TBGIdentifiableTypeClass::TYPE_TEAM:
-											$team = new TBGTeam(trim($activerow[$qa], '" '));
+										case self::CSV_IDENTIFIER_TYPE_TEAM:
+											$team = new TBGTeam($activerow[self::CSV_PROJECT_QA]);
 											$project->setQaResponsible($team);
 											break;
 									}
 								}
 								
-								if ($descr !== null)
-									$project->setDescription(trim($activerow[$descr], '" '));
+								if (isset($activerow[self::CSV_PROJECT_DESCR]))
+									$project->setDescription($activerow[self::CSV_PROJECT_DESCR]);
 									
-								if ($doc_url !== null)
-									$project->setDocumentationUrl(trim($activerow[$doc_url], '" '));
+								if (isset($activerow[self::CSV_PROJECT_DOC_URL]))
+									$project->setDocumentationUrl($activerow[self::CSV_PROJECT_DOC_URL]);
 									
-								if ($freelance !== null)
+								if (isset($activerow[self::CSV_PROJECT_FREELANCE]))
 								{
-									if (trim($activerow[$freelance], '"') == '1')
+									if ($activerow[self::CSV_PROJECT_FREELANCE] == '1')
 										$project->setChangeIssuesWithoutWorkingOnThem(true);
 								}
 								
-								if ($en_builds !== null)
+								if (isset($activerow[self::CSV_PROJECT_EN_BUILDS]))
 								{
-									if (trim($activerow[$en_builds], '"') == '1')
+									if ($activerow[self::CSV_PROJECT_EN_BUILDS] == '1')
 										$project->setBuildsEnabled(true);
 								}
 								
-								if ($en_comps !== null)
+								if (isset($activerow[self::CSV_PROJECT_EN_COMPS]))
 								{
-									if (trim($activerow[$en_comps], '"') == '1')
+									if ($activerow[self::CSV_PROJECT_EN_COMPS] == '1')
 										$project->setComponentsEnabled(true);
 								}
 								
-								if ($en_editions !== null)
+								if (isset($activerow[self::CSV_PROJECT_EN_EDITIONS]))
 								{
-									if (trim($activerow[$en_editions], '"') == '1')
+									if ($activerow[self::CSV_PROJECT_EN_EDITIONS] == '1')
 										$project->setEditionsEnabled(true);
 								}
+																
+								if (isset($activerow[self::CSV_PROJECT_CLIENT]))
+									$project->setClient(TBGContext::factory()->TBGClient($activerow[self::CSV_PROJECT_CLIENT]));
 								
-								if ($workflow_id !== null)
+								if (isset($activerow[self::CSV_PROJECT_SHOW_SUMMARY]))
 								{
-									$workflow = TBGContext::factory()->TBGWorkflowScheme(trim($activerow[$workflow_id], '" '));
-									$project->setWorkflowScheme($workflow);
-								}
-								
-								if ($client !== null)
-								{
-									$client_object = TBGContext::factory()->TBGWorkflowScheme(trim($activerow[$client], '" '));
-									$project->setClient($client_object);
-								}
-								
-								if ($show_summary !== null)
-								{
-									if (trim($activerow[$show_summary], '"') == '1')
+									if ($activerow[self::CSV_PROJECT_SHOW_SUMMARY] == '1')
 										$project->setFrontpageSummaryVisibility(true);
 								}
 								
-								if ($summary_type !== null)
-									$project->setFrontpageSummaryType(trim($activerow[$summary_type], '" '));
-
-								if ($issuetype_scheme !== null)
-									$project->setIssuetypeScheme(TBGContext::factory()->TBGIssuetypeScheme(trim($activerow[$issuetype_scheme], '"')));
+								if (isset($activerow[self::CSV_PROJECT_SUMMARY_TYPE]))
+									$project->setFrontpageSummaryType($activerow[self::CSV_PROJECT_SUMMARY_TYPE]);
 									
-								if ($allow_reporting !== null)
-									$project->setLocked(trim($activerow[$allow_reporting], '" '));
+								if (isset($activerow[self::CSV_PROJECT_ALLOW_REPORTING]))
+									$project->setLocked($activerow[self::CSV_PROJECT_ALLOW_REPORTING]);
 							
-								if ($autoassign !== null)
-									$project->setAutoassign(trim($activerow[$autoassign], '" '));
-									
+								if (isset($activerow[self::CSV_PROJECT_AUTOASSIGN]))
+									$project->setAutoassign($activerow[self::CSV_PROJECT_AUTOASSIGN]);
+								
+								if (isset($activerow[self::CSV_PROJECT_ISSUETYPE_SCHEME]))
+									$project->setIssuetypeScheme(TBGContext::factory()->TBGIssuetypeScheme($activerow[self::CSV_PROJECT_ISSUETYPE_SCHEME]));
+								
+								if (isset($activerow[self::CSV_PROJECT_WORKFLOW_ID]));
+									$project->setWorkflowScheme(TBGContext::factory()->TBGWorkflowScheme($activerow[self::CSV_PROJECT_WORKFLOW_ID]));
+								
 								$project->save();
 							}
 							catch (Exception $e)
@@ -3045,93 +2916,91 @@
 							}
 						}
 						break;
-					case 'issues':
-						for ($i = 1; $i != count($data); $i++)
+					case self::CSV_TYPE_ISSUES:
+						for ($i = 0; $i != count($data); $i++)
 						{
 							try
 							{
 								$activerow = $data[$i];
-								$activerow = html_entity_decode($activerow, ENT_QUOTES);
-								$activerow = explode(',', $activerow);
+
 								$issue = new TBGIssue();
-								$issue->setTitle(trim($activerow[$title], '" '));
-								$issue->setProject(trim($activerow[$project], '" '));
-								$issue->setIssuetype(trim($activerow[$issue_type], '" '));
+								$issue->setTitle($activerow[self::CSV_ISSUE_TITLE]);
+								$issue->setProject($activerow[self::CSV_ISSUE_PROJECT]);
+								$issue->setIssuetype($activerow[self::CSV_ISSUE_ISSUE_TYPE]);
 								
-								if ($issue_type !== null)
-									$issue->setIssuetype(trim($activerow[$issue_type], '" '));
+								$issue->save();
 								
-								if ($descr !== null)
-									$issue->setDescription(trim($activerow[$descr], '" '));
+								if (isset($activerow[self::CSV_ISSUE_DESCR]))
+									$issue->setDescription($activerow[self::CSV_ISSUE_DESCR]);
 									
-								if ($repro !== null)
-									$issue->setReproduction(trim($activerow[$repro], '" '));
+								if (isset($activerow[self::CSV_ISSUE_REPRO]))
+									$issue->setReproductionSteps($activerow[self::CSV_ISSUE_REPRO]);
 								
-								if ($state !== null)
-									$issue->setState(trim($activerow[$state], '" '));
+								if (isset($activerow[self::CSV_ISSUE_STATE]))
+									$issue->setState($activerow[self::CSV_ISSUE_STATE]);
 								
-								if ($status !== null)
-									$issue->setStatus(trim($activerow[$status], '" '));
-									
-								if ($posted_by !== null)
-									$issue->setPostedBy(TBGContext::factory()->TBGUser(trim($activerow[$posted_by], '"')));
+								if (isset($activerow[self::CSV_ISSUE_STATUS]))
+									$issue->setStatus($activerow[self::CSV_ISSUE_STATUS]);
 								
-								if ($owner !== null && $owner_type !== null)
+								if (isset($activerow[self::CSV_ISSUE_POSTED_BY]))
+									$issue->setPostedBy(TBGContext::factory()->TBGUser($activerow[self::CSV_ISSUE_POSTED_BY]));
+								
+								if (isset($activerow[self::CSV_ISSUE_OWNER]) && isset($activerow[self::CSV_ISSUE_OWNER_TYPE]))
 								{
-									switch (trim($activerow[$owner_type], '"'))
+									switch ($activerow[self::CSV_ISSUE_OWNER_TYPE])
 									{
-										case TBGIdentifiableTypeClass::TYPE_USER:
-											$user = new TBGUser(trim($activerow[$owner], '" '));
+										case self::CSV_IDENTIFIER_TYPE_USER:
+											$user = new TBGUser($activerow[self::CSV_ISSUE_OWNER]);
 											$issue->setOwner($user);
 											break;
-										case TBGIdentifiableTypeClass::TYPE_TEAM:
-											$team = new TBGTeam(trim($activerow[$owner], '" '));
+										case self::CSV_IDENTIFIER_TYPE_TEAM:
+											$team = new TBGTeam($activerow[self::CSV_ISSUE_OWNER]);
 											$issue->setOwner($team);
 											break;
 									}
 								}
 								
-								if ($assigned !== null && $assigned_type !== null)
+								if (isset($activerow[self::CSV_ISSUE_ASSIGNED]) && isset($activerow[self::CSV_ISSUE_ASSIGNED_TYPE]))
 								{
-									switch (trim($activerow[$assigned_type], '"'))
+									switch ($activerow[self::CSV_ISSUE_ASSIGNED_TYPE])
 									{
-										case TBGIdentifiableTypeClass::TYPE_USER:
-											$user = new TBGUser(trim($activerow[$assigned], '" '));
+										case self::CSV_IDENTIFIER_TYPE_USER:
+											$user = new TBGUser($activerow[self::CSV_ISSUE_ASSIGNED]);
 											$issue->setAssignee($user);
 											break;
-										case TBGIdentifiableTypeClass::TYPE_TEAM:
-											$team = new TBGTeam(trim($activerow[$assigned], '" '));
+										case self::CSV_IDENTIFIER_TYPE_TEAM:
+											$team = new TBGTeam($activerow[self::CSV_ISSUE_ASSIGNED]);
 											$issue->setAssignee($team);
 											break;
 									}
 								}
 								
-								if ($resolution !== null)
-									$issue->setResolution(trim($activerow[$resolution], '" '));
+								if (isset($activerow[self::CSV_ISSUE_RESOLUTION]))
+									$issue->setResolution($activerow[self::CSV_ISSUE_RESOLUTION]);
 									
-								if ($priority !== null)
-									$issue->setPriority(trim($activerow[$priority], '" '));
+								if (isset($activerow[self::CSV_ISSUE_PRIORITY]))
+									$issue->setPriority($activerow[self::CSV_ISSUE_PRIORITY]);
 								
-								if ($category !== null)
-									$issue->setCategory(trim($activerow[$category], '" '));
+								if (isset($activerow[self::CSV_ISSUE_CATEGORY]))
+									$issue->setCategory($activerow[self::CSV_ISSUE_CATEGORY]);
 								
-								if ($blocking !== null)
-									$issue->setBlocking(trim($activerow[$blocking], '" '));
+								if (isset($activerow[self::CSV_ISSUE_BLOCKING]))
+									$issue->setBlocking($activerow[self::CSV_ISSUE_BLOCKING]);
 									
-								if ($severity !== null)
-									$issue->setSeverity(trim($activerow[$severity], '" '));
+								if (isset($activerow[self::CSV_ISSUE_SEVERITY]))
+									$issue->setSeverity($activerow[self::CSV_ISSUE_SEVERITY]);
 									
-								if ($reproducability !== null)
-									$issue->setReproducability(trim($activerow[$reproducability], '" '));
+								if (isset($activerow[self::CSV_ISSUE_REPRODUCIBILITY]))
+									$issue->setReproducability($activerow[self::CSV_ISSUE_REPRODUCIBILITY]);
 									
-								if ($votes !== null)
-									$issue->setVotes(trim($activerow[$votes], '" '));
+								if (isset($activerow[self::CSV_ISSUE_VOTES]))
+									$issue->setVotes($activerow[self::CSV_ISSUE_VOTES]);
 								
-								if ($percentage !== null)
-									$issue->setPercentage(trim($activerow[$percentage], '" '));
+								if (isset($activerow[self::CSV_ISSUE_PERCENTAGE]))
+									$issue->setPercentCompleted($activerow[self::CSV_ISSUE_PERCENTAGE]);
 								
-								if ($milestone !== null)
-									$issue->setMilestone(trim($activerow[$milestone], '" '));
+								if (isset($activerow[self::CSV_ISSUE_MILESTONE]))
+									$issue->setMilestone($activerow[self::CSV_ISSUE_MILESTONE]);
 								
 								$issue->save();
 							}
@@ -3157,7 +3026,7 @@
 				}
 				else
 				{
-					return $this->renderJSON(array('message' => TBGContext::getI18n()->__('Successfully imported %num% rows!', array('%num%' => count($data)-1))));
+					return $this->renderJSON(array('message' => TBGContext::getI18n()->__('Successfully imported %num% rows!', array('%num%' => count($data)))));
 				}
 			}
 		}

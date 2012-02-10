@@ -36,7 +36,7 @@
 		const REPORTABLE = 'issuefields.is_reportable';
 		const REQUIRED = 'issuefields.required';
 
-		public function _initialize()
+		protected function _initialize()
 		{
 			parent::_setup(self::B2DBNAME, self::ID);
 			parent::_addVarchar(self::FIELD_KEY, 100);
@@ -250,7 +250,7 @@
 			$crit = $this->getCriteria();
 			$crit->addInsert(self::ISSUETYPE_SCHEME_ID, $scheme);
 			$crit->addInsert(self::ISSUETYPE_ID, $issue_type_bug_report_id);
-			$crit->addInsert(self::FIELD_KEY, 'percentcomplete');
+			$crit->addInsert(self::FIELD_KEY, 'percent_complete');
 			$crit->addInsert(self::REPORTABLE, true);
 			$crit->addInsert(self::ADDITIONAL, true);
 			$crit->addInsert(self::SCOPE, $scope);

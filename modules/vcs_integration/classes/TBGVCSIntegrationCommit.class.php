@@ -29,18 +29,21 @@
 		/**
 		 * Commit log.
 		 * @var string
+		 * @Column(type="text")
 		 */
 		protected $_log = null;
 		
 		/**
 		 * Revision number/hash of previous commit
 		 * @var string/integer
+		 * @Column(type="string", length=40)
 		 */
 		protected $_old_rev = null;
 		
 		/**
 		 * Revision number/hash of this commit
 		 * @var string/integer
+		 * @Column(type="string", length=40)
 		 */
 		protected $_new_rev = null;
 		
@@ -48,18 +51,21 @@
 		 * Commit author
 		 * @var TBGUser
 		 * @Relates(class="TBGUser")
+		 * @Column(type="integer")
 		 */
 		protected $_author = null;
 		
 		/**
 		 * POSIX timestamp of commit
 		 * @var integer
+		 * @Column(type="integer")
 		 */
 		protected $_date = null;
 		
 		/**
 		 * Misc data
 		 * @var string
+		 * @Column(type="text")
 		 */
 		protected $_data = null;
 		
@@ -79,8 +85,9 @@
 		 * Project
 		 * @var TBGProject
 		 * @Relates(class="TBGProject")
+		 *  @Column(type="integer", name="project_id")
 		 */
-		protected $_project_id = null;
+		protected $_project = null;
 		
 		/**
 		 * Get the commit log for this commit
@@ -115,7 +122,16 @@
 		 */
 		public function getPreviousCommit()
 		{
-			// FIXME
+				$row = TBGVCSIntegrationCommitsTable::getTable()->getCommitByCommitId($this->_old_rev, $this->getProject()->getID());
+				
+				if ($row instanceof b2db\Row)
+				{
+					return TBGContext::factory()->TBGVCSIntegrationCommit($row->get(TBGVCSIntegrationCommitsTable::ID), $row);
+				}
+				else
+				{
+					return null;
+				}
 		}
 		
 		/**
@@ -171,7 +187,7 @@
 		 */
 		public function getProject()
 		{
-			return $this->_project;
+			return $this->_b2dbLazyload('_project');
 		}
 		
 		/**
@@ -234,7 +250,7 @@
 		 */
 		public function setProject(TBGProject $project)
 		{
-			$this->_project_id = $project;
+			$this->_project = $project;
 		}
 		
 		private function _populateAffectedFiles()
