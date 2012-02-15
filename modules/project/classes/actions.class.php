@@ -30,19 +30,19 @@
 		 */
 		public function preExecute(TBGRequest $request, $action)
 		{
-			if ($project_key = $request['project_key'])
-			{
-				try
-				{
-					$this->selected_project = TBGProject::getByKey($project_key);
-				}
-				catch (Exception $e) {}
-			}
-			elseif ($project_id = $request['project_id'])
+			if ($project_id = $request['project_id'])
 			{
 				try
 				{
 					$this->selected_project = TBGContext::factory()->TBGProject($project_id);
+				}
+				catch (Exception $e) {}
+			}
+			elseif ($project_key = $request['project_key'])
+			{
+				try
+				{
+					$this->selected_project = TBGProject::getByKey($project_key);
 				}
 				catch (Exception $e) {}
 			}
@@ -195,7 +195,7 @@
 					}
 					else
 					{
-						return $this->renderJSON(array('failed' => false, 'content' => $this->getTemplateHTML('main/relatedissue', array('theIssue' => $issue, 'related_issue' => $task)), 'comment' => (($comment instanceof TBGComment) ? $this->getTemplateHTML('main/comment', array('comment' => $comment, 'theIssue' => $issue)) : false), 'message' => TBGContext::getI18n()->__('The task was added')));
+						return $this->renderJSON(array('failed' => false, 'content' => $this->getTemplateHTML('main/relatedissue', array('issue' => $task)), 'comment' => (($comment instanceof TBGComment) ? $this->getTemplateHTML('main/comment', array('comment' => $comment, 'theIssue' => $issue)) : false), 'message' => TBGContext::getI18n()->__('The task was added')));
 					}
 				}
 				return $this->renderJSON(array('failed' => true, 'error' => TBGContext::getI18n()->__('Invalid user story')));

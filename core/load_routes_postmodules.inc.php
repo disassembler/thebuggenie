@@ -2,6 +2,7 @@
 
 	$routes[] = array('project_open_issues', '/:project_key/issues/open/*', 'search', 'findIssues', array('predefined_search' => TBGContext::PREDEFINED_SEARCH_PROJECT_OPEN_ISSUES, 'search' => true));
 	$routes[] = array('project_closed_issues', '/:project_key/issues/closed/*', 'search', 'findIssues', array('predefined_search' => TBGContext::PREDEFINED_SEARCH_PROJECT_CLOSED_ISSUES, 'search' => true));
+	$routes[] = array('project_wishlist_issues', '/:project_key/issues/wishlist/*', 'search', 'findIssues', array('predefined_search' => TBGContext::PREDEFINED_SEARCH_PROJECT_WISHLIST, 'search' => true));
 	$routes[] = array('project_milestone_todo_list', '/:project_key/issues/todo/*', 'search', 'findIssues', array('predefined_search' => TBGContext::PREDEFINED_SEARCH_PROJECT_MILESTONE_TODO, 'search' => true));
 	$routes[] = array('project_most_voted_issues', '/:project_key/issues/mostvoted/*', 'search', 'findIssues', array('predefined_search' => TBGContext::PREDEFINED_SEARCH_PROJECT_MOST_VOTED, 'search' => true));
 	$routes[] = array('project_month_issues', '/:project_key/issues/this/month/*', 'search', 'findIssues', array('predefined_search' => TBGContext::PREDEFINED_SEARCH_PROJECT_REPORTED_THIS_MONTH, 'search' => true));
@@ -11,6 +12,7 @@
 	$routes[] = array('project_my_reported_issues', '/:project_key/issues/my/*', 'search', 'findIssues', array('predefined_search' => TBGContext::PREDEFINED_SEARCH_MY_REPORTED_ISSUES, 'search' => true));
 	$routes[] = array('viewissue_find_issue', '/:project_key/findissues/:issue_id/:type', 'main', 'findIssue', array('format' => 'json'));
 	$routes[] = array('viewissue_relate_issues', '/:project_key/issues/:issue_id/relate', 'main', 'relateIssues', array('format' => 'json'));
+	$routes[] = array('viewissue_related_issues', '/:project_key/issues/:issue_id/related', 'main', 'relatedIssues');
 	$routes[] = array('deleteissue', '/:project_key/issues/:issue_id/delete', 'main', 'deleteIssue');
 	$routes[] = array('lock_issue', '/lock/issue/:issue_id', 'main', 'lockIssue');
 	$routes[] = array('unlock_issue', '/unlock/issue/:issue_id', 'main', 'unlockIssue');

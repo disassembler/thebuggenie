@@ -72,6 +72,11 @@
 				if (count($_SESSION['viewissue_list']) > 10)
 					array_shift($_SESSION['viewissue_list']);
 
+				$this->editions = ($issue->getProject()->isEditionsEnabled()) ? $issue->getEditions() : array();
+				$this->components = ($issue->getProject()->isComponentsEnabled()) ? $components = $issue->getComponents() : array();
+				$this->builds = ($issue->getProject()->isBuildsEnabled()) ? $builds = $issue->getBuilds(): array();
+				$this->affected_count = count($this->editions) + count($this->components) + count($this->builds);
+
 				TBGEvent::createNew('core', 'viewissue', $issue)->trigger();
 			}
 
@@ -2291,26 +2296,29 @@
 
 		public function runGetFile(TBGRequest $request)
 		{
-			$file = TBGFilesTable::getTable()->doSelectById((int) $request['id']);
-			if ($file instanceof \b2db\Row)
+			$file = new TBGFile((int) $request['id']);
+			if ($file instanceof TBGFile)
 			{
-				$this->getResponse()->cleanBuffer();
-				$this->getResponse()->clearHeaders();
-				$this->getResponse()->setDecoration(TBGResponse::DECORATE_NONE);
-				$this->getResponse()->addHeader('Content-disposition: '.(($request['mode'] == 'download') ? 'attachment' : 'inline').'; filename="'.$file->get(TBGFilesTable::ORIGINAL_FILENAME).'"');
-				$this->getResponse()->addHeader('Content-type: '.$file->get(TBGFilesTable::CONTENT_TYPE).'; charset=UTF-8');
-				$this->getResponse()->renderHeaders();
-				if (TBGSettings::getUploadStorage() == 'files')
+				if ($file->hasAccess())
 				{
-					echo fpassthru(fopen(TBGSettings::getUploadsLocalpath().$file->get(TBGFilesTable::REAL_FILENAME), 'r'));
-					exit();
+					$this->getResponse()->cleanBuffer();
+					$this->getResponse()->clearHeaders();
+					$this->getResponse()->setDecoration(TBGResponse::DECORATE_NONE);
+					$this->getResponse()->addHeader('Content-disposition: '.(($request['mode'] == 'download') ? 'attachment' : 'inline').'; filename="'.$file->getOriginalFilename().'"');
+					$this->getResponse()->addHeader('Content-type: '.$file->getContentType().'; charset=UTF-8');
+					$this->getResponse()->renderHeaders();
+					if (TBGSettings::getUploadStorage() == 'files')
+					{
+						echo fpassthru(fopen(TBGSettings::getUploadsLocalpath().$file->getRealFilename(), 'r'));
+						exit();
+					}
+					else
+					{
+						echo $file->getContent();
+						exit();
+					}
+					return true;
 				}
-				else
-				{
-					echo $file->get(TBGFilesTable::CONTENT);
-					exit();
-				}
-				return true;
 			}
 			$this->return404(TBGContext::getI18n()->__('This file does not exist'));
 		}
@@ -2966,7 +2974,7 @@
 							$issue->addParentIssue($related_issue);
 						}
 						$cc++;
-						$content .= $this->getTemplateHTML('main/relatedissue', array('related_issue' => $related_issue));
+						$content .= $this->getTemplateHTML('main/relatedissue', array('issue' => $related_issue));
 					}
 					catch (Exception $e)
 					{
@@ -2988,6 +2996,18 @@
 			{
 				$this->getResponse()->setHttpStatus(400);
 				return $this->renderJSON(array('error' => TBGContext::getI18n()->__('An error occured when relating issues: %error%', array('%error%' => $message))));
+			}
+		}
+
+		public function runRelatedIssues(TBGRequest $request)
+		{
+			if ($issue_id = $request['issue_id'])
+			{
+				try
+				{
+					$this->issue = TBGContext::factory()->TBGIssue($issue_id);
+				}
+				catch (Exception $e) { }
 			}
 		}
 

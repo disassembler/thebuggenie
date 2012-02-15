@@ -10,7 +10,7 @@
 					<?php echo image_tag('spinning_20.gif', array('style' => 'display: none; float: left; margin: 5px 5px 0 0;', 'id' => 'issuetype_undo_spinning')); ?>
 					<a href="javascript:void(0);" onclick="if ($('issuetype_change').visible()) { $$('div.dropdown_box').each(Element.hide); } else { $$('div.dropdown_box').each(Element.hide); $('issuetype_change').toggle(); }" title="<?php echo __('Click to change issue type'); ?>"><?php echo image_tag('action_dropdown_small.png', array('class' => 'dropdown')); ?></a>
 				<?php endif; ?>
-				<span id="issuetype_content"><?php if ($issue->hasIssueType()) echo $issue->getIssueType()->getName(); ?></span>
+				<span id="issuetype_content"><?php if ($issue->hasIssueType()) echo __($issue->getIssueType()->getName()); ?></span>
 				<span class="faded_out" id="no_issuetype"<?php if ($issue->getIssueType() instanceof TBGIssuetype): ?> style="display: none;"<?php endif; ?>><?php echo __('Unknown issue type'); ?></span>
 			</dd>
 		</dl>
@@ -23,7 +23,7 @@
 						<?php foreach ($issuetypes as $issuetype): ?>
 							<tr>
 								<td style="width: 16px;"><?php echo image_tag($issuetype->getIcon() . '_tiny.png'); ?></td>
-								<td style="padding-left: 5px;"><a href="javascript:void(0);" onclick="TBG.Issues.Field.set('<?php echo make_url('issue_setfield', array('project_key' => $issue->getProject()->getKey(), 'issue_id' => $issue->getID(), 'field' => 'issuetype', 'issuetype_id' => $issuetype->getID())); ?>', 'issuetype');"><?php echo $issuetype->getName(); ?></a></td>
+								<td style="padding-left: 5px;"><a href="javascript:void(0);" onclick="TBG.Issues.Field.set('<?php echo make_url('issue_setfield', array('project_key' => $issue->getProject()->getKey(), 'issue_id' => $issue->getID(), 'field' => 'issuetype', 'issuetype_id' => $issuetype->getID())); ?>', 'issuetype');"><?php echo __($issuetype->getName()); ?></a></td>
 							</tr>
 						<?php endforeach; ?>
 					</table>
@@ -47,7 +47,7 @@
 				<table style="table-layout: auto; display: inline; width: auto;<?php if (!$issue->getStatus() instanceof TBGDatatype): ?> display: none;<?php endif; ?>" cellpadding=0 cellspacing=0 id="status_table">
 					<tr>
 						<td style="width: 18px;"><div style="border: 1px solid rgba(0, 0, 0, 0.3); background-color: <?php echo ($issue->getStatus() instanceof TBGDatatype) ? $issue->getStatus()->getColor() : '#FFF'; ?>; font-size: 1px; width: 15px; height: 15px; margin-right: 2px;" id="status_color">&nbsp;</div></td>
-						<td style="padding-left: 5px;" id="status_content" class="<?php if ($issue->isStatusChanged()): ?>issue_detail_changed<?php endif; ?><?php if (!$issue->isStatusMerged()): ?> issue_detail_unmerged<?php endif; ?>"><?php if ($issue->getStatus() instanceof TBGDatatype) echo $issue->getStatus()->getName(); ?></td>
+						<td style="padding-left: 5px;" id="status_content" class="<?php if ($issue->isStatusChanged()): ?>issue_detail_changed<?php endif; ?><?php if (!$issue->isStatusMerged()): ?> issue_detail_unmerged<?php endif; ?>"><?php if ($issue->getStatus() instanceof TBGDatatype) echo __($issue->getStatus()->getName()); ?></td>
 					</tr>
 				</table>
 				<span class="faded_out" id="no_status"<?php if ($issue->getStatus() instanceof TBGDatatype): ?> style="display: none;"<?php endif; ?>><?php echo __('Status not determined'); ?></span>
@@ -66,7 +66,7 @@
 							<?php if (!$status->canUserSet($tbg_user)) continue; ?>
 							<tr>
 								<td style="width: 16px;"><div style="border: 1px solid #AAA; background-color: <?php echo $status->getColor(); ?>; font-size: 1px; width: 16px; height: 15px; margin-right: 2px;">&nbsp;</div></td>
-								<td style="padding-left: 5px;"><a href="javascript:void(0);" onclick="TBG.Issues.Field.set('<?php echo make_url('issue_setfield', array('project_key' => $issue->getProject()->getKey(), 'issue_id' => $issue->getID(), 'field' => 'status', 'status_id' => $status->getID())); ?>', 'status');"><?php echo $status->getName(); ?></a></td>
+								<td style="padding-left: 5px;"><a href="javascript:void(0);" onclick="TBG.Issues.Field.set('<?php echo make_url('issue_setfield', array('project_key' => $issue->getProject()->getKey(), 'issue_id' => $issue->getID(), 'field' => 'status', 'status_id' => $status->getID())); ?>', 'status');"><?php echo __($status->getName()); ?></a></td>
 							</tr>
 						<?php endforeach; ?>
 					</table>
@@ -132,116 +132,114 @@
 			</dd>
 		</dl>
 	</li>
-	<ul style="width: 100%;<?php if (!$issue->isUserPainVisible()): ?> display: none;<?php endif; ?>" class="issue_details simple_list" id="user_pain_field">
-		<li id="pain_bug_type_field" class="issue_detail_field<?php if ($issue->isPainBugTypeChanged()): ?> issue_detail_changed<?php endif; ?><?php if (!$issue->isPainBugTypeMerged()): ?> issue_detail_unmerged<?php endif; ?>">
-			<dl class="viewissue_list">
-				<dt id="pain_bug_type_header"><?php echo __('Type of bug'); ?></dt>
-				<dd id="pain_bug_type_content">
-					<?php if ($issue->isEditable() && $issue->canEditUserPain()): ?>
-						<a href="javascript:void(0);" onclick="TBG.Issues.Field.revert('<?php echo make_url('issue_revertfield', array('project_key' => $issue->getProject()->getKey(), 'issue_id' => $issue->getID(), 'field' => 'pain_bug_type')); ?>', 'pain_bug_type');" title="<?php echo __('Undo this change'); ?>"><?php echo image_tag('undo.png', array('class' => 'undo')); ?></a>
-						<?php echo image_tag('spinning_16.gif', array('style' => 'display: none; float: left; margin-right: 5px;', 'id' => 'pain_bug_type_undo_spinning')); ?>
-						<a href="javascript:void(0);" onclick="if ($('pain_bug_type_change').visible()) { $$('div.dropdown_box').each(Element.hide); } else { $$('div.dropdown_box').each(Element.hide); $('pain_bug_type_change').toggle(); }" title="<?php echo __('Click to triage type of bug'); ?>"><?php echo image_tag('action_dropdown_small.png', array('class' => 'dropdown')); ?></a>
-					<?php endif; ?>
-					<span id="pain_bug_type_name"<?php if (!$issue->hasPainBugType()): ?> style="display: none;"<?php endif; ?>>
-						<?php echo ($issue->hasPainBugType()) ? $issue->getPainBugTypeLabel() : ''; ?>
-					</span>
-					<span class="faded_out" id="no_pain_bug_type"<?php if ($issue->hasPainBugType()): ?> style="display: none;"<?php endif; ?>><?php echo __('Not triaged'); ?></span>
-				</dd>
-			</dl>
-			<?php if ($issue->isEditable() && $issue->canEditUserPain()): ?>
-				<div class="rounded_box white shadowed dropdown_box" id="pain_bug_type_change" style="display: none; width: 280px; position: absolute; z-index: 10001; margin: 5px 0 5px 0; padding: 5px;">
-					<div class="dropdown_header"><?php echo __('Triage bug type'); ?></div>
-					<div class="dropdown_content">
-						<a href="javascript:void(0);" onclick="TBG.Issues.Field.set('<?php echo make_url('issue_setfield', array('project_key' => $issue->getProject()->getKey(), 'issue_id' => $issue->getID(), 'field' => 'pain_bug_type', 'pain_bug_type_id' => 0)); ?>', 'pain_bug_type');"><?php echo __('Clear bug type'); ?></a><br>
-					</div>
-					<div class="dropdown_content">
-						<?php echo __('%clear_the_bugtype% or click to select a new bug type', array('%clear_the_bugtype%' => '')); ?>:<br>
-						<ul class="choices">
-							<?php foreach (TBGIssue::getPainTypesOrLabel('pain_bug_type') as $choice_id => $choice): ?>
-								<li>
-									<?php //echo image_tag('icon_' . $field . '.png', array('style' => 'float: left; margin-right: 5px;')); ?><a href="javascript:void(0);" onclick="TBG.Issues.Field.set('<?php echo make_url('issue_setfield', array('project_key' => $issue->getProject()->getKey(), 'issue_id' => $issue->getID(), 'field' => 'pain_bug_type', 'pain_bug_type_id' => $choice_id)); ?>', 'pain_bug_type');"><?php echo $choice; ?></a>
-								</li>
-							<?php endforeach; ?>
-						</ul>
-						<div id="pain_bug_type_spinning" style="margin-top: 3px; display: none;"><?php echo image_tag('spinning_20.gif', array('style' => 'float: left; margin-right: 5px;')) . '&nbsp;' . __('Please wait'); ?>...</div>
-					</div>
-					<div id="pain_bug_type_change_error" class="error_message" style="display: none;"></div>
+	<li id="pain_bug_type_field" class="issue_detail_field<?php if ($issue->isPainBugTypeChanged()): ?> issue_detail_changed<?php endif; ?><?php if (!$issue->isPainBugTypeMerged()): ?> issue_detail_unmerged<?php endif; ?>" style="<?php if (!$issue->isUserPainVisible()): ?> display: none;<?php endif; ?>">
+		<dl class="viewissue_list">
+			<dt id="pain_bug_type_header"><?php echo __('Type of bug'); ?></dt>
+			<dd id="pain_bug_type_content">
+				<?php if ($issue->isEditable() && $issue->canEditUserPain()): ?>
+					<a href="javascript:void(0);" onclick="TBG.Issues.Field.revert('<?php echo make_url('issue_revertfield', array('project_key' => $issue->getProject()->getKey(), 'issue_id' => $issue->getID(), 'field' => 'pain_bug_type')); ?>', 'pain_bug_type');" title="<?php echo __('Undo this change'); ?>"><?php echo image_tag('undo.png', array('class' => 'undo')); ?></a>
+					<?php echo image_tag('spinning_16.gif', array('style' => 'display: none; float: left; margin-right: 5px;', 'id' => 'pain_bug_type_undo_spinning')); ?>
+					<a href="javascript:void(0);" onclick="if ($('pain_bug_type_change').visible()) { $$('div.dropdown_box').each(Element.hide); } else { $$('div.dropdown_box').each(Element.hide); $('pain_bug_type_change').toggle(); }" title="<?php echo __('Click to triage type of bug'); ?>"><?php echo image_tag('action_dropdown_small.png', array('class' => 'dropdown')); ?></a>
+				<?php endif; ?>
+				<span id="pain_bug_type_name"<?php if (!$issue->hasPainBugType()): ?> style="display: none;"<?php endif; ?>>
+					<?php echo ($issue->hasPainBugType()) ? $issue->getPainBugTypeLabel() : ''; ?>
+				</span>
+				<span class="faded_out" id="no_pain_bug_type"<?php if ($issue->hasPainBugType()): ?> style="display: none;"<?php endif; ?>><?php echo __('Not triaged'); ?></span>
+			</dd>
+		</dl>
+		<?php if ($issue->isEditable() && $issue->canEditUserPain()): ?>
+			<div class="rounded_box white shadowed dropdown_box" id="pain_bug_type_change" style="display: none; width: 280px; position: absolute; z-index: 10001; margin: 5px 0 5px 0; padding: 5px;">
+				<div class="dropdown_header"><?php echo __('Triage bug type'); ?></div>
+				<div class="dropdown_content">
+					<a href="javascript:void(0);" onclick="TBG.Issues.Field.set('<?php echo make_url('issue_setfield', array('project_key' => $issue->getProject()->getKey(), 'issue_id' => $issue->getID(), 'field' => 'pain_bug_type', 'pain_bug_type_id' => 0)); ?>', 'pain_bug_type');"><?php echo __('Clear bug type'); ?></a><br>
 				</div>
-			<?php endif; ?>
-		</li>
-		<li id="pain_likelihood_field" class="issue_detail_field<?php if ($issue->isPainLikelihoodChanged()): ?> issue_detail_changed<?php endif; ?><?php if (!$issue->isPainLikelihoodMerged()): ?> issue_detail_unmerged<?php endif; ?>">
-			<dl class="viewissue_list">
-				<dt id="pain_likelihood_header"><?php echo __('Likelihood'); ?></dt>
-				<dd id="pain_likelihood_content" class="<?php if ($issue->isPainLikelihoodChanged()): ?>issue_detail_changed<?php endif; ?><?php if (!$issue->isPainLikelihoodMerged()): ?> issue_detail_unmerged<?php endif; ?>">
-					<?php if ($issue->isEditable() && $issue->canEditUserPain()): ?>
-						<a href="javascript:void(0);" onclick="TBG.Issues.Field.revert('<?php echo make_url('issue_revertfield', array('project_key' => $issue->getProject()->getKey(), 'issue_id' => $issue->getID(), 'field' => 'pain_likelihood')); ?>', 'pain_likelihood');" title="<?php echo __('Undo this change'); ?>"><?php echo image_tag('undo.png', array('class' => 'undo')); ?></a>
-						<?php echo image_tag('spinning_16.gif', array('style' => 'display: none; float: left; margin-right: 5px;', 'id' => 'pain_likelihood_undo_spinning')); ?>
-						<a href="javascript:void(0);" onclick="if ($('pain_likelihood_change').visible()) { $$('div.dropdown_box').each(Element.hide); } else { $$('div.dropdown_box').each(Element.hide); $('pain_likelihood_change').toggle(); }" title="<?php echo __('Click to triage likelihood'); ?>"><?php echo image_tag('action_dropdown_small.png', array('class' => 'dropdown')); ?></a>
-					<?php endif; ?>
-					<span id="pain_likelihood_name"<?php if (!$issue->hasPainLikelihood()): ?> style="display: none;"<?php endif; ?>>
-						<?php echo ($issue->hasPainLikelihood()) ? $issue->getPainLikelihoodLabel() : ''; ?>
-					</span>
-					<span class="faded_out" id="no_pain_likelihood"<?php if ($issue->hasPainLikelihood()): ?> style="display: none;"<?php endif; ?>><?php echo __('Not triaged'); ?></span>
-				</dd>
-			</dl>
-			<?php if ($issue->isEditable() && $issue->canEditUserPain()): ?>
-				<div class="rounded_box white shadowed dropdown_box" id="pain_likelihood_change" style="display: none; width: 280px; position: absolute; z-index: 10001; margin: 5px 0 5px 0; padding: 5px;">
-					<div class="dropdown_header"><?php echo __('Triage likelihood'); ?></div>
-					<div class="dropdown_content">
-						<a href="javascript:void(0);" onclick="TBG.Issues.Field.set('<?php echo make_url('issue_setfield', array('project_key' => $issue->getProject()->getKey(), 'issue_id' => $issue->getID(), 'field' => 'pain_likelihood', 'pain_likelihood_id' => 0)); ?>', 'pain_likelihood');"><?php echo __('Clear likelihood'); ?></a><br>
-					</div>
-					<div class="dropdown_content">
-						<?php echo __('%clear_the_likelihood% or click to select a new likelihood', array('%clear_the_likelihood%' => '')); ?>:<br>
-						<ul class="choices">
-							<?php foreach (TBGIssue::getPainTypesOrLabel('pain_likelihood') as $choice_id => $choice): ?>
-								<li>
-									<?php //echo image_tag('icon_' . $field . '.png', array('style' => 'float: left; margin-right: 5px;')); ?><a href="javascript:void(0);" onclick="TBG.Issues.Field.set('<?php echo make_url('issue_setfield', array('project_key' => $issue->getProject()->getKey(), 'issue_id' => $issue->getID(), 'field' => 'pain_likelihood', 'pain_likelihood_id' => $choice_id)); ?>', 'pain_likelihood');"><?php echo $choice; ?></a>
-								</li>
-							<?php endforeach; ?>
-						</ul>
-						<div id="pain_likelihood_spinning" style="margin-top: 3px; display: none;"><?php echo image_tag('spinning_20.gif', array('style' => 'float: left; margin-right: 5px;')) . '&nbsp;' . __('Please wait'); ?>...</div>
-					</div>
-					<div id="pain_likelihood_change_error" class="error_message" style="display: none;"></div>
+				<div class="dropdown_content">
+					<?php echo __('%clear_the_bugtype% or click to select a new bug type', array('%clear_the_bugtype%' => '')); ?>:<br>
+					<ul class="choices">
+						<?php foreach (TBGIssue::getPainTypesOrLabel('pain_bug_type') as $choice_id => $choice): ?>
+							<li>
+								<a href="javascript:void(0);" onclick="TBG.Issues.Field.set('<?php echo make_url('issue_setfield', array('project_key' => $issue->getProject()->getKey(), 'issue_id' => $issue->getID(), 'field' => 'pain_bug_type', 'pain_bug_type_id' => $choice_id)); ?>', 'pain_bug_type');"><?php echo $choice; ?></a>
+							</li>
+						<?php endforeach; ?>
+					</ul>
+					<div id="pain_bug_type_spinning" style="margin-top: 3px; display: none;"><?php echo image_tag('spinning_20.gif', array('style' => 'float: left; margin-right: 5px;')) . '&nbsp;' . __('Please wait'); ?>...</div>
 				</div>
-			<?php endif; ?>
-		</li>
-		<li id="pain_effect_field" class="issue_detail_field<?php if ($issue->isPainEffectChanged()): ?> issue_detail_changed<?php endif; ?><?php if (!$issue->isPainEffectMerged()): ?> issue_detail_unmerged<?php endif; ?>">
-			<dl class="viewissue_list">
-				<dt id="pain_effect_header"><?php echo __('Effect'); ?></dt>
-				<dd id="pain_effect_content" class="<?php if ($issue->isPainEffectChanged()): ?>issue_detail_changed<?php endif; ?><?php if (!$issue->isPainEffectMerged()): ?> issue_detail_unmerged<?php endif; ?>">
-					<?php if ($issue->isEditable() && $issue->canEditUserPain()): ?>
-						<a href="javascript:void(0);" onclick="TBG.Issues.Field.revert('<?php echo make_url('issue_revertfield', array('project_key' => $issue->getProject()->getKey(), 'issue_id' => $issue->getID(), 'field' => 'pain_effect')); ?>', 'pain_effect');" title="<?php echo __('Undo this change'); ?>"><?php echo image_tag('undo.png', array('class' => 'undo')); ?></a>
-						<?php echo image_tag('spinning_16.gif', array('style' => 'display: none; float: left; margin-right: 5px;', 'id' => 'pain_effect_undo_spinning')); ?>
-						<a href="javascript:void(0);" onclick="if ($('pain_effect_change').visible()) { $$('div.dropdown_box').each(Element.hide); } else { $$('div.dropdown_box').each(Element.hide); $('pain_effect_change').toggle(); }" title="<?php echo __('Click to triage effect'); ?>"><?php echo image_tag('action_dropdown_small.png', array('class' => 'dropdown')); ?></a>
-					<?php endif; ?>
-					<span id="pain_effect_name"<?php if (!$issue->hasPainEffect()): ?> style="display: none;"<?php endif; ?>>
-						<?php echo ($issue->hasPainEffect()) ? $issue->getPainEffectLabel() : ''; ?>
-					</span>
-					<span class="faded_out" id="no_pain_effect"<?php if ($issue->hasPainEffect()): ?> style="display: none;"<?php endif; ?>><?php echo __('Not triaged'); ?></span>
-				</dd>
-			</dl>
-			<?php if ($issue->isEditable() && $issue->canEditUserPain()): ?>
-				<div class="rounded_box white shadowed dropdown_box" id="pain_effect_change" style="display: none; width: 280px; position: absolute; z-index: 10001; margin: 5px 0 5px 0; padding: 5px;">
-					<div class="dropdown_header"><?php echo __('Triage effect'); ?></div>
-					<div class="dropdown_content">
-						<a href="javascript:void(0);" onclick="TBG.Issues.Field.set('<?php echo make_url('issue_setfield', array('project_key' => $issue->getProject()->getKey(), 'issue_id' => $issue->getID(), 'field' => 'pain_effect', 'pain_effect_id' => 0)); ?>', 'pain_effect');"><?php echo __('Clear effect'); ?></a><br>
-					</div>
-					<div class="dropdown_content">
-						<?php echo __('%clear_the_effect% or click to select a new effect', array('%clear_the_effect%' => '')); ?>:<br>
-						<ul class="choices">
-							<?php foreach (TBGIssue::getPainTypesOrLabel('pain_effect') as $choice_id => $choice): ?>
-								<li>
-									<?php //echo image_tag('icon_' . $field . '.png', array('style' => 'float: left; margin-right: 5px;')); ?><a href="javascript:void(0);" onclick="TBG.Issues.Field.set('<?php echo make_url('issue_setfield', array('project_key' => $issue->getProject()->getKey(), 'issue_id' => $issue->getID(), 'field' => 'pain_effect', 'pain_effect_id' => $choice_id)); ?>', 'pain_effect');"><?php echo $choice; ?></a>
-								</li>
-							<?php endforeach; ?>
-						</ul>
-						<div id="pain_effect_spinning" style="margin-top: 3px; display: none;"><?php echo image_tag('spinning_20.gif', array('style' => 'float: left; margin-right: 5px;')) . '&nbsp;' . __('Please wait'); ?>...</div>
-					</div>
-					<div id="pain_effect_change_error" class="error_message" style="display: none;"></div>
+				<div id="pain_bug_type_change_error" class="error_message" style="display: none;"></div>
+			</div>
+		<?php endif; ?>
+	</li>
+	<li id="pain_likelihood_field" class="issue_detail_field<?php if ($issue->isPainLikelihoodChanged()): ?> issue_detail_changed<?php endif; ?><?php if (!$issue->isPainLikelihoodMerged()): ?> issue_detail_unmerged<?php endif; ?>" style="<?php if (!$issue->isUserPainVisible()): ?> display: none;<?php endif; ?>">
+		<dl class="viewissue_list">
+			<dt id="pain_likelihood_header"><?php echo __('Likelihood'); ?></dt>
+			<dd id="pain_likelihood_content" class="<?php if ($issue->isPainLikelihoodChanged()): ?>issue_detail_changed<?php endif; ?><?php if (!$issue->isPainLikelihoodMerged()): ?> issue_detail_unmerged<?php endif; ?>">
+				<?php if ($issue->isEditable() && $issue->canEditUserPain()): ?>
+					<a href="javascript:void(0);" onclick="TBG.Issues.Field.revert('<?php echo make_url('issue_revertfield', array('project_key' => $issue->getProject()->getKey(), 'issue_id' => $issue->getID(), 'field' => 'pain_likelihood')); ?>', 'pain_likelihood');" title="<?php echo __('Undo this change'); ?>"><?php echo image_tag('undo.png', array('class' => 'undo')); ?></a>
+					<?php echo image_tag('spinning_16.gif', array('style' => 'display: none; float: left; margin-right: 5px;', 'id' => 'pain_likelihood_undo_spinning')); ?>
+					<a href="javascript:void(0);" onclick="if ($('pain_likelihood_change').visible()) { $$('div.dropdown_box').each(Element.hide); } else { $$('div.dropdown_box').each(Element.hide); $('pain_likelihood_change').toggle(); }" title="<?php echo __('Click to triage likelihood'); ?>"><?php echo image_tag('action_dropdown_small.png', array('class' => 'dropdown')); ?></a>
+				<?php endif; ?>
+				<span id="pain_likelihood_name"<?php if (!$issue->hasPainLikelihood()): ?> style="display: none;"<?php endif; ?>>
+					<?php echo ($issue->hasPainLikelihood()) ? $issue->getPainLikelihoodLabel() : ''; ?>
+				</span>
+				<span class="faded_out" id="no_pain_likelihood"<?php if ($issue->hasPainLikelihood()): ?> style="display: none;"<?php endif; ?>><?php echo __('Not triaged'); ?></span>
+			</dd>
+		</dl>
+		<?php if ($issue->isEditable() && $issue->canEditUserPain()): ?>
+			<div class="rounded_box white shadowed dropdown_box" id="pain_likelihood_change" style="display: none; width: 280px; position: absolute; z-index: 10001; margin: 5px 0 5px 0; padding: 5px;">
+				<div class="dropdown_header"><?php echo __('Triage likelihood'); ?></div>
+				<div class="dropdown_content">
+					<a href="javascript:void(0);" onclick="TBG.Issues.Field.set('<?php echo make_url('issue_setfield', array('project_key' => $issue->getProject()->getKey(), 'issue_id' => $issue->getID(), 'field' => 'pain_likelihood', 'pain_likelihood_id' => 0)); ?>', 'pain_likelihood');"><?php echo __('Clear likelihood'); ?></a><br>
 				</div>
-			<?php endif; ?>
-		</li>
-	</ul>
+				<div class="dropdown_content">
+					<?php echo __('%clear_the_likelihood% or click to select a new likelihood', array('%clear_the_likelihood%' => '')); ?>:<br>
+					<ul class="choices">
+						<?php foreach (TBGIssue::getPainTypesOrLabel('pain_likelihood') as $choice_id => $choice): ?>
+							<li>
+								<?php //echo image_tag('icon_' . $field . '.png', array('style' => 'float: left; margin-right: 5px;')); ?><a href="javascript:void(0);" onclick="TBG.Issues.Field.set('<?php echo make_url('issue_setfield', array('project_key' => $issue->getProject()->getKey(), 'issue_id' => $issue->getID(), 'field' => 'pain_likelihood', 'pain_likelihood_id' => $choice_id)); ?>', 'pain_likelihood');"><?php echo $choice; ?></a>
+							</li>
+						<?php endforeach; ?>
+					</ul>
+					<div id="pain_likelihood_spinning" style="margin-top: 3px; display: none;"><?php echo image_tag('spinning_20.gif', array('style' => 'float: left; margin-right: 5px;')) . '&nbsp;' . __('Please wait'); ?>...</div>
+				</div>
+				<div id="pain_likelihood_change_error" class="error_message" style="display: none;"></div>
+			</div>
+		<?php endif; ?>
+	</li>
+	<li id="pain_effect_field" class="issue_detail_field<?php if ($issue->isPainEffectChanged()): ?> issue_detail_changed<?php endif; ?><?php if (!$issue->isPainEffectMerged()): ?> issue_detail_unmerged<?php endif; ?>" style="<?php if (!$issue->isUserPainVisible()): ?> display: none;<?php endif; ?>">
+		<dl class="viewissue_list">
+			<dt id="pain_effect_header"><?php echo __('Effect'); ?></dt>
+			<dd id="pain_effect_content" class="<?php if ($issue->isPainEffectChanged()): ?>issue_detail_changed<?php endif; ?><?php if (!$issue->isPainEffectMerged()): ?> issue_detail_unmerged<?php endif; ?>">
+				<?php if ($issue->isEditable() && $issue->canEditUserPain()): ?>
+					<a href="javascript:void(0);" onclick="TBG.Issues.Field.revert('<?php echo make_url('issue_revertfield', array('project_key' => $issue->getProject()->getKey(), 'issue_id' => $issue->getID(), 'field' => 'pain_effect')); ?>', 'pain_effect');" title="<?php echo __('Undo this change'); ?>"><?php echo image_tag('undo.png', array('class' => 'undo')); ?></a>
+					<?php echo image_tag('spinning_16.gif', array('style' => 'display: none; float: left; margin-right: 5px;', 'id' => 'pain_effect_undo_spinning')); ?>
+					<a href="javascript:void(0);" onclick="if ($('pain_effect_change').visible()) { $$('div.dropdown_box').each(Element.hide); } else { $$('div.dropdown_box').each(Element.hide); $('pain_effect_change').toggle(); }" title="<?php echo __('Click to triage effect'); ?>"><?php echo image_tag('action_dropdown_small.png', array('class' => 'dropdown')); ?></a>
+				<?php endif; ?>
+				<span id="pain_effect_name"<?php if (!$issue->hasPainEffect()): ?> style="display: none;"<?php endif; ?>>
+					<?php echo ($issue->hasPainEffect()) ? $issue->getPainEffectLabel() : ''; ?>
+				</span>
+				<span class="faded_out" id="no_pain_effect"<?php if ($issue->hasPainEffect()): ?> style="display: none;"<?php endif; ?>><?php echo __('Not triaged'); ?></span>
+			</dd>
+		</dl>
+		<?php if ($issue->isEditable() && $issue->canEditUserPain()): ?>
+			<div class="rounded_box white shadowed dropdown_box" id="pain_effect_change" style="display: none; width: 280px; position: absolute; z-index: 10001; margin: 5px 0 5px 0; padding: 5px;">
+				<div class="dropdown_header"><?php echo __('Triage effect'); ?></div>
+				<div class="dropdown_content">
+					<a href="javascript:void(0);" onclick="TBG.Issues.Field.set('<?php echo make_url('issue_setfield', array('project_key' => $issue->getProject()->getKey(), 'issue_id' => $issue->getID(), 'field' => 'pain_effect', 'pain_effect_id' => 0)); ?>', 'pain_effect');"><?php echo __('Clear effect'); ?></a><br>
+				</div>
+				<div class="dropdown_content">
+					<?php echo __('%clear_the_effect% or click to select a new effect', array('%clear_the_effect%' => '')); ?>:<br>
+					<ul class="choices">
+						<?php foreach (TBGIssue::getPainTypesOrLabel('pain_effect') as $choice_id => $choice): ?>
+							<li>
+								<?php //echo image_tag('icon_' . $field . '.png', array('style' => 'float: left; margin-right: 5px;')); ?><a href="javascript:void(0);" onclick="TBG.Issues.Field.set('<?php echo make_url('issue_setfield', array('project_key' => $issue->getProject()->getKey(), 'issue_id' => $issue->getID(), 'field' => 'pain_effect', 'pain_effect_id' => $choice_id)); ?>', 'pain_effect');"><?php echo $choice; ?></a>
+							</li>
+						<?php endforeach; ?>
+					</ul>
+					<div id="pain_effect_spinning" style="margin-top: 3px; display: none;"><?php echo image_tag('spinning_20.gif', array('style' => 'float: left; margin-right: 5px;')) . '&nbsp;' . __('Please wait'); ?>...</div>
+				</div>
+				<div id="pain_effect_change_error" class="error_message" style="display: none;"></div>
+			</div>
+		<?php endif; ?>
+	</li>
 	<li id="posted_by_field" class="issue_detail_field<?php if ($issue->isPostedByChanged()): ?> issue_detail_changed<?php endif; ?><?php if (!$issue->isPostedByMerged()): ?> issue_detail_unmerged<?php endif; ?>">
 		<dl class="viewissue_list">
 			<dt id="posted_by_header"><?php echo __('Posted by'); ?></dt>
@@ -307,7 +305,7 @@
 				<?php if ($issue->isUpdateable() && $issue->canEditEstimatedTime()): ?>
 					<a href="javascript:void(0);" onclick="TBG.Issues.Field.revert('<?php echo make_url('issue_revertfield', array('project_key' => $issue->getProject()->getKey(), 'issue_id' => $issue->getID(), 'field' => 'estimated_time')); ?>', 'estimated_time');" title="<?php echo __('Undo this change'); ?>"><?php echo image_tag('undo.png', array('class' => 'undo')); ?></a>
 					<?php echo image_tag('spinning_16.gif', array('style' => 'display: none; float: left; margin-right: 5px;', 'id' => 'estimated_time_undo_spinning')); ?>
-					<a href="javascript:void(0);" onclick="if ($('estimated_time_change').visible()) { $$('div.dropdown_box').each(Element.hide); } else { $$('div.dropdown_box').each(Element.hide); $('estimated_time_<?php echo $issue->getID(); ?>_change').toggle(); }" title="<?php echo __('Click to estimate this issue'); ?>"><?php echo image_tag('action_dropdown_small.png', array('class' => 'dropdown')); ?></a>
+					<a href="javascript:void(0);" onclick="if ($('estimated_time_<?php echo $issue->getID(); ?>_change').visible()) { $$('div.dropdown_box').each(Element.hide); } else { $$('div.dropdown_box').each(Element.hide); $('estimated_time_<?php echo $issue->getID(); ?>_change').toggle(); }" title="<?php echo __('Click to estimate this issue'); ?>"><?php echo image_tag('action_dropdown_small.png', array('class' => 'dropdown')); ?></a>
 				<?php endif; ?>
 				<span id="estimated_time_<?php echo $issue->getID(); ?>_name"<?php if (!$issue->hasEstimatedTime()): ?> style="display: none;"<?php endif; ?>>
 					<?php echo $issue->getFormattedTime($issue->getEstimatedTime()); ?>
@@ -316,7 +314,7 @@
 			</dd>
 		</dl>
 		<?php if ($issue->isUpdateable() && $issue->canEditEstimatedTime()): ?>
-			<?php include_component('main/issueestimator', array('issue' => $issue, 'field' => 'estimated_time')); ?>
+			<?php include_component('main/issueestimator', array('issue' => $issue, 'field' => 'estimated_time', 'mode' => 'left')); ?>
 		<?php endif; ?>
 	</li>
 	<li id="spent_time_field"<?php if (!$issue->isSpentTimeVisible()): ?> style="display: none;"<?php endif; ?> class="issue_detail_field<?php if ($issue->isSpentTimeChanged()): ?> issue_detail_changed<?php endif; ?><?php if (!$issue->isSpentTimeMerged()): ?> issue_detail_unmerged<?php endif; ?>">
@@ -326,7 +324,7 @@
 				<?php if ($issue->isUpdateable() && $issue->canEditSpentTime()): ?>
 					<a href="javascript:void(0);" onclick="TBG.Issues.Field.revert('<?php echo make_url('issue_revertfield', array('project_key' => $issue->getProject()->getKey(), 'issue_id' => $issue->getID(), 'field' => 'spent_time')); ?>', 'spent_time');" title="<?php echo __('Undo this change'); ?>"><?php echo image_tag('undo.png', array('class' => 'undo')); ?></a>
 					<?php echo image_tag('spinning_16.gif', array('style' => 'display: none; float: left; margin-right: 5px;', 'id' => 'spent_time_undo_spinning')); ?>
-					<a href="javascript:void(0);" onclick="if ($('spent_time_change').visible()) { $$('div.dropdown_box').each(Element.hide); } else { $$('div.dropdown_box').each(Element.hide); $('spent_time_<?php echo $issue->getID(); ?>_change').toggle(); }" title="<?php echo __('Click to enter time spent on this issue'); ?>"><?php echo image_tag('action_dropdown_small.png', array('class' => 'dropdown')); ?></a>
+					<a href="javascript:void(0);" onclick="if ($('spent_time_<?php echo $issue->getID(); ?>_change').visible()) { $$('div.dropdown_box').each(Element.hide); } else { $$('div.dropdown_box').each(Element.hide); $('spent_time_<?php echo $issue->getID(); ?>_change').toggle(); }" title="<?php echo __('Click to enter time spent on this issue'); ?>"><?php echo image_tag('action_dropdown_small.png', array('class' => 'dropdown')); ?></a>
 				<?php endif; ?>
 				<span id="spent_time_name"<?php if (!$issue->hasSpentTime()): ?> style="display: none;"<?php endif; ?>>
 					<?php echo $issue->getFormattedTime($issue->getSpentTime()); ?>
@@ -335,7 +333,7 @@
 			</dd>
 		</dl>
 		<?php if ($issue->isUpdateable() && $issue->canEditSpentTime()): ?>
-			<?php include_component('main/issueestimator', array('issue' => $issue, 'field' => 'spent_time')); ?>
+			<?php include_component('main/issueestimator', array('issue' => $issue, 'field' => 'spent_time', 'mode' => 'left')); ?>
 		<?php endif; ?>
 	</li>
 	<?php foreach ($fields_list as $field => $info): ?>
@@ -354,9 +352,9 @@
 						<?php echo image_tag($info['icon_name'], array('style' => 'float: left; margin-right: 5px;')); ?>
 					<?php endif; ?>
 					<?php if (array_key_exists('url', $info) && $info['url']): ?>
-						<a id="<?php echo $field; ?>_name"<?php if (!$info['name_visible']): ?> style="display: none;"<?php endif; ?> target="_new" href="<?php echo $info['current_url']; ?>"><?php echo $info['name']; ?></a>
+						<a id="<?php echo $field; ?>_name"<?php if (!$info['name_visible']): ?> style="display: none;"<?php endif; ?> target="_new" href="<?php echo $info['current_url']; ?>"><?php echo __($info['name']); ?></a>
 					<?php else: ?>
-						<span id="<?php echo $field; ?>_name"<?php if (!$info['name_visible']): ?> style="display: none;"<?php endif; ?>><?php echo $info['name']; ?></span>
+						<span id="<?php echo $field; ?>_name"<?php if (!$info['name_visible']): ?> style="display: none;"<?php endif; ?>><?php echo __($info['name']); ?></span>
 					<?php endif; ?>
 					<span class="faded_out" id="no_<?php echo $field; ?>"<?php if (!$info['noname_visible']): ?> style="display: none;"<?php endif; ?>><?php echo __('Not determined'); ?></span>
 				</dd>
@@ -374,7 +372,7 @@
 							<?php foreach ($info['choices'] as $choice): ?>
 								<?php if ($choice instanceof TBGDatatypeBase && !$choice->canUserSet($tbg_user)) continue; ?>
 								<li>
-									<?php echo image_tag('icon_' . $field . '.png', array('style' => 'float: left; margin-right: 5px;')); ?><a href="javascript:void(0);" onclick="TBG.Issues.Field.set('<?php echo make_url('issue_setfield', array('project_key' => $issue->getProject()->getKey(), 'issue_id' => $issue->getID(), 'field' => $field, $field . '_id' => $choice->getID())); ?>', '<?php echo $field; ?>');"><?php echo $choice->getName(); ?></a>
+									<?php echo image_tag('icon_' . $field . '.png', array('style' => 'float: left; margin-right: 5px;')); ?><a href="javascript:void(0);" onclick="TBG.Issues.Field.set('<?php echo make_url('issue_setfield', array('project_key' => $issue->getProject()->getKey(), 'issue_id' => $issue->getID(), 'field' => $field, $field . '_id' => $choice->getID())); ?>', '<?php echo $field; ?>');"><?php echo __($choice->getName()); ?></a>
 								</li>
 							<?php endforeach; ?>
 						</ul>
@@ -442,7 +440,7 @@
 							$color = $status->getColor();
 						}
 						catch (Exception $e) { }
-						?><span id="<?php echo $field; ?>_name"<?php if (!$info['name_visible']): ?> style="display: none;"<?php endif; ?>><div style="border: 1px solid #AAA; background-color: <?php echo $color; ?>; font-size: 1px; width: 20px; height: 15px; margin-right: 5px; float: left;" id="status_color">&nbsp;</div><?php echo $value; ?></span><span class="faded_out" id="no_<?php echo $field; ?>"<?php if (!$info['noname_visible']): ?> style="display: none;"<?php endif; ?>><?php echo __('Not determined'); ?></span><?php
+						?><span id="<?php echo $field; ?>_name"<?php if (!$info['name_visible']): ?> style="display: none;"<?php endif; ?>><div style="border: 1px solid #AAA; background-color: <?php echo $color; ?>; font-size: 1px; width: 20px; height: 15px; margin-right: 5px; float: left;" id="status_color">&nbsp;</div><?php echo __($value); ?></span><span class="faded_out" id="no_<?php echo $field; ?>"<?php if (!$info['noname_visible']): ?> style="display: none;"<?php endif; ?>><?php echo __('Not determined'); ?></span><?php
 						break;
 					default:
 						?><span id="<?php echo $field; ?>_name"<?php if (!$info['name_visible']): ?> style="display: none;"<?php endif; ?>><?php echo $info['name']; ?></span><span class="faded_out" id="no_<?php echo $field; ?>"<?php if (!$info['noname_visible']): ?> style="display: none;"<?php endif; ?>><?php echo __('Not determined'); ?></span><?php
@@ -462,7 +460,7 @@
 						<?php foreach ($info['choices'] as $choice): ?>
 							<?php if (!$choice->canUserSet($tbg_user)) continue; ?>
 							<li>
-								<?php echo image_tag('icon_customdatatype.png', array('style' => 'float: left; margin-right: 5px;')); ?><a href="javascript:void(0);" onclick="TBG.Issues.Field.set('<?php echo make_url('issue_setfield', array('project_key' => $issue->getProject()->getKey(), 'issue_id' => $issue->getID(), 'field' => $field, $field . '_value' => $choice->getValue())); ?>', '<?php echo $field; ?>');"><?php echo $choice->getName(); ?></a>
+								<?php echo image_tag('icon_customdatatype.png', array('style' => 'float: left; margin-right: 5px;')); ?><a href="javascript:void(0);" onclick="TBG.Issues.Field.set('<?php echo make_url('issue_setfield', array('project_key' => $issue->getProject()->getKey(), 'issue_id' => $issue->getID(), 'field' => $field, $field . '_value' => $choice->getValue())); ?>', '<?php echo $field; ?>');"><?php echo __($choice->getName()); ?></a>
 							</li>
 						<?php endforeach; ?>
 					</ul>
@@ -476,7 +474,7 @@
 								<ul class="choices">
 									<?php foreach ($issue->getProject()->getEditions() as $choice): ?>
 										<li>
-											<?php echo image_tag('icon_edition.png', array('style' => 'float: left; margin-right: 5px;')); ?><a href="javascript:void(0);" onclick="TBG.Issues.Field.set('<?php echo make_url('issue_setfield', array('project_key' => $issue->getProject()->getKey(), 'issue_id' => $issue->getID(), 'field' => $field, $field . '_value' => $choice->getID())); ?>', '<?php echo $field; ?>');"><?php echo $choice->getName(); ?></a>
+											<?php echo image_tag('icon_edition.png', array('style' => 'float: left; margin-right: 5px;')); ?><a href="javascript:void(0);" onclick="TBG.Issues.Field.set('<?php echo make_url('issue_setfield', array('project_key' => $issue->getProject()->getKey(), 'issue_id' => $issue->getID(), 'field' => $field, $field . '_value' => $choice->getID())); ?>', '<?php echo $field; ?>');"><?php echo __($choice->getName()); ?></a>
 										</li>
 									<?php endforeach; ?>
 								</ul>
@@ -488,7 +486,7 @@
 								<ul class="choices">
 									<?php foreach (TBGStatus::getAll($issue->getProject()->getID()) as $choice): ?>
 										<li>
-											<div style="border: 1px solid #AAA; background-color: <?php echo $choice->getColor(); ?>; font-size: 1px; width: 20px; height: 15px; margin-right: 7px; float: left;" id="status_color">&nbsp;</div><a href="javascript:void(0);" onclick="TBG.Issues.Field.set('<?php echo make_url('issue_setfield', array('project_key' => $issue->getProject()->getKey(), 'issue_id' => $issue->getID(), 'field' => $field, $field . '_value' => $choice->getID())); ?>', '<?php echo $field; ?>');"><?php echo $choice->getName(); ?></a>
+											<div style="border: 1px solid #AAA; background-color: <?php echo $choice->getColor(); ?>; font-size: 1px; width: 20px; height: 15px; margin-right: 7px; float: left;" id="status_color">&nbsp;</div><a href="javascript:void(0);" onclick="TBG.Issues.Field.set('<?php echo make_url('issue_setfield', array('project_key' => $issue->getProject()->getKey(), 'issue_id' => $issue->getID(), 'field' => $field, $field . '_value' => $choice->getID())); ?>', '<?php echo $field; ?>');"><?php echo __($choice->getName()); ?></a>
 										</li>
 									<?php endforeach; ?>
 								</ul>

@@ -349,30 +349,8 @@
 			<ul id="viewissue_menu">
 				<li id="tab_comments" class="selected"><?php echo javascript_link_tag(image_tag('icon_comments.png', array('style' => 'float: left; margin-right: 5px;')) . __('Comments (%count%)', array('%count%' => '<span id="viewissue_comment_count">'.$issue->getCommentCount().'</span>')), array('onclick' => "TBG.Main.Helpers.tabSwitcher('tab_comments', 'viewissue_menu');")); ?></li>
 				<li id="tab_attached_information"><?php echo javascript_link_tag(image_tag('icon_attached_information.png', array('style' => 'float: left; margin-right: 5px;')) . __('Attached information (%count%)', array('%count%' => '<span id="viewissue_uploaded_attachments_count">'.(count($issue->getLinks()) + count($issue->getFiles())).'</span>')), array('onclick' => "TBG.Main.Helpers.tabSwitcher('tab_attached_information', 'viewissue_menu');")); ?></li>
-				<?php
-					$editions = array();
-					$components = array();
-					$builds = array();
-					
-					if($issue->getProject()->isEditionsEnabled())
-					{
-						$editions = $issue->getEditions();
-					}
-					
-					if($issue->getProject()->isComponentsEnabled())
-					{
-						$components = $issue->getComponents();
-					}
-
-					if($issue->getProject()->isBuildsEnabled())
-					{
-						$builds = $issue->getBuilds();
-					}
-					
-					$count = count($editions) + count($components) + count($builds);				
-				?>
-				<li id="tab_affected"><?php echo javascript_link_tag(image_tag('icon_affected_items.png', array('style' => 'float: left; margin-right: 5px;')) . __('Affected items (%count%)', array('%count%' => '<span id="viewissue_affects_count">'.$count.'</span>')), array('onclick' => "TBG.Main.Helpers.tabSwitcher('tab_affected', 'viewissue_menu');")); ?></li>
-				<li id="tab_related_issues_and_tasks"><?php echo javascript_link_tag(image_tag('icon_related_issues.png', array('style' => 'float: left; margin-right: 5px;')) . __('Related issues and tasks (%count%)', array('%count%' => '<span id="viewissue_duplicate_issues_count">'.(count($issue->getParentIssues())+count($issue->getChildIssues())).'</span>')), array('onclick' => "TBG.Main.Helpers.tabSwitcher('tab_related_issues_and_tasks', 'viewissue_menu');")); ?></li>
+				<li id="tab_affected"><?php echo javascript_link_tag(image_tag('icon_affected_items.png', array('style' => 'float: left; margin-right: 5px;')) . __('Affected items (%count%)', array('%count%' => '<span id="viewissue_affects_count">'.$affected_count.'</span>')), array('onclick' => "TBG.Main.Helpers.tabSwitcher('tab_affected', 'viewissue_menu');")); ?></li>
+				<li id="tab_related_issues_and_tasks"><?php echo javascript_link_tag(image_tag('spinning_16.gif', array('style' => 'float: left; margin-right: 5px; display: none;', 'id' => 'related_issues_indicator')) . image_tag('icon_related_issues.png', array('style' => 'float: left; margin-right: 5px;')) . __('Related issues and tasks (%count%)', array('%count%' => '<span id="viewissue_related_issues_count">'.(count($issue->getParentIssues())+count($issue->getChildIssues())).'</span>')), array('onclick' => "TBG.Main.Helpers.tabSwitcher('tab_related_issues_and_tasks', 'viewissue_menu');")); ?></li>
 				<li id="tab_duplicate_issues"><?php echo javascript_link_tag(image_tag('icon_duplicate_issues.png', array('style' => 'float: left; margin-right: 5px;')) . __('Duplicate issues (%count%)', array('%count%' => '<span id="viewissue_duplicate_issues_count">'.(count($issue->getDuplicateIssues())).'</span>')), array('onclick' => "TBG.Main.Helpers.tabSwitcher('tab_duplicate_issues', 'viewissue_menu');")); ?></li>
 				<?php TBGEvent::createNew('core', 'viewissue_tabs', $issue)->trigger(); ?>
 			</ul>
@@ -407,14 +385,16 @@
 				<div id="viewissue_related">
 					<table border="0" cellpadding="0" cellspacing="0" style="width: 100%;">
 						<tr>
-							<td id="related_parent_issues_inline" style="width: 360px;">
-								<?php $p_issues = 0; ?>
-								<?php foreach ($issue->getParentIssues() as $parent_issue): ?>
-									<?php if ($parent_issue->hasAccess()): ?>
-										<?php include_template('main/relatedissue', array('theIssue' => $issue, 'related_issue' => $parent_issue)); ?>
-										<?php $p_issues++; ?>
-									<?php endif; ?>
-								<?php endforeach; ?>
+							<td style="width: 360px;">
+								<div id="related_parent_issues_inline">
+									<?php $p_issues = 0; ?>
+									<?php foreach ($issue->getParentIssues() as $parent_issue): ?>
+										<?php if ($parent_issue->hasAccess()): ?>
+											<?php include_template('main/relatedissue', array('issue' => $parent_issue)); ?>
+											<?php $p_issues++; ?>
+										<?php endif; ?>
+									<?php endforeach; ?>
+								</div>
 								<div class="no_items" id="no_parent_issues"<?php if ($p_issues > 0): ?> style="display: none;"<?php endif; ?>><?php echo __('No other issues depends on this issue'); ?></div>
 							</td>
 							<td style="width: 40px; text-align: center; padding: 0;"><?php echo image_tag('right.png'); ?></td>
@@ -424,14 +404,16 @@
 								</div>
 							</td>
 							<td style="width: 40px; text-align: center; padding: 0;"><?php echo image_tag('right.png'); ?></td>
-							<td id="related_child_issues_inline" style="width: 360px;">
-								<?php $c_issues = 0; ?>
-								<?php foreach ($issue->getChildIssues() as $child_issue): ?>
-									<?php if ($child_issue->hasAccess()): ?>
-										<?php include_template('main/relatedissue', array('theIssue' => $issue, 'related_issue' => $child_issue)); ?>
-										<?php $c_issues++; ?>
-									<?php endif; ?>
-								<?php endforeach; ?>
+							<td style="width: 360px;">
+								<div id="related_child_issues_inline">
+									<?php $c_issues = 0; ?>
+									<?php foreach ($issue->getChildIssues() as $child_issue): ?>
+										<?php if ($child_issue->hasAccess()): ?>
+											<?php include_template('main/relatedissue', array('issue' => $child_issue)); ?>
+											<?php $c_issues++; ?>
+										<?php endif; ?>
+									<?php endforeach; ?>
+								</div>
 								<div class="no_items" id="no_child_issues"<?php if ($c_issues > 0): ?> style="display: none;"<?php endif; ?>><?php echo __('This issue does not depend on any other issues'); ?></div>
 							</td>
 						</tr>
@@ -469,10 +451,15 @@
 	</div>
 	<?php return; ?>
 <?php endif; ?>
-<?php if ($issue->isWorkflowTransitionsAvailable()): ?>
-	<?php foreach ($issue->getAvailableWorkflowTransitions() as $transition): ?>
-		<?php if ($transition instanceof TBGWorkflowTransition && $transition->hasTemplate()): ?>
-			<?php include_component($transition->getTemplate(), compact('issue', 'transition')); ?>
-		<?php endif; ?>
-	<?php endforeach; ?>
-<?php endif; ?>
+<div id="workflow_transition_container" style="display: none;">
+	<?php if ($issue->isWorkflowTransitionsAvailable()): ?>
+		<?php foreach ($issue->getAvailableWorkflowTransitions() as $transition): ?>
+			<?php if ($transition instanceof TBGWorkflowTransition && $transition->hasTemplate()): ?>
+				<?php include_component($transition->getTemplate(), compact('issue', 'transition')); ?>
+			<?php endif; ?>
+		<?php endforeach; ?>
+	<?php endif; ?>
+</div>
+<div id="workflow_transition_fullpage" class="fullpage_backdrop" style="display: none;">
+
+</div>

@@ -163,14 +163,10 @@ TBG.Core._scrollWatcher = function() {
 			if (y >= $('viewissue_menu_panes').offsetTop) {
 				if ($('comment_add_button') != undefined) {
 					var button = $('comment_add_button').remove();
-					button.down('input').addClassName('button-silver');
-					button.down('input').removeClassName('button-green');
 					$('workflow_actions').down('ul').insert(button);
 				}
 			} else if ($('comment_add_button') != undefined) {
 				var button = $('comment_add_button').remove();
-				button.down('input').removeClassName('button-silver');
-				button.down('input').addClassName('button-green');
 				$('add_comment_button_container').update(button);
 			}
 		}else {
@@ -178,8 +174,6 @@ TBG.Core._scrollWatcher = function() {
 			$('workflow_actions').removeClassName('fixed');
 			if ($('comment_add_button') != undefined) {
 				var button = $('comment_add_button').remove();
-				button.down('input').removeClassName('button-silver');
-				button.down('input').addClassName('button-green');
 				$('add_comment_button_container').update(button);
 			}
 		}
@@ -304,6 +298,7 @@ TBG.initialize = function(options) {
 	Event.observe(window, 'resize', TBG.Core._resizeWatcher);
 	Event.observe(window, 'scroll', TBG.Core._scrollWatcher);
 	TBG.Core._resizeWatcher();
+	TBG.Core._scrollWatcher();
 	if (TBG.Main.Dashboard.views.size() > 0) {
 		TBG.Main.Dashboard.views.each(function(view_id) {
 			TBG.Main.Dashboard.View.init(TBG.Main.Dashboard.url, view_id);
@@ -619,6 +614,34 @@ TBG.Main.Helpers.tabSwitcher = function(visibletab, menu) {
 	$(visibletab).addClassName('selected');
 	$(menu + '_panes').childElements().each(function(item){item.hide();});
 	$(visibletab + '_pane').show();
+};
+
+TBG.Main.Helpers.MarkitUp = function(element) {
+	element.markItUp({
+		previewParserPath:	'', // path to your Wiki parser
+		onShiftEnter:		{keepDefault:false, replaceWith:'\n\n'},
+		markupSet: [
+			{name:'Heading 1', key:'1', openWith:'== ', closeWith:' ==', placeHolder:'Your title here...'},
+			{name:'Heading 2', key:'2', openWith:'=== ', closeWith:' ===', placeHolder:'Your title here...'},
+			{name:'Heading 3', key:'3', openWith:'==== ', closeWith:' ====', placeHolder:'Your title here...'},
+			{name:'Heading 4', key:'4', openWith:'===== ', closeWith:' =====', placeHolder:'Your title here...'},
+			{name:'Heading 5', key:'5', openWith:'====== ', closeWith:' ======', placeHolder:'Your title here...'},
+			{separator:'---------------'},
+			{name:'Bold', key:'B', openWith:"'''", closeWith:"'''"},
+			{name:'Italic', key:'I', openWith:"''", closeWith:"''"},
+			{name:'Stroke through', key:'S', openWith:'<s>', closeWith:'</s>'},
+			{separator:'---------------'},
+			{name:'Bulleted list', openWith:'(!(* |!|*)!)'},
+			{name:'Numeric list', openWith:'(!(# |!|#)!)'},
+			{separator:'---------------'},
+			{name:'Picture', key:"P", replaceWith:'[[Image:[![Url:!:http://]!]|[![name]!]]]'},
+			{name:'Link', key:"L", openWith:"[[![Link]!] ", closeWith:']', placeHolder:'Your text to link here...'},
+			{name:'Url', openWith:"[[![Url:!:http://]!] ", closeWith:']', placeHolder:'Your text to link here...'},
+			{separator:'---------------'},
+			{name:'Quotes', openWith:'(!(> |!|>)!)', placeHolder:''},
+			{name:'Code', openWith:'(!(<source lang="[![Language:!:php]!]">|!|<pre>)!)', closeWith:'(!(</source>|!|</pre>)!)'}
+		]
+	});
 };
 
 TBG.Main.toggleBreadcrumbMenuPopout = function(event) {
@@ -2676,10 +2699,14 @@ TBG.Issues.updateFields = function(url)
  * Displays the workflow transition popup dialog
  */
 TBG.Issues.showWorkflowTransition = function(transition_id) {
-	TBG.Main.Helpers.Backdrop.show();
-	$('fullpage_backdrop_indicator').hide();
-	var workflow_div = $('issue_transition_container_' + transition_id).clone(true);
-	$('fullpage_backdrop_content').update(workflow_div);
+	var existing_container = $('workflow_transition_fullpage').down('.workflow_transition');
+	if (existing_container) {
+		existing_container.hide();
+		$('workflow_transition_container').insert(existing_container);
+	}
+	var workflow_div = $('issue_transition_container_' + transition_id);
+	$('workflow_transition_fullpage').insert(workflow_div);
+	$('workflow_transition_fullpage').appear({duration: 0.2});
 	workflow_div.appear({duration: 0.2, afterFinish: function() {
 		if ($('duplicate_finder_transition_' + transition_id)) {
 			$('viewissue_find_issue_' + transition_id + '_input').observe('keypress', function(event) {
@@ -2693,41 +2720,22 @@ TBG.Issues.showWorkflowTransition = function(transition_id) {
 	}});
 };
 
-TBG.Issues.addUserStoryTask = function(url, story_id, mode) {
-	var prefix = (mode == 'scrum') ? 'issue_' + story_id : 'viewissue';
-	var indicator_prefix = (mode == 'scrum') ? 'add_task_' + story_id : 'add_task';
-	var success_arr = {};
-	
-	if (mode == 'scrum') {
-		success_arr = {
-			reset: prefix + '_add_task_form',
-			hide: 'no_tasks_' + story_id,
-			callback: function(json) {
-				$(prefix + '_tasks').insert({bottom: json.content});
-				$(prefix + '_tasks_count').update(json.count);
-			}
-		};
-	} else {
-		success_arr = {
-			reset: prefix + '_add_task_form',
-			hide: 'no_child_issues',
-			callback: function(json) {
-				$('related_child_issues_inline').insert({bottom: json.content});
-				if (json.comment) {
-					$('comments_box').insert({bottom: json.comment});
-					if ($('comments_box').childElements().size() != 0) {
-						$('comments_none').hide();
-					}
+TBG.Issues.refreshRelatedIssues = function(url) {
+	if ($('related_child_issues_inline')) {
+		TBG.Main.Helpers.ajax(url, {
+			loading: {indicator: 'related_issues_indicator'},
+			success: {
+				hide: 'no_child_issues',
+				update: {element: 'related_child_issues_inline'},
+				callback: function() {
+					var count = 0;
+					count += $('related_child_issues_inline').childElements().size();
+					count += $('related_parent_issues_inline').childElements().size();
+					$('viewissue_related_issues_count').update(count);
 				}
 			}
-		};
+		});
 	}
-	
-	TBG.Main.Helpers.ajax(url, {
-		form: prefix + '_add_task_form',
-		loading: {indicator: indicator_prefix + '_indicator'},
-		success: success_arr
-	});
 };
 
 TBG.Issues.findRelated = function(url) {
@@ -3591,32 +3599,6 @@ TBG.Search.bulkUpdate = function(url, mode) {
 	}
 };
 
-jQuery(document).ready(function(){jQuery('textarea').markItUp({
-	previewParserPath:	'', // path to your Wiki parser
-	onShiftEnter:		{keepDefault:false, replaceWith:'\n\n'},
-	markupSet: [
-		{name:'Heading 1', key:'1', openWith:'== ', closeWith:' ==', placeHolder:'Your title here...'},
-		{name:'Heading 2', key:'2', openWith:'=== ', closeWith:' ===', placeHolder:'Your title here...'},
-		{name:'Heading 3', key:'3', openWith:'==== ', closeWith:' ====', placeHolder:'Your title here...'},
-		{name:'Heading 4', key:'4', openWith:'===== ', closeWith:' =====', placeHolder:'Your title here...'},
-		{name:'Heading 5', key:'5', openWith:'====== ', closeWith:' ======', placeHolder:'Your title here...'},
-		{separator:'---------------'},
-		{name:'Bold', key:'B', openWith:"'''", closeWith:"'''"},
-		{name:'Italic', key:'I', openWith:"''", closeWith:"''"},
-		{name:'Stroke through', key:'S', openWith:'<s>', closeWith:'</s>'},
-		{separator:'---------------'},
-		{name:'Bulleted list', openWith:'(!(* |!|*)!)'},
-		{name:'Numeric list', openWith:'(!(# |!|#)!)'},
-		{separator:'---------------'},
-		{name:'Picture', key:"P", replaceWith:'[[Image:[![Url:!:http://]!]|[![name]!]]]'},
-		{name:'Link', key:"L", openWith:"[[![Link]!] ", closeWith:']', placeHolder:'Your text to link here...'},
-		{name:'Url', openWith:"[[![Url:!:http://]!] ", closeWith:']', placeHolder:'Your text to link here...'},
-		{separator:'---------------'},
-		{name:'Quotes', openWith:'(!(> |!|>)!)', placeHolder:''},
-		{name:'Code', openWith:'(!(<source lang="[![Language:!:php]!]">|!|<pre>)!)', closeWith:'(!(</source>|!|</pre>)!)'}
-	]
-});});
-
 /*
 	Simple OpenID Plugin
 	http://code.google.com/p/openid-selector/
@@ -3826,3 +3808,7 @@ var openid = {
 		this.demo = demoMode;
 	}
 };
+
+	jQuery(document).ready(function(){
+		TBG.Main.Helpers.MarkitUp(jQuery('textarea'));
+	});

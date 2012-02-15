@@ -54,6 +54,7 @@
 							<div id="issues_menu" class="tab_menu_dropdown">
 								<?php echo link_tag(make_url('project_open_issues', array('project_key' => TBGContext::getCurrentProject()->getKey())), image_tag('icon_savedsearch.png') . __('Open issues for this project')); ?>
 								<?php echo link_tag(make_url('project_closed_issues', array('project_key' => TBGContext::getCurrentProject()->getKey())), image_tag('icon_savedsearch.png') . __('Closed issues for this project')); ?>
+								<?php echo link_tag(make_url('project_wishlist_issues', array('project_key' => TBGContext::getCurrentProject()->getKey())), image_tag('icon_savedsearch.png') . __('Wishlist for this project')); ?>
 								<?php echo link_tag(make_url('project_milestone_todo_list', array('project_key' => TBGContext::getCurrentProject()->getKey())), image_tag('icon_savedsearch.png') . __('Milestone todo-list for this project')); ?>
 								<?php echo link_tag(make_url('project_most_voted_issues', array('project_key' => TBGContext::getCurrentProject()->getKey())), image_tag('icon_savedsearch.png') . __('Most voted for issues')); ?>
 								<?php echo link_tag(make_url('project_month_issues', array('project_key' => TBGContext::getCurrentProject()->getKey())), image_tag('icon_savedsearch.png') . __('Issues reported this month')); ?>
@@ -76,7 +77,7 @@
 						</div>
 					</li>
 				<?php endif; ?>
-				<?php if (!TBGContext::isProjectContext() && ($tbg_user->hasPageAccess('clientlist') || count($tbg_user->getClients())) && !is_null(TBGClient::getAll())): ?>
+				<?php if (!TBGContext::isProjectContext() && $tbg_user->hasPageAccess('clientlist') && count($tbg_user->getClients()) && !is_null(TBGClient::getAll())): ?>
 					<li<?php if ($tbg_response->getPage() == 'client'): ?> class="selected"<?php endif; ?>>
 						<div>
 							<?php echo link_tag('javascript:void(0)', image_tag('tab_clients.png') . __('Clients'), array('class' => 'not_clickable')); ?>
